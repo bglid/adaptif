@@ -1,8 +1,9 @@
 mod filter_weights;
 pub use filter_weights::FilterWeights;
 
-mod sample_buffer;
-pub use sample_buffer::SampleBuffer;
+mod buffers;
+pub use buffers::SampleBuffer;
+pub use buffers::{BlockSize, WindowSize};
 
 mod signals;
 pub use signals::*;

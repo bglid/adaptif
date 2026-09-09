@@ -1,7 +1,43 @@
 use std::collections::VecDeque;
-use std::num::{NonZero, NonZeroUsize};
+use std::ops::Deref;
 
 use crate::types::FilterWeights;
+
+#[derive(Debug, Clone, Copy)]
+pub struct WindowSize(usize);
+impl WindowSize {
+    pub fn new(window_size: usize) -> Option<Self> {
+        if window_size == 0 {
+            None
+        } else {
+            Some(WindowSize(window_size))
+        }
+    }
+}
+impl Deref for WindowSize {
+    type Target = usize;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct BlockSize(usize);
+impl BlockSize {
+    pub fn new(block_size: usize) -> Option<Self> {
+        if block_size == 0 {
+            None
+        } else {
+            Some(BlockSize(block_size))
+        }
+    }
+}
+impl Deref for BlockSize {
+    type Target = usize;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 /// Fixed-size ring buffer for processing samples.
 /// Functions must ensure that `samples.len()` is the same before and after function calls
@@ -13,7 +49,7 @@ use crate::types::FilterWeights;
 #[derive(Debug, Clone)]
 pub struct SampleBuffer {
     samples: VecDeque<f64>,
-    capacity: NonZeroUsize,
+    capacity: WindowSize,
 }
 impl SampleBuffer {
     // We get the capacity directly from the weights to guarantee
@@ -22,15 +58,18 @@ impl SampleBuffer {
     pub fn new(weights: &FilterWeights) -> Self {
         SampleBuffer {
             samples: std::iter::repeat_n(0.0, weights.len()).collect(),
-            #[allow(clippy::unwrap_used, reason = "weights.len() is guaranteed non-zero")]
-            capacity: NonZero::new(weights.len()).unwrap(),
+            #[allow(
+                clippy::unwrap_used,
+                reason = "weights are initialized from NonZeroUsize"
+            )]
+            capacity: WindowSize::new(weights.len()).unwrap(),
         }
     }
 
     pub fn push(&mut self, sample: f64) {
         // have to bind this because pyo3 adds extra impl of PartialEq
-        let capacity: usize = self.capacity.into();
-        if self.samples.len() == capacity {
+        // let capacity: usize = *self.capacity;
+        if self.samples.len() == *self.capacity {
             self.samples.pop_front();
         }
         self.samples.push_back(sample);
@@ -41,7 +80,7 @@ impl SampleBuffer {
     }
 
     pub fn len(&self) -> usize {
-        self.capacity.into()
+        *self.capacity
     }
 
     pub fn iter(&self) -> SampleIter<'_> {
@@ -83,11 +122,10 @@ impl ExactSizeIterator for SampleIter<'_> {
 mod tests {
     use super::*;
     use crate::test_utils::{all_approx_equal, sample_buffer_from};
-    use std::num::NonZero;
 
     #[test]
     fn init_to_zero() {
-        let weights = FilterWeights::new(NonZero::new(3).unwrap(), 0.0, 5e-5).unwrap();
+        let weights = FilterWeights::new(WindowSize::new(3).unwrap(), 0.0, 5e-5).unwrap();
         let buffer = SampleBuffer::new(&weights);
 
         assert!(all_approx_equal(buffer.iter(), [0_f64; 3].iter()));

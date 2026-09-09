@@ -38,10 +38,9 @@ impl Algorithm for LeastMeanSquares {
 mod tests {
     use super::*;
     use crate::{
-        test_utils::{approx_equal, sample_buffer_from},
-        types::FilterWeights,
+        test_utils::{all_approx_equal, sample_buffer_from},
+        types::{FilterWeights, WindowSize},
     };
-    use std::num::NonZero;
 
     #[test]
     fn update_lms_1() {
@@ -49,15 +48,11 @@ mod tests {
         let e_n = OutputSample(2.0);
         let x_n = sample_buffer_from(&[1.0, -1.0]);
         let expected = [1.0, -1.0];
-        let mut weights = FilterWeights::zeros(NonZero::new(2).unwrap());
+        let mut weights = FilterWeights::zeros(WindowSize::new(2).unwrap());
 
         lms.update_step(&mut weights, e_n, &x_n);
 
-        let output_correct = weights
-            .iter()
-            .zip(expected.iter())
-            .all(|(a, b)| approx_equal(*a, *b, 1e-6));
-        assert!(output_correct);
+        assert!(all_approx_equal(weights.iter(), expected.iter()));
     }
 
     #[test]
@@ -66,15 +61,11 @@ mod tests {
         let e_n = OutputSample(1.0);
         let x_n = sample_buffer_from(&[5.0, 2.0]);
         let expected = [5.0, 2.0];
-        let mut weights = FilterWeights::zeros(NonZero::new(2).unwrap());
+        let mut weights = FilterWeights::zeros(WindowSize::new(2).unwrap());
 
         lms.update_step(&mut weights, e_n, &x_n);
 
-        let output_correct = weights
-            .iter()
-            .zip(expected.iter())
-            .all(|(a, b)| approx_equal(*a, *b, 1e-6));
-        assert!(output_correct);
+        assert!(all_approx_equal(weights.iter(), expected.iter()));
     }
 
     #[test]

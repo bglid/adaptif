@@ -1,10 +1,8 @@
-use std::num::{NonZero, NonZeroUsize};
-
 use crate::algorithms::Algorithm;
 use crate::error::{Error, Result};
 use crate::types::{
     FilterWeights, InputSample, InputSignal, NoiseEstimate, NoiseReference, NoiseSample,
-    OutputSample, OutputSignal, SampleBuffer,
+    OutputSample, OutputSignal, SampleBuffer, WindowSize,
 };
 
 // TODO: make f64 generic
@@ -17,13 +15,13 @@ use crate::types::{
 pub struct FilterBase<A: Algorithm> {
     algorithm: A,
     weights: FilterWeights,
-    window_size: NonZeroUsize,
+    window_size: WindowSize,
 }
 impl<A: Algorithm> FilterBase<A> {
     /// Initializes a filter using the provided algorithm configuration and window size.
     /// The weights are samples from a normal distribution with $\mu = 0.0 and $\sigma$ = 5e-5.
     pub fn new(algorithm: A, window_size: usize) -> Option<Self> {
-        let window_size = NonZero::new(window_size)?;
+        let window_size = WindowSize::new(window_size)?;
 
         // TODO: newtypes for mean and std_dev
         let weights = FilterWeights::new(window_size, 0.0, 5e-5)?;
@@ -39,7 +37,7 @@ impl<A: Algorithm> FilterBase<A> {
 
     /// Returns the filter's window size. This number is equal to the number of weights.
     pub fn window_size(&self) -> usize {
-        self.window_size.into()
+        *self.window_size
     }
 
     // TODO: getter fn for weights + loading weights w/ setter (from_weights() or load_weights())

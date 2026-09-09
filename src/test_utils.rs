@@ -7,7 +7,7 @@
 
 use std::num::NonZero;
 
-use crate::types::{FilterWeights, SampleBuffer};
+use crate::types::{FilterWeights, SampleBuffer, WindowSize};
 
 pub fn approx_equal(a: f64, b: f64, eps: f64) -> bool {
     (a - b).abs() < eps
@@ -34,7 +34,7 @@ where
 }
 
 pub fn sample_buffer_from(arr: &[f64]) -> SampleBuffer {
-    let weights = FilterWeights::zeros(NonZero::new(arr.len()).unwrap());
+    let weights = FilterWeights::zeros(WindowSize::new(arr.len()).unwrap());
     let mut buffer = SampleBuffer::new(&weights);
 
     for val in arr {
