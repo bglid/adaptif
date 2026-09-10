@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
-use std::ops::Deref;
+use std::num::{NonZero, NonZeroUsize};
+use std::ops::{Deref, DerefMut};
 
 use crate::types::FilterWeights;
 
@@ -49,38 +50,34 @@ impl Deref for BlockSize {
 #[derive(Debug, Clone)]
 pub struct SampleBuffer {
     samples: VecDeque<f64>,
-    capacity: WindowSize,
+    capacity: NonZeroUsize,
 }
 impl SampleBuffer {
     // We get the capacity directly from the weights to guarantee
     // that the buffer length and the number of weights are the same.
-    #[allow(clippy::missing_panics_doc, reason = "See unwrap_used below")]
-    pub fn new(weights: &FilterWeights) -> Self {
+    pub fn new(capacity: NonZeroUsize) -> Self {
         SampleBuffer {
-            samples: std::iter::repeat_n(0.0, weights.len()).collect(),
-            #[allow(
-                clippy::unwrap_used,
-                reason = "weights are initialized from NonZeroUsize"
-            )]
-            capacity: WindowSize::new(weights.len()).unwrap(),
+            samples: std::iter::repeat_n(0.0, capacity.into()).collect(),
+            capacity,
         }
     }
 
     pub fn push(&mut self, sample: f64) {
         // have to bind this because pyo3 adds extra impl of PartialEq
-        // let capacity: usize = *self.capacity;
-        if self.samples.len() == *self.capacity {
+        let capacity: usize = self.capacity.into();
+
+        if self.samples.len() == capacity {
             self.samples.pop_front();
         }
         self.samples.push_back(sample);
     }
 
-    pub fn get(&self, idx: usize) -> Option<&f64> {
-        self.samples.get(idx)
+    pub fn get(&self, index: usize) -> Option<&f64> {
+        self.samples.get(index)
     }
 
     pub fn len(&self) -> usize {
-        *self.capacity
+        self.capacity.into()
     }
 
     pub fn iter(&self) -> SampleIter<'_> {
@@ -117,23 +114,112 @@ impl ExactSizeIterator for SampleIter<'_> {
     }
 }
 
+pub struct NoiseBuffer(SampleBuffer);
+impl NoiseBuffer {
+    pub fn new(weights: &FilterWeights) -> Self {
+        #[allow(
+            clippy::unwrap_used,
+            clippy::missing_panics_doc,
+            reason = "FilterWeights::new() checks that the number of weights is greater than 0"
+        )]
+        NoiseBuffer(SampleBuffer::new(NonZero::new(weights.len()).unwrap()))
+    }
+}
+impl Deref for NoiseBuffer {
+    type Target = SampleBuffer;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl DerefMut for NoiseBuffer {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+/// Noise reference buffer for block processing.
+pub struct BlockNoiseBuffer(SampleBuffer);
+impl BlockNoiseBuffer {
+    /// Creates a buffer of length `window_size` + `block_size` - 1 for block processing.
+    pub fn new(weights: &FilterWeights, block_size: BlockSize) -> Self {
+        #[allow(
+            clippy::unwrap_used,
+            clippy::missing_panics_doc,
+            reason = "FilterWeights and BlockSize types ensure that capacity > 0"
+        )]
+        let capacity = NonZero::new(weights.len() + *block_size - 1).unwrap();
+        BlockNoiseBuffer(SampleBuffer::new(capacity))
+    }
+}
+impl Deref for BlockNoiseBuffer {
+    type Target = SampleBuffer;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl DerefMut for BlockNoiseBuffer {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+pub struct ErrorBuffer(SampleBuffer);
+impl ErrorBuffer {
+    pub fn new(block_size: BlockSize) -> Self {
+        #[allow(
+            clippy::unwrap_used,
+            clippy::missing_panics_doc,
+            reason = "BlockSize type cannot be zero"
+        )]
+        ErrorBuffer(SampleBuffer::new(NonZero::new(*block_size).unwrap()))
+    }
+}
+impl Deref for ErrorBuffer {
+    type Target = SampleBuffer;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl DerefMut for ErrorBuffer {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::indexing_slicing, reason = "Tests")]
 mod tests {
     use super::*;
-    use crate::test_utils::{all_approx_equal, sample_buffer_from};
+    use crate::test_utils::{all_approx_equal, noise_buffer_from};
 
     #[test]
-    fn init_to_zero() {
+    fn noise_buffer_init_to_zero() {
         let weights = FilterWeights::new(WindowSize::new(3).unwrap(), 0.0, 5e-5).unwrap();
-        let buffer = SampleBuffer::new(&weights);
 
+        let buffer = NoiseBuffer::new(&weights);
         assert!(all_approx_equal(buffer.iter(), [0_f64; 3].iter()));
     }
 
     #[test]
+    fn block_noise_buffer_init_to_zero() {
+        let weights = FilterWeights::new(WindowSize::new(3).unwrap(), 0.0, 5e-5).unwrap();
+
+        let buffer = BlockNoiseBuffer::new(&weights, BlockSize::new(2).unwrap());
+        assert!(all_approx_equal(buffer.iter(), [0_f64; 4].iter()));
+    }
+
+    #[test]
+    fn error_buffer_init_to_zero() {
+        let buffer = ErrorBuffer::new(BlockSize::new(2).unwrap());
+        assert!(all_approx_equal(buffer.iter(), [0_f64; 2].iter()));
+    }
+
+    #[test]
     fn push() {
-        let mut buffer = sample_buffer_from(&[0.0; 3]);
+        let mut buffer = noise_buffer_from(&[0.0; 3]);
 
         buffer.push(1.0);
         assert_eq!(buffer.len(), 3);
@@ -146,7 +232,7 @@ mod tests {
 
     #[test]
     fn buffer_size_invariant() {
-        let mut buffer = sample_buffer_from(&[0.0; 3]);
+        let mut buffer = noise_buffer_from(&[0.0; 3]);
 
         buffer.push(1.0);
         buffer.push(2.0);
@@ -163,7 +249,7 @@ mod tests {
 
     #[test]
     fn get() {
-        let mut buffer = sample_buffer_from(&[0.0; 3]);
+        let mut buffer = noise_buffer_from(&[0.0; 3]);
 
         buffer.push(1.0);
         buffer.push(2.0);

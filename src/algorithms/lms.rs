@@ -1,4 +1,4 @@
-use crate::types::{FilterWeights, OutputSample, SampleBuffer};
+use crate::types::{BlockNoiseBuffer, ErrorBuffer, FilterWeights, NoiseBuffer, OutputSample};
 use crate::{Error, Result};
 
 use crate::algorithms::{Algorithm, BlockAlgorithm};
@@ -32,7 +32,7 @@ impl Algorithm for LeastMeanSquares {
         &self,
         weights: &mut FilterWeights,
         error: OutputSample,
-        noise_ref: &SampleBuffer,
+        noise_ref: &NoiseBuffer,
     ) {
         for (w, x) in weights.iter_mut().zip(noise_ref.iter()) {
             *w += self.mu * (*error) * x;
@@ -48,15 +48,19 @@ impl BlockAlgorithm for LeastMeanSquares {
     fn update_block(
         &self,
         weights: &mut FilterWeights,
-        error: &SampleBuffer,
-        noise_ref: &SampleBuffer,
+        error: &ErrorBuffer,
+        noise_ref: &BlockNoiseBuffer,
     ) {
-        // TODO: make sure the buffer access patterns share the same time ordering (i.e. either
-        // oldest to newest or newest to oldest, but not both)
         for (n, w) in weights.iter_mut().enumerate() {
             let mut acc = 0_f64;
 
-            #[allow(clippy::unwrap_used, reason = "TODO")]
+            #[allow(
+                clippy::unwrap_used,
+                reason = "BlockNoiseBuffer has length `window_size + block_size - 1`.
+                This means the highest valid index is `window_size + block_size - 2`.
+                The max values for `n` and `b` are `window_size - 1` and `block_size - 1` respectively.
+                `(window_size - 1) + (block_size - 1) == window_size + block_size - 2`"
+            )]
             for (b, e) in error.iter().enumerate() {
                 // This is equivalent to a matrix multiplication.
                 // Since the noise references for the samples in the block overlap,
@@ -78,7 +82,9 @@ impl BlockAlgorithm for LeastMeanSquares {
 mod tests {
     use super::*;
     use crate::{
-        test_utils::{all_approx_equal, sample_buffer_from},
+        test_utils::{
+            all_approx_equal, block_noise_buffer_from, error_buffer_from, noise_buffer_from,
+        },
         types::{FilterWeights, WindowSize},
     };
 
@@ -86,7 +92,7 @@ mod tests {
     fn update_lms_1() {
         let lms = LeastMeanSquares::new(0.5).unwrap();
         let e_n = OutputSample(2.0);
-        let x_n = sample_buffer_from(&[1.0, -1.0]);
+        let x_n = noise_buffer_from(&[1.0, -1.0]);
         let expected = [1.0, -1.0];
         let mut weights = FilterWeights::zeros(WindowSize::new(2).unwrap());
 
@@ -99,7 +105,7 @@ mod tests {
     fn update_lms_2() {
         let lms = LeastMeanSquares::new(1.0).unwrap();
         let e_n = OutputSample(1.0);
-        let x_n = sample_buffer_from(&[5.0, 2.0]);
+        let x_n = noise_buffer_from(&[5.0, 2.0]);
         let expected = [5.0, 2.0];
         let mut weights = FilterWeights::zeros(WindowSize::new(2).unwrap());
 
@@ -113,8 +119,8 @@ mod tests {
         let lms = LeastMeanSquares::new(0.5).unwrap();
         // Because of the underlying queue implementation, the arrays here are ordered
         // from most to least recent sample
-        let e_n = sample_buffer_from(&[5.0, -6.0, 7.0]);
-        let x_n = sample_buffer_from(&[1.0, -2.0, 3.0, -4.0]);
+        let e_n = error_buffer_from(&[5.0, -6.0, 7.0]);
+        let x_n = block_noise_buffer_from(&[1.0, -2.0, 3.0, -4.0]);
         let expected = [19.0, -28.0];
         let mut weights = FilterWeights::zeros(WindowSize::new(2).unwrap());
 
@@ -128,8 +134,8 @@ mod tests {
         let lms = LeastMeanSquares::new(1.0).unwrap();
         // Because of the underlying queue implementation, the arrays here are ordered
         // from most to least recent sample
-        let e_n = sample_buffer_from(&[1.0, -1.0, 1.5]);
-        let x_n = sample_buffer_from(&[1.0, -2.0, 3.0, -4.0, 5.0]);
+        let e_n = error_buffer_from(&[1.0, -1.0, 1.5]);
+        let x_n = block_noise_buffer_from(&[1.0, -2.0, 3.0, -4.0, 5.0]);
         let expected = [7.5, -11.0, 14.5];
         let mut weights = FilterWeights::zeros(WindowSize::new(3).unwrap());
 

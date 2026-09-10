@@ -7,7 +7,9 @@
 
 use std::num::NonZero;
 
-use crate::types::{FilterWeights, SampleBuffer, WindowSize};
+use crate::types::{
+    BlockNoiseBuffer, BlockSize, ErrorBuffer, FilterWeights, NoiseBuffer, WindowSize,
+};
 
 pub fn approx_equal(a: f64, b: f64, eps: f64) -> bool {
     (a - b).abs() < eps
@@ -33,9 +35,30 @@ where
     }
 }
 
-pub fn sample_buffer_from(arr: &[f64]) -> SampleBuffer {
+pub fn noise_buffer_from(arr: &[f64]) -> NoiseBuffer {
     let weights = FilterWeights::zeros(WindowSize::new(arr.len()).unwrap());
-    let mut buffer = SampleBuffer::new(&weights);
+    let mut buffer = NoiseBuffer::new(&weights);
+
+    for val in arr {
+        buffer.push(*val);
+    }
+
+    buffer
+}
+
+pub fn block_noise_buffer_from(arr: &[f64]) -> BlockNoiseBuffer {
+    let weights = FilterWeights::zeros(WindowSize::new(arr.len()).unwrap());
+    let mut buffer = BlockNoiseBuffer::new(&weights, BlockSize::new(1).unwrap());
+
+    for val in arr {
+        buffer.push(*val);
+    }
+
+    buffer
+}
+
+pub fn error_buffer_from(arr: &[f64]) -> ErrorBuffer {
+    let mut buffer = ErrorBuffer::new(BlockSize::new(arr.len()).unwrap());
 
     for val in arr {
         buffer.push(*val);

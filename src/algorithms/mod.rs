@@ -1,4 +1,4 @@
-use crate::types::{FilterWeights, OutputSample, SampleBuffer};
+use crate::types::{BlockNoiseBuffer, ErrorBuffer, FilterWeights, NoiseBuffer, OutputSample};
 
 mod lms;
 pub use lms::LeastMeanSquares;
@@ -15,7 +15,7 @@ pub trait Algorithm {
         &self,
         weights: &mut FilterWeights,
         error: OutputSample,
-        noise_ref: &SampleBuffer,
+        noise_ref: &NoiseBuffer,
     );
 }
 
@@ -30,7 +30,7 @@ pub trait BlockAlgorithm {
     fn update_block(
         &self,
         weights: &mut FilterWeights,
-        error: &SampleBuffer, // TODO: replace with own type
-        noise_ref: &SampleBuffer,
+        error: &ErrorBuffer,
+        noise_ref: &BlockNoiseBuffer,
     );
 }

@@ -1,8 +1,8 @@
 use crate::algorithms::Algorithm;
 use crate::error::{Error, Result};
 use crate::types::{
-    FilterWeights, InputSample, InputSignal, NoiseEstimate, NoiseReference, NoiseSample,
-    OutputSample, OutputSignal, SampleBuffer, WindowSize,
+    FilterWeights, InputSample, InputSignal, NoiseBuffer, NoiseEstimate, NoiseReference,
+    NoiseSample, OutputSample, OutputSignal, WindowSize,
 };
 
 // TODO: make f64 generic
@@ -62,7 +62,7 @@ impl<A: Algorithm> FilterBase<A> {
 
         let n_samples = input_signal.len();
 
-        let mut noise_ref_buffer = SampleBuffer::new(&self.weights);
+        let mut noise_ref_buffer = NoiseBuffer::new(&self.weights);
         let mut cleaned_signal = OutputSignal::new(input_signal);
 
         for n in 0..n_samples {
@@ -99,7 +99,7 @@ impl<A: Algorithm> FilterBase<A> {
 
         let n_samples = input_signal.len();
 
-        let mut noise_ref_buffer = SampleBuffer::new(&self.weights);
+        let mut noise_ref_buffer = NoiseBuffer::new(&self.weights);
         let mut cleaned_signal = OutputSignal::new(input_signal);
 
         for n in 0..n_samples {
@@ -120,7 +120,7 @@ impl<A: Algorithm> FilterBase<A> {
 
     fn process_sample(
         &self,
-        noise_ref_buffer: &mut SampleBuffer,
+        noise_ref_buffer: &mut NoiseBuffer,
         input_sample: InputSample,
         noise_sample: NoiseSample,
     ) -> OutputSample {
@@ -132,8 +132,8 @@ impl<A: Algorithm> FilterBase<A> {
     }
 }
 
-fn estimate_noise(weights: &FilterWeights, x_n: &SampleBuffer) -> NoiseEstimate {
-    // SampleBuffer is initiated with the same length as weights, therefore we don't need to check
+fn estimate_noise(weights: &FilterWeights, x_n: &NoiseBuffer) -> NoiseEstimate {
+    // NoiseBuffer is initiated with the same length as weights, therefore we don't need to check
     NoiseEstimate(weights.iter().zip(x_n.iter()).map(|(w, x)| w * x).sum())
 }
 
@@ -157,7 +157,7 @@ fn check_signal_lengths(input_signal: &InputSignal, noise_ref: &NoiseReference) 
 mod tests {
     use super::*;
 
-    use crate::test_utils::{all_approx_equal, approx_equal, sample_buffer_from};
+    use crate::test_utils::{all_approx_equal, approx_equal, noise_buffer_from};
 
     struct TestAlgorithm;
     impl Algorithm for TestAlgorithm {
@@ -165,7 +165,7 @@ mod tests {
             &self,
             weights: &mut FilterWeights,
             error: OutputSample,
-            noise_ref: &SampleBuffer,
+            noise_ref: &NoiseBuffer,
         ) {
             for (i, w) in weights.iter_mut().enumerate() {
                 *w += (*error) * noise_ref.get(i).unwrap();
@@ -188,7 +188,7 @@ mod tests {
     fn estimate_noise_works() {
         let filter = testing_filter();
 
-        let x_n = sample_buffer_from(&[2.0, 3.0, 4.0]);
+        let x_n = noise_buffer_from(&[2.0, 3.0, 4.0]);
 
         let res = estimate_noise(&filter.weights, &x_n);
         assert!(approx_equal(*res, -2.0, 1e-6));

@@ -2,7 +2,7 @@
 
 use adaptif::algorithms::Algorithm;
 use adaptif::filters::FilterBase;
-use adaptif::types::{FilterWeights, InputSignal, NoiseReference, OutputSample, SampleBuffer};
+use adaptif::types::{FilterWeights, InputSignal, NoiseBuffer, NoiseReference, OutputSample};
 
 // Create a struct to hold any required parameters or state
 pub struct MyAlgorithm {
@@ -15,7 +15,7 @@ impl Algorithm for MyAlgorithm {
         &self,
         weights: &mut FilterWeights,
         error: OutputSample,
-        noise_ref: &SampleBuffer,
+        noise_ref: &NoiseBuffer,
     ) {
         for (w, x) in weights.iter_mut().zip(noise_ref.iter()) {
             *w += self.alpha * (*error) * x;
