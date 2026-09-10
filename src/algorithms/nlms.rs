@@ -12,9 +12,9 @@ pub struct NormalizedLeastMeanSquares {
 impl NormalizedLeastMeanSquares {
     /// # Errors
     ///
-    /// Returns an error if mu <= 0.0.
+    /// Returns an error if mu or eps <= 0.0.
     pub fn new(mu: f64, eps: f64) -> Result<Self> {
-        if mu > 0.0 {
+        if mu > 0.0 && eps > 0.0 {
             Ok(NormalizedLeastMeanSquares { mu, eps })
         } else {
             Err(Error::NonPositiveStepSize)
@@ -41,7 +41,7 @@ impl Algorithm for NormalizedLeastMeanSquares {
 mod tests {
     use super::*;
     use crate::{
-        test_utils::{approx_equal, sample_buffer_from},
+        test_utils::{all_approx_equal, sample_buffer_from},
         types::FilterWeights,
     };
     use std::num::NonZero;
@@ -56,11 +56,7 @@ mod tests {
 
         nlms.update_step(&mut weights, e_n, &x_n);
 
-        let output_correct = weights
-            .iter()
-            .zip(expected.iter())
-            .all(|(a, b)| approx_equal(*a, *b, 1e-6));
-        assert!(output_correct);
+        assert!(all_approx_equal(weights.iter(), expected.iter()));
     }
 
     #[test]
@@ -73,11 +69,7 @@ mod tests {
 
         nlms.update_step(&mut weights, e_n, &x_n);
 
-        let output_correct = weights
-            .iter()
-            .zip(expected.iter())
-            .all(|(a, b)| approx_equal(*a, *b, 1e-6));
-        assert!(output_correct);
+        assert!(all_approx_equal(weights.iter(), expected.iter()));
     }
 
     #[test]
@@ -91,6 +83,21 @@ mod tests {
         ));
         assert!(matches!(
             NormalizedLeastMeanSquares::new(-1.0, 1e-8),
+            Err(Error::NonPositiveStepSize)
+        ));
+    }
+
+    #[test]
+    fn eps_range() {
+        NormalizedLeastMeanSquares::new(1.0, 1e-8).unwrap();
+        NormalizedLeastMeanSquares::new(f64::MAX, 1e-8).unwrap();
+
+        assert!(matches!(
+            NormalizedLeastMeanSquares::new(1.0, 0.0),
+            Err(Error::NonPositiveStepSize)
+        ));
+        assert!(matches!(
+            NormalizedLeastMeanSquares::new(1.0, -1.0),
             Err(Error::NonPositiveStepSize)
         ));
     }

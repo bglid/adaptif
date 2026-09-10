@@ -48,6 +48,8 @@ pub_use = "allow" # it's neater to keep public items in their own modules than k
 mod_module_files = "allow" # modules should be self-contained to a directory
 let_underscore_untyped = "allow" # if we aren't going to use a return value, we generally don't care about its type
 error_impl_error = "allow" # Naming errors just "Error" and using them as `some_module::Error` matches the standard library
+pub_with_shorthand = "allow" # Allows for macros do be shared within the same crate using the pub(crate) ... shorthand
+
 
 # maybe
 missing_docs_in_private_items = "allow"
@@ -60,5 +62,3 @@ missing_inline_in_public_items = "allow"
 # This one is supposed to skip test modules (#[cfg(test)]), but as of 1.98.0 it only works on nightly.
 inline_modules = "allow"
 
-# Allows for macros do be shared within the same crate using the pub(crate) ... shorthand
-pub_with_shorthand = "allow"

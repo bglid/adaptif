@@ -53,6 +53,12 @@ impl<'a> NoiseReference<'a> {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum FilterOperation {
+    Adapt,
+    Filter,
+}
+
 #[allow(
     clippy::needless_pass_by_value,
     reason = "PyArrays must be passed by value"
@@ -87,7 +93,6 @@ mod adaptif {
     use super::{LMSFilter, NLMSFilter};
 }
 
-// ------- LMS
 #[pyclass]
 pub struct LMSFilter(FilterBase<LeastMeanSquares>);
 #[pymethods]
@@ -104,7 +109,6 @@ impl LMSFilter {
 
 generate_filter_bindings!(LMSFilter);
 
-// ------- NLMS
 #[pyclass]
 pub struct NLMSFilter(FilterBase<NormalizedLeastMeanSquares>);
 #[pymethods]
@@ -120,10 +124,3 @@ impl NLMSFilter {
 }
 
 generate_filter_bindings!(NLMSFilter);
-// -------
-
-#[derive(Debug, Clone, Copy)]
-enum FilterOperation {
-    Adapt,
-    Filter,
-}
