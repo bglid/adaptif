@@ -1,7 +1,3 @@
-#![allow(
-    clippy::pub_with_shorthand,
-    reason = "Project prefers shorthand visibility syntax"
-)]
 /// Declarative macro for generating filter binding setup.
 macro_rules! generate_filter_bindings {
     ($name: ident) => {

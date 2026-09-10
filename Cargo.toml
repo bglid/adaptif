@@ -59,3 +59,6 @@ missing_inline_in_public_items = "allow"
 
 # This one is supposed to skip test modules (#[cfg(test)]), but as of 1.98.0 it only works on nightly.
 inline_modules = "allow"
+
+# Allows for macros do be shared within the same crate using the pub(crate) ... shorthand
+pub_with_shorthand = "allow"

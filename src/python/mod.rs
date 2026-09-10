@@ -2,6 +2,8 @@
     clippy::multiple_inherent_impl,
     reason = "Defining methods that are only needed for this module and shouldn't be compiled otherwise."
 )]
+mod macros;
+use macros::generate_filter_bindings;
 
 use pyo3::prelude::*;
 
@@ -12,7 +14,6 @@ use numpy::{PyArray1, PyReadonlyArray1};
 use crate::Error;
 use crate::algorithms::{Algorithm, LeastMeanSquares, NormalizedLeastMeanSquares};
 use crate::filters::FilterBase;
-use crate::py_utils::generate_filter_bindings;
 use crate::types::{InputSignal, NoiseReference};
 
 impl Error {
