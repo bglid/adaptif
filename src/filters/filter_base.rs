@@ -1,9 +1,10 @@
 use crate::algorithms::Algorithm;
 use crate::error::{Error, Result};
-use crate::types::{
-    FilterWeights, InputSample, InputSignal, NoiseBuffer, NoiseEstimate, NoiseReference,
-    NoiseSample, OutputSample, OutputSignal, WindowSize,
+use crate::types::buffers::NoiseBuffer;
+use crate::types::signals::{
+    InputSample, InputSignal, NoiseReference, NoiseSample, OutputSample, OutputSignal,
 };
+use crate::types::{FilterWeights, NoiseEstimate, WindowSize};
 
 // TODO: make f64 generic
 

@@ -12,7 +12,7 @@ use numpy::{PyArray1, PyReadonlyArray1};
 use crate::Error;
 use crate::algorithms::LeastMeanSquares;
 use crate::filters::LMSFilter as RustLMSFilter;
-use crate::types::{InputSignal, NoiseReference};
+use crate::types::signals::{InputSignal, NoiseReference};
 
 impl Error {
     fn to_pyerr(&self) -> PyErr {

@@ -1,44 +1,13 @@
 use std::collections::VecDeque;
-use std::num::{NonZero, NonZeroUsize};
-use std::ops::{Deref, DerefMut};
+use std::num::NonZeroUsize;
 
-use crate::types::FilterWeights;
+use super::BlockSize;
 
-#[derive(Debug, Clone, Copy)]
-pub struct WindowSize(usize);
-impl WindowSize {
-    pub fn new(window_size: usize) -> Option<Self> {
-        if window_size == 0 {
-            None
-        } else {
-            Some(WindowSize(window_size))
-        }
-    }
-}
-impl Deref for WindowSize {
-    type Target = usize;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+mod error;
+pub use error::*;
 
-#[derive(Debug, Clone, Copy)]
-pub struct BlockSize(usize);
-impl BlockSize {
-    pub fn new(block_size: usize) -> Option<Self> {
-        if block_size == 0 {
-            None
-        } else {
-            Some(BlockSize(block_size))
-        }
-    }
-}
-impl Deref for BlockSize {
-    type Target = usize;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+mod noise;
+pub use noise::*;
 
 /// Fixed-size ring buffer for processing samples.
 /// Functions must ensure that `samples.len()` is the same before and after function calls
@@ -114,102 +83,11 @@ impl ExactSizeIterator for SampleIter<'_> {
     }
 }
 
-pub struct NoiseBuffer(SampleBuffer);
-impl NoiseBuffer {
-    pub fn new(weights: &FilterWeights) -> Self {
-        #[allow(
-            clippy::unwrap_used,
-            clippy::missing_panics_doc,
-            reason = "FilterWeights::new() checks that the number of weights is greater than 0"
-        )]
-        NoiseBuffer(SampleBuffer::new(NonZero::new(weights.len()).unwrap()))
-    }
-}
-impl Deref for NoiseBuffer {
-    type Target = SampleBuffer;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl DerefMut for NoiseBuffer {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-/// Noise reference buffer for block processing.
-pub struct BlockNoiseBuffer(SampleBuffer);
-impl BlockNoiseBuffer {
-    /// Creates a buffer of length `window_size` + `block_size` - 1 for block processing.
-    pub fn new(weights: &FilterWeights, block_size: BlockSize) -> Self {
-        #[allow(
-            clippy::unwrap_used,
-            clippy::missing_panics_doc,
-            reason = "FilterWeights and BlockSize types ensure that capacity > 0"
-        )]
-        let capacity = NonZero::new(weights.len() + *block_size - 1).unwrap();
-        BlockNoiseBuffer(SampleBuffer::new(capacity))
-    }
-}
-impl Deref for BlockNoiseBuffer {
-    type Target = SampleBuffer;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl DerefMut for BlockNoiseBuffer {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-pub struct ErrorBuffer(SampleBuffer);
-impl ErrorBuffer {
-    pub fn new(block_size: BlockSize) -> Self {
-        #[allow(
-            clippy::unwrap_used,
-            clippy::missing_panics_doc,
-            reason = "BlockSize type cannot be zero"
-        )]
-        ErrorBuffer(SampleBuffer::new(NonZero::new(*block_size).unwrap()))
-    }
-}
-impl Deref for ErrorBuffer {
-    type Target = SampleBuffer;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl DerefMut for ErrorBuffer {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::indexing_slicing, reason = "Tests")]
 mod tests {
     use super::*;
     use crate::test_utils::{all_approx_equal, noise_buffer_from};
-
-    #[test]
-    fn noise_buffer_init_to_zero() {
-        let weights = FilterWeights::new(WindowSize::new(3).unwrap(), 0.0, 5e-5).unwrap();
-
-        let buffer = NoiseBuffer::new(&weights);
-        assert!(all_approx_equal(buffer.iter(), [0_f64; 3].iter()));
-    }
-
-    #[test]
-    fn block_noise_buffer_init_to_zero() {
-        let weights = FilterWeights::new(WindowSize::new(3).unwrap(), 0.0, 5e-5).unwrap();
-
-        let buffer = BlockNoiseBuffer::new(&weights, BlockSize::new(2).unwrap());
-        assert!(all_approx_equal(buffer.iter(), [0_f64; 4].iter()));
-    }
 
     #[test]
     fn error_buffer_init_to_zero() {

@@ -2,7 +2,9 @@
 
 use adaptif::algorithms::Algorithm;
 use adaptif::filters::FilterBase;
-use adaptif::types::{FilterWeights, InputSignal, NoiseBuffer, NoiseReference, OutputSample};
+use adaptif::types::FilterWeights;
+use adaptif::types::buffers::NoiseBuffer;
+use adaptif::types::signals::{InputSignal, NoiseReference, OutputSample};
 
 // Create a struct to hold any required parameters or state
 pub struct MyAlgorithm {

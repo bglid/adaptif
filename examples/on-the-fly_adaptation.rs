@@ -2,7 +2,7 @@
 
 use adaptif::algorithms::LeastMeanSquares;
 use adaptif::filters::LMSFilter;
-use adaptif::types::{InputSignal, NoiseReference};
+use adaptif::types::signals::{InputSignal, NoiseReference};
 
 fn main() {
     // Sample inputs

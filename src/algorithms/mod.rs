@@ -1,4 +1,6 @@
-use crate::types::{BlockNoiseBuffer, ErrorBuffer, FilterWeights, NoiseBuffer, OutputSample};
+use crate::types::FilterWeights;
+use crate::types::buffers::{BlockNoiseBuffer, ErrorBuffer, NoiseBuffer};
+use crate::types::signals::OutputSample;
 
 mod lms;
 pub use lms::LeastMeanSquares;

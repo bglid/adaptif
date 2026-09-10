@@ -1,4 +1,6 @@
-use crate::types::{BlockNoiseBuffer, ErrorBuffer, FilterWeights, NoiseBuffer, OutputSample};
+use crate::types::FilterWeights;
+use crate::types::buffers::{BlockNoiseBuffer, ErrorBuffer, NoiseBuffer};
+use crate::types::signals::OutputSample;
 use crate::{Error, Result};
 
 use crate::algorithms::{Algorithm, BlockAlgorithm};
