@@ -35,7 +35,7 @@ where
 }
 
 pub fn noise_buffer_from(arr: &[f64]) -> NoiseBuffer {
-    let weights = FilterWeights::zeros(WindowSize::new(arr.len()).unwrap());
+    let weights = FilterWeights::new(WindowSize::new(arr.len()).unwrap());
     let mut buffer = NoiseBuffer::new(&weights);
 
     for val in arr {
@@ -46,7 +46,7 @@ pub fn noise_buffer_from(arr: &[f64]) -> NoiseBuffer {
 }
 
 pub fn block_noise_buffer_from(arr: &[f64]) -> BlockNoiseBuffer {
-    let weights = FilterWeights::zeros(WindowSize::new(arr.len()).unwrap());
+    let weights = FilterWeights::new(WindowSize::new(arr.len()).unwrap());
     let mut buffer = BlockNoiseBuffer::new(&weights, BlockSize::new(1).unwrap());
 
     for val in arr {

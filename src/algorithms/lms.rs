@@ -96,7 +96,7 @@ mod tests {
         let e_n = OutputSample(2.0);
         let x_n = noise_buffer_from(&[1.0, -1.0]);
         let expected = [1.0, -1.0];
-        let mut weights = FilterWeights::zeros(WindowSize::new(2).unwrap());
+        let mut weights = FilterWeights::new(WindowSize::new(2).unwrap());
 
         lms.update_step(&mut weights, e_n, &x_n);
 
@@ -109,7 +109,7 @@ mod tests {
         let e_n = OutputSample(1.0);
         let x_n = noise_buffer_from(&[5.0, 2.0]);
         let expected = [5.0, 2.0];
-        let mut weights = FilterWeights::zeros(WindowSize::new(2).unwrap());
+        let mut weights = FilterWeights::new(WindowSize::new(2).unwrap());
 
         lms.update_step(&mut weights, e_n, &x_n);
 
@@ -124,7 +124,7 @@ mod tests {
         let e_n = error_buffer_from(&[5.0, -6.0, 7.0]);
         let x_n = block_noise_buffer_from(&[1.0, -2.0, 3.0, -4.0]);
         let expected = [19.0, -28.0];
-        let mut weights = FilterWeights::zeros(WindowSize::new(2).unwrap());
+        let mut weights = FilterWeights::new(WindowSize::new(2).unwrap());
 
         lms.update_block(&mut weights, &e_n, &x_n);
 
@@ -139,7 +139,7 @@ mod tests {
         let e_n = error_buffer_from(&[1.0, -1.0, 1.5]);
         let x_n = block_noise_buffer_from(&[1.0, -2.0, 3.0, -4.0, 5.0]);
         let expected = [7.5, -11.0, 14.5];
-        let mut weights = FilterWeights::zeros(WindowSize::new(3).unwrap());
+        let mut weights = FilterWeights::new(WindowSize::new(3).unwrap());
 
         lms.update_block(&mut weights, &e_n, &x_n);
 

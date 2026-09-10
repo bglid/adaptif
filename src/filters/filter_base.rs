@@ -24,8 +24,7 @@ impl<A: Algorithm> FilterBase<A> {
     pub fn new(algorithm: A, window_size: usize) -> Option<Self> {
         let window_size = WindowSize::new(window_size)?;
 
-        // TODO: newtypes for mean and std_dev
-        let weights = FilterWeights::new(window_size, 0.0, 5e-5)?;
+        let weights = FilterWeights::new(window_size);
 
         Some(FilterBase {
             algorithm,

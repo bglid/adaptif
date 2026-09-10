@@ -64,7 +64,7 @@ mod tests {
 
     #[test]
     fn noise_buffer_init_to_zero() {
-        let weights = FilterWeights::new(WindowSize::new(3).unwrap(), 0.0, 5e-5).unwrap();
+        let weights = FilterWeights::new(WindowSize::new(3).unwrap());
 
         let buffer = NoiseBuffer::new(&weights);
         assert!(all_approx_equal(buffer.iter(), [0_f64; 3].iter()));
@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn block_noise_buffer_init_to_zero() {
-        let weights = FilterWeights::new(WindowSize::new(3).unwrap(), 0.0, 5e-5).unwrap();
+        let weights = FilterWeights::new(WindowSize::new(3).unwrap());
 
         let buffer = BlockNoiseBuffer::new(&weights, BlockSize::new(2).unwrap());
         assert!(all_approx_equal(buffer.iter(), [0_f64; 4].iter()));
