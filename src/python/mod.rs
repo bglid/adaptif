@@ -19,9 +19,10 @@ use crate::types::{InputSignal, NoiseReference};
 impl Error {
     fn to_pyerr(&self) -> PyErr {
         match *self {
-            Self::EmptyInputArr | Self::NoiseRefTooShort { .. } | Self::NonPositiveStepSize => {
-                PyValueError::new_err(self.to_string())
-            }
+            Self::EmptyInputArr
+            | Self::NoiseRefTooShort { .. }
+            | Self::NonPositiveStepSize
+            | Self::NonPositiveEpsilon => PyValueError::new_err(self.to_string()),
         }
     }
 }

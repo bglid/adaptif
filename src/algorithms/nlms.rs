@@ -12,13 +12,18 @@ pub struct NormalizedLeastMeanSquares {
 impl NormalizedLeastMeanSquares {
     /// # Errors
     ///
-    /// Returns an error if mu or eps <= 0.0.
+    /// Returns an error if mu <= 0.0.
+    /// Returns an error if eps <= 0.0.
     pub fn new(mu: f64, eps: f64) -> Result<Self> {
-        if mu > 0.0 && eps > 0.0 {
-            Ok(NormalizedLeastMeanSquares { mu, eps })
-        } else {
-            Err(Error::NonPositiveStepSize)
+        if mu <= 0.0 {
+            return Err(Error::NonPositiveStepSize);
         }
+
+        if eps <= 0.0 {
+            return Err(Error::NonPositiveEpsilon);
+        }
+
+        Ok(NormalizedLeastMeanSquares { mu, eps })
     }
 }
 impl Algorithm for NormalizedLeastMeanSquares {
@@ -94,11 +99,11 @@ mod tests {
 
         assert!(matches!(
             NormalizedLeastMeanSquares::new(1.0, 0.0),
-            Err(Error::NonPositiveStepSize)
+            Err(Error::NonPositiveEpsilon)
         ));
         assert!(matches!(
             NormalizedLeastMeanSquares::new(1.0, -1.0),
-            Err(Error::NonPositiveStepSize)
+            Err(Error::NonPositiveEpsilon)
         ));
     }
 }
