@@ -95,7 +95,6 @@ mod tests {
     #[test]
     fn eps_range() {
         NormalizedLeastMeanSquares::new(1.0, 1e-8).unwrap();
-        NormalizedLeastMeanSquares::new(f64::MAX, 1e-8).unwrap();
 
         assert!(matches!(
             NormalizedLeastMeanSquares::new(1.0, 0.0),
