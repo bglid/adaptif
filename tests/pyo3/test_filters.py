@@ -1,19 +1,18 @@
 import numpy as np
 import pytest
 
-from adaptif import LMSFilter
+from adaptif import LMSFilter, NLMSFilter
 
 
-@pytest.fixture
-def filter():
-    return LMSFilter(
+@pytest.fixture(params=[LMSFilter, NLMSFilter])
+def filter(request):
+    return request.param(
         mu=0.1,
-        window_size=1,
+        window_size=1024,
     )
 
 
-def test_window_size():
-    filter = LMSFilter(mu=1.0, window_size=1024)
+def test_window_size(filter):
     assert filter.window_size == 1024
 
 
