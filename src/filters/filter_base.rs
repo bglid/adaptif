@@ -60,16 +60,15 @@ impl<A: Algorithm> FilterBase<A> {
     ) -> Result<Vec<f64>> {
         check_signal_lengths(input_signal, noise_ref)?;
 
-        let n_samples = input_signal.len();
-
         let mut noise_ref_buffer = NoiseBuffer::new(&self.weights);
         let mut cleaned_signal = OutputSignal::new(input_signal);
 
-        for n in 0..n_samples {
+        for n in 0..input_signal.len() {
             // We set n_samples = input_signal.len() and called check_signal_lengths() (putting in comment so fmt doesn't split lines)
             #[allow(clippy::unwrap_used, reason = "Bounds checked")]
             #[allow(clippy::missing_panics_doc, reason = "Bounds checked")]
-            let error = self.process_sample(
+            let error = process_sample(
+                &self.weights,
                 &mut noise_ref_buffer,
                 input_signal.get_sample(n).unwrap(),
                 noise_ref.get_sample(n).unwrap(),
@@ -97,16 +96,15 @@ impl<A: Algorithm> FilterBase<A> {
     ) -> Result<Vec<f64>> {
         check_signal_lengths(input_signal, noise_ref)?;
 
-        let n_samples = input_signal.len();
-
         let mut noise_ref_buffer = NoiseBuffer::new(&self.weights);
         let mut cleaned_signal = OutputSignal::new(input_signal);
 
-        for n in 0..n_samples {
+        for n in 0..input_signal.len() {
             // We set n_samples = input_signal.len() and called check_signal_lengths()
             #[allow(clippy::unwrap_used, reason = "Bounds checked")]
             #[allow(clippy::missing_panics_doc, reason = "Bounds checked")]
-            let error = self.process_sample(
+            let error = process_sample(
+                &self.weights,
                 &mut noise_ref_buffer,
                 input_signal.get_sample(n).unwrap(),
                 noise_ref.get_sample(n).unwrap(),
@@ -117,19 +115,19 @@ impl<A: Algorithm> FilterBase<A> {
 
         Ok(cleaned_signal.into_inner())
     }
+}
 
-    fn process_sample(
-        &self,
-        noise_ref_buffer: &mut NoiseBuffer,
-        input_sample: InputSample,
-        noise_sample: NoiseSample,
-    ) -> OutputSample {
-        noise_ref_buffer.push(*noise_sample);
+fn process_sample(
+    weights: &FilterWeights,
+    noise_ref_buffer: &mut NoiseBuffer,
+    input_sample: InputSample,
+    noise_sample: NoiseSample,
+) -> OutputSample {
+    noise_ref_buffer.push(*noise_sample);
 
-        let noise_estimate = estimate_noise(&self.weights, noise_ref_buffer);
+    let noise_estimate = estimate_noise(weights, noise_ref_buffer);
 
-        compute_error(input_sample, noise_estimate)
-    }
+    compute_error(input_sample, noise_estimate)
 }
 
 fn estimate_noise(weights: &FilterWeights, x_n: &NoiseBuffer) -> NoiseEstimate {
