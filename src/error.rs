@@ -8,6 +8,8 @@ pub type Result<T> = result::Result<T, Error>;
 #[non_exhaustive]
 pub enum Error {
     EmptyInputArr,
+    WindowSizeZero,
+    BlockSizeZero,
     NoiseRefTooShort { input_len: usize, noise_len: usize },
     NonPositiveStepSize,
 }
@@ -15,6 +17,8 @@ impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
             Self::EmptyInputArr => write!(f, "empty input array."),
+            Self::WindowSizeZero => write!(f, "window size must be greater than zero."),
+            Self::BlockSizeZero => write!(f, "block size must be greater than zero."),
             Self::NoiseRefTooShort {
                 input_len,
                 noise_len,

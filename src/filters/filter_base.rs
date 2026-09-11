@@ -21,12 +21,15 @@ pub struct FilterBase<A: Algorithm> {
 impl<A: Algorithm> FilterBase<A> {
     /// Initializes a filter using the provided algorithm configuration and window size.
     /// The weights are intialized to zero.
-    pub fn new(algorithm: A, window_size: usize) -> Option<Self> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `window_size == 0`.
+    pub fn new(algorithm: A, window_size: usize) -> Result<Self> {
         let window_size = WindowSize::new(window_size)?;
-
         let weights = FilterWeights::new(window_size);
 
-        Some(FilterBase {
+        Ok(FilterBase {
             algorithm,
             weights,
             window_size,
