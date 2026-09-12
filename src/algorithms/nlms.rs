@@ -6,7 +6,9 @@ use crate::algorithms::Algorithm;
 #[derive(Debug, Clone)]
 #[allow(clippy::exhaustive_structs, reason = "No more fields have to be added")]
 pub struct NormalizedLeastMeanSquares {
+    /// Step size for weight updates.
     mu: f64,
+    /// Regularization term to avoid division by zero.
     eps: f64,
 }
 impl NormalizedLeastMeanSquares {
@@ -27,6 +29,12 @@ impl NormalizedLeastMeanSquares {
     }
 }
 impl Algorithm for NormalizedLeastMeanSquares {
+    /// Updates the filter weights using the following equation:
+    ///
+    /// $w_{n+1} = ``w_n`` + \frac{\mu}{\epsilon + \|``x_n``\|^2} ``e_n`` ``x_n``$
+    /// where $``e_n``$ is the scalar error for the current sample,
+    /// and $``x_n``$ is a vector of length `window_size` of the
+    /// most recent noise reference samples.
     fn update_step(
         &self,
         weights: &mut FilterWeights,
