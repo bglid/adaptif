@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - "adaptive_filter/**"
-      - "adaptif/**"
+      - "python/**"
       - "tests/**"
       - "pyproject.toml"
       - "uv.lock"
@@ -12,7 +12,7 @@ on:
   pull_request:
     paths:
       - "adaptive_filter/**"
-      - "adaptif/**"
+      - "python/**"
       - "tests/**"
       - "pyproject.toml"
       - "uv.lock"
