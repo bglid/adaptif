@@ -3,6 +3,9 @@ use crate::types::{FilterWeights, OutputSample, SampleBuffer};
 mod lms;
 pub use lms::LeastMeanSquares;
 
+mod nlms;
+pub use nlms::NormalizedLeastMeanSquares;
+
 /// Trait used for implementing algorithms used in conjuction with `FilterBase`.
 pub trait Algorithm {
     /// Updates the weights for the next time step based on the algorithm's update rules.
