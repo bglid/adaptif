@@ -1,6 +1,8 @@
 use std::num::NonZero;
 use std::ops::{Deref, DerefMut};
 
+use crate::types::signals::OutputSample;
+
 use super::{BlockSize, SampleBuffer};
 
 pub struct ErrorBuffer(SampleBuffer);
@@ -12,6 +14,10 @@ impl ErrorBuffer {
             reason = "BlockSize type cannot be zero"
         )]
         ErrorBuffer(SampleBuffer::new(NonZero::new(*block_size).unwrap()))
+    }
+
+    pub fn push(&mut self, item: OutputSample) {
+        self.0.push(*item);
     }
 }
 impl Deref for ErrorBuffer {

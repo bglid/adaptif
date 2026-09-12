@@ -8,6 +8,7 @@
 use std::num::NonZero;
 
 use crate::types::buffers::{BlockNoiseBuffer, ErrorBuffer, NoiseBuffer};
+use crate::types::signals::OutputSample;
 use crate::types::{BlockSize, FilterWeights, WindowSize};
 
 pub fn approx_equal(a: f64, b: f64, eps: f64) -> bool {
@@ -60,7 +61,7 @@ pub fn error_buffer_from(arr: &[f64]) -> ErrorBuffer {
     let mut buffer = ErrorBuffer::new(BlockSize::new(arr.len()).unwrap());
 
     for val in arr {
-        buffer.push(*val);
+        buffer.push(OutputSample(*val));
     }
 
     buffer
