@@ -5,6 +5,9 @@ use crate::types::signals::OutputSample;
 mod lms;
 pub use lms::LeastMeanSquares;
 
+mod nlms;
+pub use nlms::NormalizedLeastMeanSquares;
+
 /// Trait used for implementing algorithms with sample-based processing used in conjuction with
 /// `SampleFilter`.
 pub trait Algorithm {

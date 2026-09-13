@@ -129,7 +129,6 @@ mod tests {
     use crate::error::Error;
     use crate::test_utils::all_approx_equal;
 
-
     fn testing_filter() -> FilterBase<LeastMeanSquares> {
         let window_size = 3;
         let weights = [1.0, -2.0, 0.5];
