@@ -5,9 +5,10 @@
 !adaptive_filter/**/
 !adaptive_filter/**/*.py
 
-!adaptif/
-!adaptif/*.py
-!adaptif/*.pyi
+!python/
+!python/adaptif/
+!python/adaptif/*.py
+!python/adaptif/*.pyi
 
 !tests/
 !tests/**/
