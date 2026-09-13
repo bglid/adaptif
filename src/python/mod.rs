@@ -12,7 +12,9 @@ use pyo3::exceptions::PyValueError;
 use numpy::{PyArray1, PyReadonlyArray1};
 
 use crate::Error;
-use crate::algorithms::{Algorithm, LeastMeanSquares, NormalizedLeastMeanSquares};
+use crate::algorithms::{
+    Algorithm, LeastMeanSquares, NormalizedLeastMeanSquares, RecursiveLeastSquares,
+};
 use crate::filters::FilterBase;
 use crate::types::{InputSignal, NoiseReference};
 
@@ -93,7 +95,7 @@ where
 #[pymodule]
 mod adaptif {
     #[pymodule_export]
-    use super::{LMSFilter, NLMSFilter};
+    use super::{LMSFilter, NLMSFilter, RLSFilter};
 }
 
 #[pyclass]
@@ -127,3 +129,19 @@ impl NLMSFilter {
 }
 
 generate_filter_bindings!(NLMSFilter);
+
+#[pyclass]
+pub struct RLSFilter(FilterBase<RecursiveLeastSquares>);
+#[pymethods]
+impl RLSFilter {
+    #[new]
+    fn new(mu: f64, window_size: usize) -> PyResult<Self> {
+        let rls = RecursiveLeastSquares::new(mu, 1.0).map_err(|e| e.to_pyerr())?;
+        match FilterBase::<RecursiveLeastSquares>::new(rls, window_size) {
+            Some(filter) => Ok(Self(filter)),
+            None => Err(PyValueError::new_err("window_size cannot be zero")),
+        }
+    }
+}
+
+generate_filter_bindings!(RLSFilter);

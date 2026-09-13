@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
-from adaptif import LMSFilter, NLMSFilter
+from adaptif import LMSFilter, NLMSFilter, RLSFilter
 
 
-@pytest.fixture(params=[LMSFilter, NLMSFilter])
+@pytest.fixture(params=[LMSFilter, NLMSFilter, RLSFilter])
 def filter(request):
     return request.param(
         mu=0.1,
