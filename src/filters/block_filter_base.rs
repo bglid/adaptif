@@ -35,11 +35,11 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
         })
     }
 
-    pub fn window_self(&self) -> usize {
+    pub fn window_size(&self) -> usize {
         *self.window_size
     }
 
-    pub fn block_self(&self) -> usize {
+    pub fn block_size(&self) -> usize {
         *self.block_size
     }
 

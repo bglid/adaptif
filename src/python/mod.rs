@@ -3,7 +3,7 @@
     reason = "Defining methods that are only needed for this module and shouldn't be compiled otherwise."
 )]
 mod macros;
-use macros::generate_filter_bindings;
+use macros::{generate_block_filter_bindings, generate_filter_bindings};
 
 use pyo3::prelude::*;
 
@@ -12,8 +12,8 @@ use pyo3::exceptions::PyValueError;
 use numpy::{PyArray1, PyReadonlyArray1};
 
 use crate::Error;
-use crate::algorithms::{Algorithm, LeastMeanSquares, NormalizedLeastMeanSquares};
-use crate::filters::FilterBase;
+use crate::algorithms::{Algorithm, BlockAlgorithm, LeastMeanSquares, NormalizedLeastMeanSquares};
+use crate::filters::{BlockFilterBase, FilterBase};
 use crate::types::signals::{InputSignal, NoiseReference};
 
 impl Error {
@@ -90,10 +90,36 @@ where
     Ok(PyArray1::from_vec(py, output_signal))
 }
 
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyArrays must be passed by value"
+)]
+fn block_adapt_filter_impl<'py, B>(
+    filter: &mut BlockFilterBase<B>,
+    py: Python<'py>,
+    input_signal: PyReadonlyArray1<f64>,
+    noise_ref: PyReadonlyArray1<f64>,
+    op: FilterOperation,
+) -> PyResult<Bound<'py, PyArray1<f64>>>
+where
+    B: BlockAlgorithm,
+{
+    let input_signal = InputSignal::from_pyarray(&input_signal)?;
+    let noise_ref = NoiseReference::from_pyarray(&noise_ref)?;
+
+    let output_signal = match op {
+        FilterOperation::Adapt => filter.adapt(&input_signal, &noise_ref),
+        FilterOperation::Filter => filter.filter(&input_signal, &noise_ref),
+    }
+    .map_err(|e| e.to_pyerr())?;
+
+    Ok(PyArray1::from_vec(py, output_signal))
+}
+
 #[pymodule]
 mod adaptif {
     #[pymodule_export]
-    use super::{LMSFilter, NLMSFilter};
+    use super::{BlockLMSFilter, LMSFilter, NLMSFilter};
 }
 
 #[pyclass]
@@ -127,3 +153,19 @@ impl NLMSFilter {
 }
 
 generate_filter_bindings!(NLMSFilter);
+
+#[pyclass]
+pub struct BlockLMSFilter(BlockFilterBase<LeastMeanSquares>);
+#[pymethods]
+impl BlockLMSFilter {
+    #[new]
+    fn new(mu: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
+        let lms = LeastMeanSquares::new(mu).map_err(|e| e.to_pyerr())?;
+        let filter = BlockFilterBase::<LeastMeanSquares>::new(lms, window_size, block_size)
+            .map_err(|e| e.to_pyerr())?;
+
+        Ok(Self(filter))
+    }
+}
+
+generate_block_filter_bindings!(BlockLMSFilter);

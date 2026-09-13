@@ -1,26 +1,42 @@
 import numpy as np
 import pytest
 
-from adaptif import LMSFilter, NLMSFilter
+from adaptif import BlockLMSFilter
 
 
-@pytest.fixture(params=[LMSFilter, NLMSFilter])
-def filter(request):
-    return request.param(
+@pytest.fixture()
+def filter():
+    return BlockLMSFilter(
         mu=0.1,
         window_size=1024,
+        block_size=1024,
     )
 
 
-@pytest.mark.parametrize("filter_kind", [LMSFilter, NLMSFilter])
+@pytest.mark.parametrize("filter_kind", [BlockLMSFilter])
 def test_window_size(filter_kind):
-    filter = filter_kind(mu=0.1, window_size=1)
+    filter = filter_kind(
+        mu=0.1,
+        window_size=1,
+        block_size=1024,
+    )
     assert filter.window_size == 1
 
     with pytest.raises(OverflowError):
-        filter_kind(mu=0.1, window_size=-1)
+        filter_kind(mu=0.1, window_size=-1, block_size=1024)
     with pytest.raises(ValueError):
-        filter_kind(mu=0.1, window_size=0)
+        filter_kind(mu=0.1, window_size=0, block_size=1024)
+
+
+@pytest.mark.parametrize("filter_kind", [BlockLMSFilter])
+def test_block_size(filter_kind):
+    filter = filter_kind(mu=0.1, window_size=1024, block_size=1)
+    assert filter.block_size == 1
+
+    with pytest.raises(OverflowError):
+        filter_kind(mu=0.1, window_size=1024, block_size=-1)
+    with pytest.raises(ValueError):
+        filter_kind(mu=0.1, window_size=1024, block_size=0)
 
 
 def test_adapt(filter):
