@@ -22,6 +22,8 @@ impl Error {
             Self::EmptyInputArr
             | Self::NoiseRefTooShort { .. }
             | Self::NonPositiveStepSize
+            | Self::IncorrectLambdaRange
+            | Self::NonPositiveDelta
             | Self::NonPositiveEpsilon => PyValueError::new_err(self.to_string()),
         }
     }

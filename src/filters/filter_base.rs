@@ -164,7 +164,7 @@ mod tests {
     struct TestAlgorithm;
     impl Algorithm for TestAlgorithm {
         fn update_step(
-            &self,
+            &mut self,
             weights: &mut FilterWeights,
             error: OutputSample,
             noise_ref: &SampleBuffer,

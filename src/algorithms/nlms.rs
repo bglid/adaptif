@@ -36,7 +36,7 @@ impl Algorithm for NormalizedLeastMeanSquares {
     /// and $``x_n``$ is a vector of length `window_size` of the
     /// most recent noise reference samples.
     fn update_step(
-        &self,
+        &mut self,
         weights: &mut FilterWeights,
         error: OutputSample,
         noise_ref: &SampleBuffer,
@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     fn update_nlms_1() {
-        let nlms = NormalizedLeastMeanSquares::new(0.5, 1e-8).unwrap();
+        let mut nlms = NormalizedLeastMeanSquares::new(0.5, 1e-8).unwrap();
         let e_n = OutputSample(2.0);
         let x_n = sample_buffer_from(&[1.0, -1.0]);
         let expected = [1.0 / (2.0 + nlms.eps), -1.0 / (2.0 + nlms.eps)];
@@ -74,7 +74,7 @@ mod tests {
 
     #[test]
     fn update_nlms_2() {
-        let nlms = NormalizedLeastMeanSquares::new(1.0, 1e-8).unwrap();
+        let mut nlms = NormalizedLeastMeanSquares::new(1.0, 1e-8).unwrap();
         let e_n = OutputSample(1.0);
         let x_n = sample_buffer_from(&[5.0, 2.0]);
         let expected = [(5.0 / (29.0 + nlms.eps)), (2.0 / (29.0 + nlms.eps))];

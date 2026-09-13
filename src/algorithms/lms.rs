@@ -22,7 +22,7 @@ impl LeastMeanSquares {
 }
 impl Algorithm for LeastMeanSquares {
     fn update_step(
-        &self,
+        &mut self,
         weights: &mut FilterWeights,
         error: OutputSample,
         noise_ref: &SampleBuffer,
@@ -45,7 +45,7 @@ mod tests {
 
     #[test]
     fn update_lms_1() {
-        let lms = LeastMeanSquares::new(0.5).unwrap();
+        let mut lms = LeastMeanSquares::new(0.5).unwrap();
         let e_n = OutputSample(2.0);
         let x_n = sample_buffer_from(&[1.0, -1.0]);
         let expected = [1.0, -1.0];
@@ -62,7 +62,7 @@ mod tests {
 
     #[test]
     fn update_lms_2() {
-        let lms = LeastMeanSquares::new(1.0).unwrap();
+        let mut lms = LeastMeanSquares::new(1.0).unwrap();
         let e_n = OutputSample(1.0);
         let x_n = sample_buffer_from(&[5.0, 2.0]);
         let expected = [5.0, 2.0];

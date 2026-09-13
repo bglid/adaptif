@@ -6,6 +6,9 @@ pub use lms::LeastMeanSquares;
 mod nlms;
 pub use nlms::NormalizedLeastMeanSquares;
 
+mod rls;
+pub use rls::RecursiveLeastSquares;
+
 /// Trait used for implementing algorithms used in conjuction with `FilterBase`.
 pub trait Algorithm {
     /// Updates the weights for the next time step based on the algorithm's update rules.
@@ -14,7 +17,7 @@ pub trait Algorithm {
     /// `noise_ref` is the noise reference signal within the current processing window (the $k$ most recent samples).
     ///
     fn update_step(
-        &self,
+        &mut self,
         weights: &mut FilterWeights,
         error: OutputSample,
         noise_ref: &SampleBuffer,
