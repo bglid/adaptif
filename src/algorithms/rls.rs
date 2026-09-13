@@ -50,7 +50,55 @@ impl RecursiveLeastSquares {
         p
     }
 
-    // fn calculate_k(&self, noise_ref: &SampleBuffer) -> Vec<f64> {}
+    fn calculate_k(&self, noise_ref: &SampleBuffer) -> Vec<f64> {
+        #[allow(clippy::unwrap_used, reason = "p_matrix Option checked")]
+        let p = self.p_matrix.as_deref().unwrap();
+        let numerator: Vec<f64> = p
+            .chunks_exact(noise_ref.len())
+            .map(|row| row.iter().zip(noise_ref.iter()).map(|(px, x)| px * x).sum())
+            .collect();
+        let denominator = self.lambda
+            + noise_ref
+                .iter()
+                .zip(numerator.iter())
+                .map(|(noise, num)| noise * num)
+                .sum::<f64>();
+
+        numerator.iter().map(|n| n / denominator).collect()
+    }
+
+    // bruh
+    fn update_p_matrix(&mut self, k_n: &[f64], noise_ref: &SampleBuffer) {
+        // Breaking this up in parts for sanity, temporary
+        #[allow(
+            clippy::unwrap_used,
+            reason = "p_matrix Option checked and init testing"
+        )]
+        let old_p = self.p_matrix.as_ref().unwrap();
+
+        let ft_p = (0..noise_ref.len())
+            .map(|col| {
+                noise_ref
+                    .iter()
+                    .zip(old_p.iter().skip(col).step_by(noise_ref.len()))
+                    .map(|(ft, p)| ft * p)
+                    .sum::<f64>()
+            })
+            .collect::<Vec<f64>>();
+
+        let kftp = k_n
+            .iter()
+            .flat_map(|k| ft_p.iter().map(move |p| k * p))
+            .collect::<Vec<f64>>();
+
+        self.p_matrix = Some(
+            old_p
+                .iter()
+                .zip(kftp.iter())
+                .map(|(p, k)| (p - k) / self.lambda)
+                .collect::<Vec<f64>>(),
+        );
+    }
 }
 
 impl Algorithm for RecursiveLeastSquares {
@@ -59,13 +107,21 @@ impl Algorithm for RecursiveLeastSquares {
     fn update_step(
         &mut self,
         weights: &mut FilterWeights,
-        _error: OutputSample,
-        _noise_ref: &SampleBuffer,
+        error: OutputSample,
+        noise_ref: &SampleBuffer,
     ) {
         // Updates p_matrix on first iteration once n is known
         if self.p_matrix.is_none() {
             self.p_matrix = Some(self.initial_p_matrix(weights.len()));
         }
+
+        let k_n = self.calculate_k(noise_ref);
+
+        for (w, k) in weights.iter_mut().zip(k_n.iter()) {
+            *w += k * (*error);
+        }
+
+        self.update_p_matrix(&k_n, noise_ref);
     }
 }
 
@@ -81,11 +137,40 @@ mod tests {
 
     #[test]
     fn init_p_matrix_works() {
+        let rls = RecursiveLeastSquares::new(0.5, 10.0).unwrap();
         let n = 3;
         let expected = [10.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 10.0];
-        let rls = RecursiveLeastSquares::new(0.5, 10.0).unwrap();
         let p_matrix = rls.initial_p_matrix(n);
         assert_eq!(p_matrix, expected);
+    }
+
+    #[test]
+    fn calculate_k_works() {
+        let mut rls = RecursiveLeastSquares::new(1.0, 1.0).unwrap();
+        rls.p_matrix = Some(vec![1.0, 0.0, 0.0, 1.0]);
+        let x_n = sample_buffer_from(&[1.0, 2.0]);
+        let expected = [1.0 / 6.0, 1.0 / 3.0];
+
+        let k_n = rls.calculate_k(&x_n);
+
+        assert!(all_approx_equal(k_n.iter(), expected.iter()));
+    }
+
+    #[test]
+    fn update_p_matrix_works() {
+        let mut rls = RecursiveLeastSquares::new(1.0, 1.0).unwrap();
+        rls.p_matrix = Some(vec![1.0, 0.0, 0.0, 1.0]);
+        let x_n = sample_buffer_from(&[1.0, 2.0]);
+        let k_n = vec![1.0 / 6.0, 1.0 / 3.0];
+
+        rls.update_p_matrix(&k_n, &x_n);
+
+        let expected = [5.0 / 6.0, -1.0 / 3.0, -1.0 / 3.0, 1.0 / 3.0];
+
+        assert!(all_approx_equal(
+            rls.p_matrix.unwrap().iter(),
+            expected.iter()
+        ));
     }
 
     #[test]
