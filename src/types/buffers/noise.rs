@@ -39,7 +39,9 @@ impl BlockNoiseBuffer {
             reason = "FilterWeights and BlockSize types ensure that capacity > 0"
         )]
         let capacity = NonZero::new(weights.len() + *block_size - 1).unwrap();
-        BlockNoiseBuffer(SampleBuffer::new(capacity))
+        let buffer = SampleBuffer::new(capacity);
+
+        BlockNoiseBuffer(buffer)
     }
 }
 impl Deref for BlockNoiseBuffer {

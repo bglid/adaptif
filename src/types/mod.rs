@@ -11,14 +11,19 @@ pub mod signals;
 
 use std::ops::Deref;
 
+use crate::error::{Error, Result};
+
 #[derive(Debug, Clone, Copy)]
 pub struct WindowSize(usize);
 impl WindowSize {
-    pub fn new(window_size: usize) -> Option<Self> {
+    /// # Errors
+    ///
+    /// Returns an error if `window_size == 0`.
+    pub fn new(window_size: usize) -> Result<Self> {
         if window_size == 0 {
-            None
+            Err(Error::WindowSizeZero)
         } else {
-            Some(WindowSize(window_size))
+            Ok(WindowSize(window_size))
         }
     }
 }
@@ -32,11 +37,14 @@ impl Deref for WindowSize {
 #[derive(Debug, Clone, Copy)]
 pub struct BlockSize(usize);
 impl BlockSize {
-    pub fn new(block_size: usize) -> Option<Self> {
+    /// # Errors
+    ///
+    /// Returns an error if `block_size == 0`.
+    pub fn new(block_size: usize) -> Result<Self> {
         if block_size == 0 {
-            None
+            Err(Error::BlockSizeZero)
         } else {
-            Some(BlockSize(block_size))
+            Ok(BlockSize(block_size))
         }
     }
 }
