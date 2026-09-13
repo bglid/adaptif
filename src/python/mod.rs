@@ -14,12 +14,14 @@ use numpy::{PyArray1, PyReadonlyArray1};
 use crate::Error;
 use crate::algorithms::{Algorithm, LeastMeanSquares, NormalizedLeastMeanSquares};
 use crate::filters::FilterBase;
-use crate::types::{InputSignal, NoiseReference};
+use crate::types::signals::{InputSignal, NoiseReference};
 
 impl Error {
     fn to_pyerr(&self) -> PyErr {
         match *self {
             Self::EmptyInputArr
+            | Self::WindowSizeZero
+            | Self::BlockSizeZero
             | Self::NoiseRefTooShort { .. }
             | Self::NonPositiveStepSize
             | Self::NonPositiveEpsilon => PyValueError::new_err(self.to_string()),
@@ -101,10 +103,10 @@ impl LMSFilter {
     #[new]
     fn new(mu: f64, window_size: usize) -> PyResult<Self> {
         let lms = LeastMeanSquares::new(mu).map_err(|e| e.to_pyerr())?;
-        match FilterBase::<LeastMeanSquares>::new(lms, window_size) {
-            Some(filter) => Ok(Self(filter)),
-            None => Err(PyValueError::new_err("window_size cannot be zero")),
-        }
+        let filter =
+            FilterBase::<LeastMeanSquares>::new(lms, window_size).map_err(|e| e.to_pyerr())?;
+
+        Ok(Self(filter))
     }
 }
 
@@ -117,10 +119,10 @@ impl NLMSFilter {
     #[new]
     fn new(mu: f64, window_size: usize) -> PyResult<Self> {
         let nlms = NormalizedLeastMeanSquares::new(mu, 1e-8).map_err(|e| e.to_pyerr())?;
-        match FilterBase::<NormalizedLeastMeanSquares>::new(nlms, window_size) {
-            Some(filter) => Ok(Self(filter)),
-            None => Err(PyValueError::new_err("window_size cannot be zero")),
-        }
+        let filter = FilterBase::<NormalizedLeastMeanSquares>::new(nlms, window_size)
+            .map_err(|e| e.to_pyerr())?;
+
+        Ok(Self(filter))
     }
 }
 
