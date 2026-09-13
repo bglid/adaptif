@@ -1,11 +1,10 @@
-use std::num::{NonZero, NonZeroUsize};
-
 use crate::algorithms::Algorithm;
-use crate::error::{Error, Result};
-use crate::types::{
-    FilterWeights, InputSample, InputSignal, NoiseEstimate, NoiseReference, NoiseSample,
-    OutputSample, OutputSignal, SampleBuffer,
-};
+use crate::error::Result;
+use crate::types::buffers::NoiseBuffer;
+use crate::types::signals::{InputSignal, NoiseReference, OutputSignal};
+use crate::types::{FilterWeights, WindowSize};
+
+use crate::filters::common::{check_signal_lengths, process_sample};
 
 // TODO: make f64 generic
 
@@ -17,18 +16,20 @@ use crate::types::{
 pub struct FilterBase<A: Algorithm> {
     algorithm: A,
     weights: FilterWeights,
-    window_size: NonZeroUsize,
+    window_size: WindowSize,
 }
 impl<A: Algorithm> FilterBase<A> {
     /// Initializes a filter using the provided algorithm configuration and window size.
-    /// The weights are samples from a normal distribution with $\mu = 0.0 and $\sigma$ = 5e-5.
-    pub fn new(algorithm: A, window_size: usize) -> Option<Self> {
-        let window_size = NonZero::new(window_size)?;
+    /// The weights are intialized to zero.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `window_size == 0`.
+    pub fn new(algorithm: A, window_size: usize) -> Result<Self> {
+        let window_size = WindowSize::new(window_size)?;
+        let weights = FilterWeights::new(window_size);
 
-        // TODO: newtypes for mean and std_dev
-        let weights = FilterWeights::new(window_size, 0.0, 5e-5)?;
-
-        Some(FilterBase {
+        Ok(FilterBase {
             algorithm,
             weights,
             window_size,
@@ -39,7 +40,7 @@ impl<A: Algorithm> FilterBase<A> {
 
     /// Returns the filter's window size. This number is equal to the number of weights.
     pub fn window_size(&self) -> usize {
-        self.window_size.into()
+        *self.window_size
     }
 
     // TODO: getter fn for weights + loading weights w/ setter (from_weights() or load_weights())
@@ -62,16 +63,15 @@ impl<A: Algorithm> FilterBase<A> {
     ) -> Result<Vec<f64>> {
         check_signal_lengths(input_signal, noise_ref)?;
 
-        let n_samples = input_signal.len();
-
-        let mut noise_ref_buffer = SampleBuffer::new(&self.weights);
+        let mut noise_ref_buffer = NoiseBuffer::new(&self.weights);
         let mut cleaned_signal = OutputSignal::new(input_signal);
 
-        for n in 0..n_samples {
+        for n in 0..input_signal.len() {
             // We set n_samples = input_signal.len() and called check_signal_lengths() (putting in comment so fmt doesn't split lines)
             #[allow(clippy::unwrap_used, reason = "Bounds checked")]
             #[allow(clippy::missing_panics_doc, reason = "Bounds checked")]
-            let error = self.process_sample(
+            let error = process_sample(
+                &self.weights,
                 &mut noise_ref_buffer,
                 input_signal.get_sample(n).unwrap(),
                 noise_ref.get_sample(n).unwrap(),
@@ -99,16 +99,15 @@ impl<A: Algorithm> FilterBase<A> {
     ) -> Result<Vec<f64>> {
         check_signal_lengths(input_signal, noise_ref)?;
 
-        let n_samples = input_signal.len();
-
-        let mut noise_ref_buffer = SampleBuffer::new(&self.weights);
+        let mut noise_ref_buffer = NoiseBuffer::new(&self.weights);
         let mut cleaned_signal = OutputSignal::new(input_signal);
 
-        for n in 0..n_samples {
+        for n in 0..input_signal.len() {
             // We set n_samples = input_signal.len() and called check_signal_lengths()
             #[allow(clippy::unwrap_used, reason = "Bounds checked")]
             #[allow(clippy::missing_panics_doc, reason = "Bounds checked")]
-            let error = self.process_sample(
+            let error = process_sample(
+                &self.weights,
                 &mut noise_ref_buffer,
                 input_signal.get_sample(n).unwrap(),
                 noise_ref.get_sample(n).unwrap(),
@@ -119,39 +118,6 @@ impl<A: Algorithm> FilterBase<A> {
 
         Ok(cleaned_signal.into_inner())
     }
-
-    fn process_sample(
-        &self,
-        noise_ref_buffer: &mut SampleBuffer,
-        input_sample: InputSample,
-        noise_sample: NoiseSample,
-    ) -> OutputSample {
-        noise_ref_buffer.push(*noise_sample);
-
-        let noise_estimate = estimate_noise(&self.weights, noise_ref_buffer);
-
-        compute_error(input_sample, noise_estimate)
-    }
-}
-
-fn estimate_noise(weights: &FilterWeights, x_n: &SampleBuffer) -> NoiseEstimate {
-    // SampleBuffer is initiated with the same length as weights, therefore we don't need to check
-    NoiseEstimate(weights.iter().zip(x_n.iter()).map(|(w, x)| w * x).sum())
-}
-
-fn compute_error(input_sample: InputSample, noise_estimate: NoiseEstimate) -> OutputSample {
-    OutputSample(*input_sample - *noise_estimate)
-}
-
-fn check_signal_lengths(input_signal: &InputSignal, noise_ref: &NoiseReference) -> Result<()> {
-    if noise_ref.len() < input_signal.len() {
-        Err(Error::NoiseRefTooShort {
-            input_len: input_signal.len(),
-            noise_len: noise_ref.len(),
-        })
-    } else {
-        Ok(())
-    }
 }
 
 #[cfg(test)]
@@ -159,50 +125,21 @@ fn check_signal_lengths(input_signal: &InputSignal, noise_ref: &NoiseReference) 
 mod tests {
     use super::*;
 
-    use crate::test_utils::{all_approx_equal, approx_equal, sample_buffer_from};
+    use crate::algorithms::LeastMeanSquares;
+    use crate::error::Error;
+    use crate::test_utils::all_approx_equal;
 
-    struct TestAlgorithm;
-    impl Algorithm for TestAlgorithm {
-        fn update_step(
-            &self,
-            weights: &mut FilterWeights,
-            error: OutputSample,
-            noise_ref: &SampleBuffer,
-        ) {
-            for (i, w) in weights.iter_mut().enumerate() {
-                *w += (*error) * noise_ref.get(i).unwrap();
-            }
-        }
-    }
-
-    fn testing_filter() -> FilterBase<TestAlgorithm> {
+    fn testing_filter() -> FilterBase<LeastMeanSquares> {
         let window_size = 3;
         let weights = [1.0, -2.0, 0.5];
 
-        let mut filter = FilterBase::<TestAlgorithm>::new(TestAlgorithm {}, window_size).unwrap();
+        let mut filter =
+            FilterBase::<LeastMeanSquares>::new(LeastMeanSquares::new(1.0).unwrap(), window_size)
+                .unwrap();
         for (i, val) in weights.iter().enumerate() {
             filter.weights[i] = *val;
         }
         filter
-    }
-
-    #[test]
-    fn estimate_noise_works() {
-        let filter = testing_filter();
-
-        let x_n = sample_buffer_from(&[2.0, 3.0, 4.0]);
-
-        let res = estimate_noise(&filter.weights, &x_n);
-        assert!(approx_equal(*res, -2.0, 1e-6));
-    }
-
-    #[test]
-    fn compute_error_works() {
-        assert!(approx_equal(
-            *compute_error(InputSample(5.0), NoiseEstimate(3.5)),
-            1.5,
-            1e-6
-        ));
     }
 
     #[test]

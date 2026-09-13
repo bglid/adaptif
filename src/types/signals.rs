@@ -3,9 +3,8 @@
     reason = "Simple wrappers for primitives, so adding fields is highly unlikely."
 )]
 
-use std::ops::Deref;
-
 use crate::error::{Error, Result};
+use std::ops::Deref;
 
 // TODO: make InputSignal and NoiseReference own their inner values (&[f64] -> Vec<f64>, c.f. Vec::from())
 
@@ -27,6 +26,7 @@ impl<'a> InputSignal<'a> {
             Ok(InputSignal(input_signal))
         }
     }
+
     pub fn get_sample(&self, n: usize) -> Option<InputSample> {
         Some(InputSample(*self.get(n)?))
     }
@@ -74,15 +74,6 @@ impl Deref for NoiseSample {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct NoiseEstimate(pub f64);
-impl Deref for NoiseEstimate {
-    type Target = f64;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct OutputSignal(Vec<f64>);
 impl OutputSignal {
@@ -116,8 +107,8 @@ impl Deref for OutputSample {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::error::Error;
-    use crate::types::{InputSignal, NoiseReference};
 
     #[test]
     fn reject_empty_signals() {
