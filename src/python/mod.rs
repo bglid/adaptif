@@ -14,7 +14,7 @@ use numpy::{PyArray1, PyReadonlyArray1};
 use crate::Error;
 use crate::algorithms::{Algorithm, LeastMeanSquares, NormalizedLeastMeanSquares};
 use crate::filters::FilterBase;
-use crate::types::{InputSignal, NoiseReference};
+use crate::types::signals::{InputSignal, NoiseReference};
 
 impl Error {
     fn to_pyerr(&self) -> PyErr {
