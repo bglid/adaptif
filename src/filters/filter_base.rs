@@ -125,29 +125,18 @@ impl<A: Algorithm> FilterBase<A> {
 mod tests {
     use super::*;
 
+    use crate::algorithms::LeastMeanSquares;
     use crate::error::Error;
     use crate::test_utils::all_approx_equal;
-    use crate::types::signals::OutputSample;
 
-    struct TestAlgorithm;
-    impl Algorithm for TestAlgorithm {
-        fn update_step(
-            &self,
-            weights: &mut FilterWeights,
-            error: OutputSample,
-            noise_ref: &NoiseBuffer,
-        ) {
-            for (i, w) in weights.iter_mut().enumerate() {
-                *w += (*error) * noise_ref.get(i).unwrap();
-            }
-        }
-    }
 
-    fn testing_filter() -> FilterBase<TestAlgorithm> {
+    fn testing_filter() -> FilterBase<LeastMeanSquares> {
         let window_size = 3;
         let weights = [1.0, -2.0, 0.5];
 
-        let mut filter = FilterBase::<TestAlgorithm>::new(TestAlgorithm {}, window_size).unwrap();
+        let mut filter =
+            FilterBase::<LeastMeanSquares>::new(LeastMeanSquares::new(1.0).unwrap(), window_size)
+                .unwrap();
         for (i, val) in weights.iter().enumerate() {
             filter.weights[i] = *val;
         }
