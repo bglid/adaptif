@@ -62,8 +62,8 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
         for block_start in (0..n_samples).step_by(*self.block_size) {
             let block_end = block_start + *self.block_size;
 
-            if block_end < n_samples {
-                let _ = self.process_block(
+            if block_end <= n_samples {
+                self.process_block(
                     block_start..block_end,
                     input_signal,
                     noise_ref,
@@ -75,8 +75,8 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
                 self.algorithm
                     .update_block(&mut self.weights, &block_error, &noise_ref_buffer);
             } else {
-                // last block: finish of remaining samples w/o updating the weights
-                let _ = self.process_block(
+                // last block: finish off remaining samples w/o updating the weights
+                self.process_block(
                     block_start..n_samples,
                     input_signal,
                     noise_ref,
@@ -84,12 +84,64 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
                     &mut block_error,
                     &mut cleaned_signal,
                 );
+
+                // We intentionally don't call update_block() here:
+                //
+                // Using a fixed-size buffer for the noise reference instead of
+                // constructing the full noise matrix X_n is efficient, but it also
+                // means the dimensions for the approximated matrix are fixed.
+                // If the final block is shorter than the rest, we don't have enough
+                // samples to fill this matrix without overlapping with the previous block.
+                //
+                // The simplest solution is to not update the weights.
+                // Since there are no blocks after this one, not updating the
+                // weights changes doesn't really matter.
+                //
+                // (The only case where it changes anything is when calling filter()
+                // using the adapted weights, but as long as the input signal used for
+                // adaptation is long enough the final update step changes very little.)
             }
         }
 
         Ok(cleaned_signal.into_inner())
     }
 
+    /// # Errors
+    ///
+    /// Returns an error if `input_signal.len() > noise_ref.len()`.
+    pub fn filter(
+        &self,
+        input_signal: &InputSignal,
+        noise_ref: &NoiseReference,
+    ) -> Result<Vec<f64>> {
+        check_signal_lengths(input_signal, noise_ref)?;
+
+        let mut noise_ref_buffer = BlockNoiseBuffer::new(&self.weights, self.block_size);
+        let mut block_error = ErrorBuffer::new(self.block_size);
+        let mut cleaned_signal = OutputSignal::new(input_signal);
+
+        let n_samples = input_signal.len();
+
+        for block_start in (0..n_samples).step_by(*self.block_size) {
+            let block_end = std::cmp::min(block_start + *self.block_size, n_samples);
+
+            self.process_block(
+                block_start..block_end,
+                input_signal,
+                noise_ref,
+                &mut noise_ref_buffer,
+                &mut block_error,
+                &mut cleaned_signal,
+            );
+        }
+
+        Ok(cleaned_signal.into_inner())
+    }
+
+    /// # Panics
+    ///
+    /// Panics if `range` contains indices that are not within
+    /// the bounds of `input_signal` or `noise_ref`.
     fn process_block(
         &self,
         range: Range<usize>,
@@ -98,10 +150,18 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
         noise_ref_buffer: &mut BlockNoiseBuffer,
         block_error: &mut ErrorBuffer,
         cleaned_signal: &mut OutputSignal,
-    ) -> Option<()> {
+    ) {
         for n in range {
-            let input_sample = input_signal.get_sample(n)?;
-            let noise_sample = noise_ref.get_sample(n)?;
+            #[allow(
+                clippy::expect_used,
+                reason = "This function is only called internally.
+                If an invalid range is (accidentally) provided, we don't want pass
+                it to the public caller or have it silently fail, so we panic instead."
+            )]
+            let (input_sample, noise_sample) = input_signal
+                .get_sample(n)
+                .zip(noise_ref.get_sample(n))
+                .expect("process_block() called with invalid range");
 
             noise_ref_buffer.push(*noise_sample);
 
@@ -118,7 +178,181 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
             block_error.push(error);
             cleaned_signal.push(error);
         }
+    }
+}
 
-        Some(())
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::indexing_slicing, reason = "Tests")]
+mod tests {
+    use std::cell::RefCell;
+
+    use super::*;
+    use crate::algorithms::LeastMeanSquares;
+    use crate::error::Error;
+    use crate::test_utils::all_approx_equal;
+
+    struct UpdateCallCounter {
+        call_count: RefCell<usize>,
+    }
+    impl UpdateCallCounter {
+        pub fn new() -> Self {
+            UpdateCallCounter {
+                call_count: RefCell::new(0),
+            }
+        }
+
+        pub fn call_count(&self) -> usize {
+            *self.call_count.borrow()
+        }
+    }
+    impl BlockAlgorithm for UpdateCallCounter {
+        fn update_block(
+            &self,
+            _weights: &mut FilterWeights,
+            _error: &ErrorBuffer,
+            _noise_ref: &BlockNoiseBuffer,
+        ) {
+            *self.call_count.borrow_mut() += 1;
+        }
+    }
+
+    fn testing_filter() -> BlockFilterBase<LeastMeanSquares> {
+        let window_size = 3;
+        let block_size = 2;
+        let weights = [1.0, -2.0, 0.5];
+
+        let mut filter = BlockFilterBase::<LeastMeanSquares>::new(
+            LeastMeanSquares::new(1.0).unwrap(),
+            window_size,
+            block_size,
+        )
+        .unwrap();
+
+        for (i, val) in weights.iter().enumerate() {
+            filter.weights[i] = *val;
+        }
+
+        filter
+    }
+
+    #[test]
+    fn adapt_weights_update() {
+        let mut filter = testing_filter();
+
+        let weights_before = filter.weights.clone();
+
+        let input = InputSignal::new(&[5.0, 3.5, 2.6, -8.4]).unwrap();
+        let noise = NoiseReference::new(&[3.0, 2.8, -1.7, 2.24]).unwrap();
+
+        filter.adapt(&input, &noise).unwrap();
+
+        assert!(!all_approx_equal(
+            filter.weights.iter(),
+            weights_before.iter()
+        ));
+    }
+
+    #[test]
+    fn filter_weights_dont_update() {
+        let filter = testing_filter();
+
+        let weights_before = filter.weights.clone();
+
+        let input = InputSignal::new(&[5.0, 3.5, 2.6, -8.4]).unwrap();
+        let noise = NoiseReference::new(&[3.0, 2.8, -1.7, 2.24]).unwrap();
+
+        filter.filter(&input, &noise).unwrap();
+
+        assert!(all_approx_equal(
+            filter.weights.iter(),
+            weights_before.iter()
+        ));
+    }
+
+    #[test]
+    fn adapt_weights_len_invariant() {
+        let mut filter = testing_filter();
+
+        let before = filter.weights.len();
+
+        let input = InputSignal::new(&[1.0, 2.0, 3.0]).unwrap();
+        let noise = NoiseReference::new(&[4.0, 5.0, 6.0]).unwrap();
+
+        filter.adapt(&input, &noise).unwrap();
+        let after = filter.weights.len();
+
+        assert_eq!(before, after);
+    }
+
+    #[test]
+    fn reject_shorter_noise_ref() {
+        let mut filter = testing_filter();
+
+        let input = InputSignal::new(&[1.0, 2.0, 3.0]).unwrap();
+        let noise = NoiseReference::new(&[4.0, 5.0]).unwrap();
+
+        assert!(matches!(
+            filter.adapt(&input, &noise),
+            Err(Error::NoiseRefTooShort {
+                input_len: 3,
+                noise_len: 2
+            })
+        ));
+
+        assert!(matches!(
+            filter.filter(&input, &noise),
+            Err(Error::NoiseRefTooShort {
+                input_len: 3,
+                noise_len: 2
+            })
+        ));
+    }
+
+    #[test]
+    fn allow_longer_noise_ref() {
+        let mut filter = testing_filter();
+
+        let input = InputSignal::new(&[1.0, 2.0]).unwrap();
+        let noise = NoiseReference::new(&[4.0, 5.0, 6.0]).unwrap();
+
+        filter.adapt(&input, &noise).unwrap();
+        filter.filter(&input, &noise).unwrap();
+    }
+
+    #[test]
+    /// checks that if the end of the final block falls on
+    /// the final sample, the update step is still called.
+    fn n_samples_multiple_of_block_size() {
+        let block_size = 2;
+        let mut filter =
+            BlockFilterBase::<UpdateCallCounter>::new(UpdateCallCounter::new(), 3, block_size)
+                .unwrap();
+
+        let input = InputSignal::new(&[1.0, 2.0, 3.0, 4.0]).unwrap();
+        let noise = NoiseReference::new(&[4.0, 5.0, 6.0, 7.0]).unwrap();
+
+        filter.adapt(&input, &noise).unwrap();
+        assert_eq!(filter.algorithm.call_count(), 2);
+
+        filter.filter(&input, &noise).unwrap();
+    }
+
+    #[test]
+    /// checks that if the end of the final block doesn't align
+    /// with the final sample, the update step is NOT called.
+    fn n_samples_not_multiple_of_block_size() {
+        let block_size = 2;
+        let mut filter =
+            BlockFilterBase::<UpdateCallCounter>::new(UpdateCallCounter::new(), 3, block_size)
+                .unwrap();
+
+        let input = InputSignal::new(&[1.0, 2.0, 3.0, 4.0, 5.0]).unwrap();
+        let noise = NoiseReference::new(&[4.0, 5.0, 6.0, 7.0, 8.0]).unwrap();
+
+        filter.adapt(&input, &noise).unwrap();
+        // update not called on final block because the shapes don't match
+        assert_eq!(filter.algorithm.call_count(), 2);
+
+        filter.filter(&input, &noise).unwrap();
     }
 }
