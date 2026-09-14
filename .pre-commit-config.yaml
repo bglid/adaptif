@@ -37,9 +37,9 @@ repos:
         types: [rust]
         language: system
         pass_filenames: false
-
+      
       - id: clippy
-        name: clippy
+        name: clippy 
         entry: cargo clippy --all-targets --all-features -- -Dwarnings
         types: [rust]
         language: system
