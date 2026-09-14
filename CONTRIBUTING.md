@@ -30,6 +30,7 @@ uv run pre-commit install
 ## Python bindings
 
 To build the Python bindings for the Rust code, use `maturin`:
+
 ```bash
 uv run maturin develop
 ```
@@ -67,8 +68,7 @@ uv run ty check
 To run the security checks:
 
 ```bash
-uv run safety check --full-report
-uv run bandit -ll --recursive adaptive_filter tests
+uv audit
 ```
 
 To run the pre-commit hooks:
