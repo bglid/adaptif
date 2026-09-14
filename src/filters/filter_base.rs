@@ -6,7 +6,8 @@ use crate::types::signals::{
 };
 use crate::types::{FilterWeights, WindowSize};
 
-use crate::filters::common::{AdaptiveFilter, check_signal_lengths, compute_error, estimate_noise};
+use crate::filters::AdaptiveFilter;
+use crate::filters::common::{check_signal_lengths, compute_error, estimate_noise};
 
 // TODO: make f64 generic
 

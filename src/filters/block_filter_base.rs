@@ -3,7 +3,8 @@ use std::ops::Range;
 use crate::algorithms::BlockAlgorithm;
 
 use crate::error::Result;
-use crate::filters::common::{AdaptiveFilter, check_signal_lengths, compute_error};
+use crate::filters::AdaptiveFilter;
+use crate::filters::common::{check_signal_lengths, compute_error};
 use crate::types::buffers::{BlockNoiseBuffer, ErrorBuffer};
 use crate::types::signals::{InputSignal, NoiseReference, OutputSignal};
 use crate::types::{BlockSize, FilterWeights, NoiseEstimate, WindowSize};

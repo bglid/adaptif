@@ -1,26 +1,8 @@
+//!  Processing functions used by multiple files in the module that shouldn't be publically exported.
 use crate::error::{Error, Result};
 use crate::types::buffers::NoiseBuffer;
 use crate::types::signals::{InputSample, InputSignal, NoiseReference, OutputSample};
 use crate::types::{FilterWeights, NoiseEstimate};
-
-/// Defines the public API for filter models.
-pub trait AdaptiveFilter {
-    /// Iteratively adapts the filter to the input signal and noise reference
-    /// using the chosen algorithm, and returns the denoised signal.
-    ///
-    /// # Errors
-    ///
-    /// Should return an error if `input_signal.len() > noise_ref.len()`.
-    fn adapt(&mut self, input_signal: &InputSignal, noise_ref: &NoiseReference)
-    -> Result<Vec<f64>>;
-
-    /// Applies the filter to the input signal without updating the filter coefficients.
-    ///
-    /// # Errors
-    ///
-    /// Should return an error if `input_signal.len() > noise_ref.len()`.
-    fn filter(&self, input_signal: &InputSignal, noise_ref: &NoiseReference) -> Result<Vec<f64>>;
-}
 
 pub fn estimate_noise(weights: &FilterWeights, noise: &NoiseBuffer) -> NoiseEstimate {
     // NoiseBuffer is initiated with the same length as weights, therefore we don't need to check
