@@ -45,9 +45,10 @@ impl Algorithm for Nlms {
         noise_ref: &NoiseBuffer,
     ) {
         let norm_squared: f64 = noise_ref.iter().map(|x| x * x).sum();
+        let mu_normalized = self.mu / (self.eps + norm_squared);
 
         for (w, x) in weights.iter_mut().zip(noise_ref.iter()) {
-            *w += (self.mu / (self.eps + norm_squared)) * (*error) * x;
+            *w += mu_normalized * (*error) * x;
         }
     }
 }
