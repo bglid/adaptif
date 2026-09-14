@@ -13,9 +13,9 @@ def filter():
     )
 
 
-@pytest.mark.parametrize("filter_kind", [BlockLMSFilter])
-def test_window_size(filter_kind):
-    filter = filter_kind(
+@pytest.mark.parametrize("filter_class", [BlockLMSFilter])
+def test_window_size(filter_class):
+    filter = filter_class(
         mu=0.1,
         window_size=1,
         block_size=1024,
@@ -23,20 +23,20 @@ def test_window_size(filter_kind):
     assert filter.window_size == 1
 
     with pytest.raises(OverflowError):
-        filter_kind(mu=0.1, window_size=-1, block_size=1024)
+        filter_class(mu=0.1, window_size=-1, block_size=1024)
     with pytest.raises(ValueError):
-        filter_kind(mu=0.1, window_size=0, block_size=1024)
+        filter_class(mu=0.1, window_size=0, block_size=1024)
 
 
-@pytest.mark.parametrize("filter_kind", [BlockLMSFilter])
-def test_block_size(filter_kind):
-    filter = filter_kind(mu=0.1, window_size=1024, block_size=1)
+@pytest.mark.parametrize("filter_class", [BlockLMSFilter])
+def test_block_size(filter_class):
+    filter = filter_class(mu=0.1, window_size=1024, block_size=1)
     assert filter.block_size == 1
 
     with pytest.raises(OverflowError):
-        filter_kind(mu=0.1, window_size=1024, block_size=-1)
+        filter_class(mu=0.1, window_size=1024, block_size=-1)
     with pytest.raises(ValueError):
-        filter_kind(mu=0.1, window_size=1024, block_size=0)
+        filter_class(mu=0.1, window_size=1024, block_size=0)
 
 
 def test_adapt(filter):

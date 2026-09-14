@@ -4,23 +4,36 @@ import pytest
 from adaptif import LMSFilter, NLMSFilter
 
 
-@pytest.fixture(params=[LMSFilter, NLMSFilter])
+@pytest.fixture(
+    params=[
+        (LMSFilter, {"mu": 1.0, "window_size": 1024}),
+        (NLMSFilter, {"mu": 1.0, "eps": 1e-8, "window_size": 1024}),
+    ]
+)
 def filter(request):
-    return request.param(
-        mu=0.1,
-        window_size=1024,
-    )
+    filter_class, kwargs = request.param
+    return filter_class(**kwargs)
 
 
-@pytest.mark.parametrize("filter_kind", [LMSFilter, NLMSFilter])
-def test_window_size(filter_kind):
-    filter = filter_kind(mu=0.1, window_size=1)
+@pytest.mark.parametrize(
+    ["filter_class", "kwargs"],
+    [
+        (LMSFilter, {"mu": 1.0}),
+        (NLMSFilter, {"mu": 1.0, "eps": 1e-8}),
+    ],
+)
+def test_window_size(filter_class, kwargs):
+    kwargs["window_size"] = 1
+    filter = filter_class(**kwargs)
     assert filter.window_size == 1
 
+    kwargs["window_size"] = -1
     with pytest.raises(OverflowError):
-        filter_kind(mu=0.1, window_size=-1)
+        filter_class(**kwargs)
+
+    kwargs["window_size"] = 0
     with pytest.raises(ValueError):
-        filter_kind(mu=0.1, window_size=0)
+        filter_class(**kwargs)
 
 
 def test_adapt(filter):

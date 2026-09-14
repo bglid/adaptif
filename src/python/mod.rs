@@ -116,8 +116,8 @@ pub struct NLMSFilter(FilterBase<Nlms>);
 #[pymethods]
 impl NLMSFilter {
     #[new]
-    fn new(mu: f64, window_size: usize) -> PyResult<Self> {
-        let nlms = Nlms::new(mu, 1e-8).map_err(|e| e.to_pyerr())?;
+    fn new(mu: f64, eps: f64, window_size: usize) -> PyResult<Self> {
+        let nlms = Nlms::new(mu, eps).map_err(|e| e.to_pyerr())?;
         let filter = FilterBase::<Nlms>::new(nlms, window_size).map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
