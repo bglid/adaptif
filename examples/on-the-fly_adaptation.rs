@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used, reason = "Examples")]
 
 use adaptif::algorithms::LeastMeanSquares;
-use adaptif::filters::LMSFilter;
+use adaptif::filters::{AdaptiveFilter as _, LMSFilter};
 use adaptif::types::signals::{InputSignal, NoiseReference};
 
 fn main() {

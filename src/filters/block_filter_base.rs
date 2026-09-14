@@ -3,7 +3,7 @@ use std::ops::Range;
 use crate::algorithms::BlockAlgorithm;
 
 use crate::error::Result;
-use crate::filters::common::{check_signal_lengths, compute_error};
+use crate::filters::common::{AdaptiveFilter, check_signal_lengths, compute_error};
 use crate::types::buffers::{BlockNoiseBuffer, ErrorBuffer};
 use crate::types::signals::{InputSignal, NoiseReference, OutputSignal};
 use crate::types::{BlockSize, FilterWeights, NoiseEstimate, WindowSize};
@@ -43,10 +43,54 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
         *self.block_size
     }
 
+    /// # Panics
+    ///
+    /// Panics if `range` contains indices that are not within
+    /// the bounds of `input_signal` or `noise_ref`.
+    fn process_block(
+        &self,
+        range: Range<usize>,
+        input_signal: &InputSignal,
+        noise_ref: &NoiseReference,
+        noise_ref_buffer: &mut BlockNoiseBuffer,
+        block_error: &mut ErrorBuffer,
+        cleaned_signal: &mut OutputSignal,
+    ) {
+        for n in range {
+            #[allow(
+                clippy::expect_used,
+                reason = "This function is only called internally.
+                If an invalid range is (accidentally) provided, we don't want pass
+                it to the public caller or have it silently fail, so we panic instead."
+            )]
+            let (input_sample, noise_sample) = input_signal
+                .get_sample(n)
+                .zip(noise_ref.get_sample(n))
+                .expect("process_block() called with invalid range");
+
+            noise_ref_buffer.push(*noise_sample);
+
+            let current_window = noise_ref_buffer.iter().take(*self.window_size);
+            let noise_estimate = NoiseEstimate(
+                self.weights
+                    .iter()
+                    .zip(current_window)
+                    .map(|(w, x)| w * x)
+                    .sum(),
+            );
+
+            let error = compute_error(input_sample, noise_estimate);
+            block_error.push(error);
+            cleaned_signal.push(error);
+        }
+    }
+}
+
+impl<B: BlockAlgorithm> AdaptiveFilter for BlockFilterBase<B> {
     /// # Errors
     ///
     /// Returns an error if `input_signal.len() > noise_ref.len()`.
-    pub fn adapt(
+    fn adapt(
         &mut self,
         input_signal: &InputSignal,
         noise_ref: &NoiseReference,
@@ -109,11 +153,7 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
     /// # Errors
     ///
     /// Returns an error if `input_signal.len() > noise_ref.len()`.
-    pub fn filter(
-        &self,
-        input_signal: &InputSignal,
-        noise_ref: &NoiseReference,
-    ) -> Result<Vec<f64>> {
+    fn filter(&self, input_signal: &InputSignal, noise_ref: &NoiseReference) -> Result<Vec<f64>> {
         check_signal_lengths(input_signal, noise_ref)?;
 
         let mut noise_ref_buffer = BlockNoiseBuffer::new(&self.weights, self.block_size);
@@ -136,48 +176,6 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
         }
 
         Ok(cleaned_signal.into_inner())
-    }
-
-    /// # Panics
-    ///
-    /// Panics if `range` contains indices that are not within
-    /// the bounds of `input_signal` or `noise_ref`.
-    fn process_block(
-        &self,
-        range: Range<usize>,
-        input_signal: &InputSignal,
-        noise_ref: &NoiseReference,
-        noise_ref_buffer: &mut BlockNoiseBuffer,
-        block_error: &mut ErrorBuffer,
-        cleaned_signal: &mut OutputSignal,
-    ) {
-        for n in range {
-            #[allow(
-                clippy::expect_used,
-                reason = "This function is only called internally.
-                If an invalid range is (accidentally) provided, we don't want pass
-                it to the public caller or have it silently fail, so we panic instead."
-            )]
-            let (input_sample, noise_sample) = input_signal
-                .get_sample(n)
-                .zip(noise_ref.get_sample(n))
-                .expect("process_block() called with invalid range");
-
-            noise_ref_buffer.push(*noise_sample);
-
-            let current_window = noise_ref_buffer.iter().take(*self.window_size);
-            let noise_estimate = NoiseEstimate(
-                self.weights
-                    .iter()
-                    .zip(current_window)
-                    .map(|(w, x)| w * x)
-                    .sum(),
-            );
-
-            let error = compute_error(input_sample, noise_estimate);
-            block_error.push(error);
-            cleaned_signal.push(error);
-        }
     }
 }
 

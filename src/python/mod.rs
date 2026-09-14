@@ -13,7 +13,7 @@ use numpy::{PyArray1, PyReadonlyArray1};
 
 use crate::Error;
 use crate::algorithms::{Algorithm, BlockAlgorithm, LeastMeanSquares, NormalizedLeastMeanSquares};
-use crate::filters::{BlockFilterBase, FilterBase};
+use crate::filters::{AdaptiveFilter as _, BlockFilterBase, FilterBase};
 use crate::types::signals::{InputSignal, NoiseReference};
 
 impl Error {

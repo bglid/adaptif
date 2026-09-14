@@ -1,30 +1,42 @@
 use crate::error::{Error, Result};
 use crate::types::buffers::NoiseBuffer;
-use crate::types::signals::{InputSample, InputSignal, NoiseReference, NoiseSample, OutputSample};
+use crate::types::signals::{InputSample, InputSignal, NoiseReference, OutputSample};
 use crate::types::{FilterWeights, NoiseEstimate};
 
-pub fn process_sample(
-    weights: &FilterWeights,
-    noise_ref_buffer: &mut NoiseBuffer,
-    input_sample: InputSample,
-    noise_sample: NoiseSample,
-) -> OutputSample {
-    noise_ref_buffer.push(*noise_sample);
+/// Defines the public API for filter models.
+pub trait AdaptiveFilter {
+    /// Iteratively adapts the filter to the input signal and noise reference
+    /// using the chosen algorithm, and returns the denoised signal.
+    ///
+    /// # Errors
+    ///
+    /// Should return an error if `input_signal.len() > noise_ref.len()`.
+    fn adapt(&mut self, input_signal: &InputSignal, noise_ref: &NoiseReference)
+    -> Result<Vec<f64>>;
 
-    let noise_estimate = estimate_noise(weights, noise_ref_buffer);
-
-    compute_error(input_sample, noise_estimate)
+    /// Applies the filter to the input signal without updating the filter coefficients.
+    ///
+    /// # Errors
+    ///
+    /// Should return an error if `input_signal.len() > noise_ref.len()`.
+    fn filter(&self, input_signal: &InputSignal, noise_ref: &NoiseReference) -> Result<Vec<f64>>;
 }
 
-pub fn estimate_noise(weights: &FilterWeights, x_n: &NoiseBuffer) -> NoiseEstimate {
+pub fn estimate_noise(weights: &FilterWeights, noise: &NoiseBuffer) -> NoiseEstimate {
     // NoiseBuffer is initiated with the same length as weights, therefore we don't need to check
-    NoiseEstimate(weights.iter().zip(x_n.iter()).map(|(w, x)| w * x).sum())
+    NoiseEstimate(weights.iter().zip(noise.iter()).map(|(w, x)| w * x).sum())
 }
 
 pub fn compute_error(input_sample: InputSample, noise_estimate: NoiseEstimate) -> OutputSample {
     OutputSample(*input_sample - *noise_estimate)
 }
 
+/// Compares the lengths of the input signal and the noise reference to ensure
+/// that the latter is at least as long as the prior.
+///
+/// # Errors
+///
+/// Returns an error if `input_signal.len() > noise_ref.len()`.
 pub fn check_signal_lengths(input_signal: &InputSignal, noise_ref: &NoiseReference) -> Result<()> {
     if noise_ref.len() < input_signal.len() {
         Err(Error::NoiseRefTooShort {
