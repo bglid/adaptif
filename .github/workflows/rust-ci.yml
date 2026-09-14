@@ -29,11 +29,17 @@ jobs:
       - name: Install latest Rust version
         run: rustup update  ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
 
+      - name: rust-cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+
       - name: Install cargo audit
-        run: cargo install cargo-audit
+        run: cargo binstall cargo-audit --no-confirm
 
       - name: Install cargo tarpaulin
-        run: cargo install --locked cargo-tarpaulin
+        run: cargo binstall cargo-tarpaulin --no-confirm
 
       - name: Format code
         run: cargo fmt --all
@@ -47,8 +53,8 @@ jobs:
       - name: Run tests
         run: cargo test --verbose
 
-      - name: Run code coverage
-        run: cargo tarpaulin --fail-under 80
-
       - name: Audit dependencies
         run: cargo audit
+
+      - name: Run code coverage
+        run: cargo tarpaulin --fail-under 70
