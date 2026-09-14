@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::shadow_unrelated, reason = "Examples")]
 
-use adaptif::algorithms::LeastMeanSquares;
+use adaptif::algorithms::Lms;
 use adaptif::filters::{AdaptiveFilter as _, LMSFilter};
 use adaptif::types::signals::{InputSignal, NoiseReference};
 
@@ -10,7 +10,7 @@ fn main() {
     let noise_ref = NoiseReference::new(&[2.0, -1.2, -3.8]).unwrap();
 
     // The parameters used by the LMS filter
-    let lms_config = LeastMeanSquares::new(1.0).unwrap();
+    let lms_config = Lms::new(1.0).unwrap();
     // How many samples we process at a time
     let window_size = 1024;
     // Initialize the filter
@@ -24,7 +24,7 @@ fn main() {
 
     // `filter()` doesn't require the filter to be mutable, so we can also do this:
     let lms_adapted = {
-        let mut lms = LMSFilter::new(LeastMeanSquares::new(1.0).unwrap(), window_size).unwrap();
+        let mut lms = LMSFilter::new(Lms::new(1.0).unwrap(), window_size).unwrap();
         lms.adapt(&input_signal, &noise_ref).unwrap();
         lms
     };

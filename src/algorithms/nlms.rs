@@ -7,13 +7,14 @@ use crate::algorithms::Algorithm;
 
 #[derive(Debug, Clone)]
 #[allow(clippy::exhaustive_structs, reason = "No more fields have to be added")]
-pub struct NormalizedLeastMeanSquares {
+// Normalized least mean squares algorithm.
+pub struct Nlms {
     /// Step size for weight updates.
     mu: f64,
     /// Regularization term to avoid division by zero.
     eps: f64,
 }
-impl NormalizedLeastMeanSquares {
+impl Nlms {
     /// # Errors
     ///
     /// Returns an error if mu <= 0.0.
@@ -27,10 +28,10 @@ impl NormalizedLeastMeanSquares {
             return Err(Error::NonPositiveEpsilon);
         }
 
-        Ok(NormalizedLeastMeanSquares { mu, eps })
+        Ok(Nlms { mu, eps })
     }
 }
-impl Algorithm for NormalizedLeastMeanSquares {
+impl Algorithm for Nlms {
     /// Updates the filter weights using the following equation:
     ///
     /// $w_{n+1} = ``w_n`` + \frac{\mu}{\epsilon + \|``x_n``\|^2} ``e_n`` ``x_n``$
@@ -62,7 +63,7 @@ mod tests {
 
     #[test]
     fn update_nlms_1() {
-        let nlms = NormalizedLeastMeanSquares::new(0.5, 1e-8).unwrap();
+        let nlms = Nlms::new(0.5, 1e-8).unwrap();
         let e_n = OutputSample(2.0);
         let x_n = noise_buffer_from(&[1.0, -1.0]);
         let expected = [1.0 / (2.0 + nlms.eps), -1.0 / (2.0 + nlms.eps)];
@@ -75,7 +76,7 @@ mod tests {
 
     #[test]
     fn update_nlms_2() {
-        let nlms = NormalizedLeastMeanSquares::new(1.0, 1e-8).unwrap();
+        let nlms = Nlms::new(1.0, 1e-8).unwrap();
         let e_n = OutputSample(1.0);
         let x_n = noise_buffer_from(&[5.0, 2.0]);
         let expected = [(5.0 / (29.0 + nlms.eps)), (2.0 / (29.0 + nlms.eps))];
@@ -88,29 +89,29 @@ mod tests {
 
     #[test]
     fn mu_range() {
-        NormalizedLeastMeanSquares::new(1.0, 1e-8).unwrap();
-        NormalizedLeastMeanSquares::new(f64::MAX, 1e-8).unwrap();
+        Nlms::new(1.0, 1e-8).unwrap();
+        Nlms::new(f64::MAX, 1e-8).unwrap();
 
         assert!(matches!(
-            NormalizedLeastMeanSquares::new(0.0, 1e-8),
+            Nlms::new(0.0, 1e-8),
             Err(Error::NonPositiveStepSize)
         ));
         assert!(matches!(
-            NormalizedLeastMeanSquares::new(-1.0, 1e-8),
+            Nlms::new(-1.0, 1e-8),
             Err(Error::NonPositiveStepSize)
         ));
     }
 
     #[test]
     fn eps_range() {
-        NormalizedLeastMeanSquares::new(1.0, 1e-8).unwrap();
+        Nlms::new(1.0, 1e-8).unwrap();
 
         assert!(matches!(
-            NormalizedLeastMeanSquares::new(1.0, 0.0),
+            Nlms::new(1.0, 0.0),
             Err(Error::NonPositiveEpsilon)
         ));
         assert!(matches!(
-            NormalizedLeastMeanSquares::new(1.0, -1.0),
+            Nlms::new(1.0, -1.0),
             Err(Error::NonPositiveEpsilon)
         ));
     }

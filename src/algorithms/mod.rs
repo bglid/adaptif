@@ -3,10 +3,10 @@ use crate::types::buffers::{BlockNoiseBuffer, ErrorBuffer, NoiseBuffer};
 use crate::types::signals::OutputSample;
 
 mod lms;
-pub use lms::LeastMeanSquares;
+pub use lms::Lms;
 
 mod nlms;
-pub use nlms::NormalizedLeastMeanSquares;
+pub use nlms::Nlms;
 
 /// Trait used for implementing algorithms with sample-based processing used in conjuction with
 /// `SampleFilter`.

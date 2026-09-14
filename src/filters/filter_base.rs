@@ -12,7 +12,7 @@ use crate::filters::common::{AdaptiveFilter, check_signal_lengths, compute_error
 
 /// Underlying, algorithm-agnostic filter implementation.
 ///
-/// Typically, it's more convenient to use an alias like `LMSFilter` over its equivalent `FilterBase<LeastMeanSquares>`.
+/// Typically, it's more convenient to use an alias like `LMSFilter` over its equivalent `FilterBase<Lms>`.
 /// As such, `FilterBase` is mainly recommended for use with custom algorithms.
 #[derive(Debug, Clone)]
 pub struct FilterBase<A: Algorithm> {
@@ -136,17 +136,15 @@ impl<A: Algorithm> AdaptiveFilter for FilterBase<A> {
 mod tests {
     use super::*;
 
-    use crate::algorithms::LeastMeanSquares;
+    use crate::algorithms::Lms;
     use crate::error::Error;
     use crate::test_utils::all_approx_equal;
 
-    fn testing_filter() -> FilterBase<LeastMeanSquares> {
+    fn testing_filter() -> FilterBase<Lms> {
         let window_size = 3;
         let weights = [1.0, -2.0, 0.5];
 
-        let mut filter =
-            FilterBase::<LeastMeanSquares>::new(LeastMeanSquares::new(1.0).unwrap(), window_size)
-                .unwrap();
+        let mut filter = FilterBase::<Lms>::new(Lms::new(1.0).unwrap(), window_size).unwrap();
         for (i, val) in weights.iter().enumerate() {
             filter.weights[i] = *val;
         }

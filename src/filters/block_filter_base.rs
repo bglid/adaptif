@@ -185,7 +185,7 @@ mod tests {
     use std::cell::RefCell;
 
     use super::*;
-    use crate::algorithms::LeastMeanSquares;
+    use crate::algorithms::Lms;
     use crate::error::Error;
     use crate::test_utils::all_approx_equal;
 
@@ -214,17 +214,13 @@ mod tests {
         }
     }
 
-    fn testing_filter() -> BlockFilterBase<LeastMeanSquares> {
+    fn testing_filter() -> BlockFilterBase<Lms> {
         let window_size = 3;
         let block_size = 2;
         let weights = [1.0, -2.0, 0.5];
 
-        let mut filter = BlockFilterBase::<LeastMeanSquares>::new(
-            LeastMeanSquares::new(1.0).unwrap(),
-            window_size,
-            block_size,
-        )
-        .unwrap();
+        let mut filter =
+            BlockFilterBase::<Lms>::new(Lms::new(1.0).unwrap(), window_size, block_size).unwrap();
 
         for (i, val) in weights.iter().enumerate() {
             filter.weights[i] = *val;
