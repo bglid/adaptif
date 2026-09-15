@@ -7,23 +7,24 @@ use crate::algorithms::{Algorithm, BlockAlgorithm};
 
 #[derive(Debug, Clone)]
 #[allow(clippy::exhaustive_structs, reason = "No more fields have to be added")]
-pub struct LeastMeanSquares {
+/// Least mean squares algorithm.
+pub struct Lms {
     /// Step size for weight updates.
     mu: f64,
 }
-impl LeastMeanSquares {
+impl Lms {
     /// # Errors
     ///
     /// Returns an error if mu <= 0.0.
     pub fn new(mu: f64) -> Result<Self> {
         if mu > 0.0 {
-            Ok(LeastMeanSquares { mu })
+            Ok(Lms { mu })
         } else {
             Err(Error::NonPositiveStepSize)
         }
     }
 }
-impl Algorithm for LeastMeanSquares {
+impl Algorithm for Lms {
     /// Updates the filter weights using the following equation:
     ///
     /// $w_{n+1} = \mu ``e_n`` ``x_n``$
@@ -41,7 +42,7 @@ impl Algorithm for LeastMeanSquares {
         }
     }
 }
-impl BlockAlgorithm for LeastMeanSquares {
+impl BlockAlgorithm for Lms {
     /// Updates the filter weights using the following equation:
     ///
     /// $w_{n+1} = \mu ``X_n``^T ``e_n``$
@@ -92,7 +93,7 @@ mod tests {
 
     #[test]
     fn update_lms_1() {
-        let lms = LeastMeanSquares::new(0.5).unwrap();
+        let lms = Lms::new(0.5).unwrap();
         let e_n = OutputSample(2.0);
         let x_n = noise_buffer_from(&[1.0, -1.0]);
         let expected = [1.0, -1.0];
@@ -105,7 +106,7 @@ mod tests {
 
     #[test]
     fn update_lms_2() {
-        let lms = LeastMeanSquares::new(1.0).unwrap();
+        let lms = Lms::new(1.0).unwrap();
         let e_n = OutputSample(1.0);
         let x_n = noise_buffer_from(&[5.0, 2.0]);
         let expected = [5.0, 2.0];
@@ -118,7 +119,7 @@ mod tests {
 
     #[test]
     fn update_block_lms_1() {
-        let lms = LeastMeanSquares::new(0.5).unwrap();
+        let lms = Lms::new(0.5).unwrap();
         // Because of the underlying queue implementation, the arrays here are ordered
         // from most to least recent sample
         let e_n = error_buffer_from(&[5.0, -6.0, 7.0]);
@@ -133,7 +134,7 @@ mod tests {
 
     #[test]
     fn update_block_lms_2() {
-        let lms = LeastMeanSquares::new(1.0).unwrap();
+        let lms = Lms::new(1.0).unwrap();
         // Because of the underlying queue implementation, the arrays here are ordered
         // from most to least recent sample
         let e_n = error_buffer_from(&[1.0, -1.0, 1.5]);
@@ -148,16 +149,10 @@ mod tests {
 
     #[test]
     fn mu_range() {
-        LeastMeanSquares::new(1.0).unwrap();
-        LeastMeanSquares::new(f64::MAX).unwrap();
+        Lms::new(1.0).unwrap();
+        Lms::new(f64::MAX).unwrap();
 
-        assert!(matches!(
-            LeastMeanSquares::new(0.0),
-            Err(Error::NonPositiveStepSize)
-        ));
-        assert!(matches!(
-            LeastMeanSquares::new(-1.0),
-            Err(Error::NonPositiveStepSize)
-        ));
+        assert!(matches!(Lms::new(0.0), Err(Error::NonPositiveStepSize)));
+        assert!(matches!(Lms::new(-1.0), Err(Error::NonPositiveStepSize)));
     }
 }

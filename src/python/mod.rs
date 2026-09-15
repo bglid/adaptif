@@ -12,8 +12,8 @@ use pyo3::exceptions::PyValueError;
 use numpy::{PyArray1, PyReadonlyArray1};
 
 use crate::Error;
-use crate::algorithms::{Algorithm, LeastMeanSquares, NormalizedLeastMeanSquares};
-use crate::filters::FilterBase;
+use crate::algorithms::{Lms, Nlms};
+use crate::filters::{AdaptiveFilter, BlockFilterBase, FilterBase};
 use crate::types::signals::{InputSignal, NoiseReference};
 
 impl Error {
@@ -68,15 +68,15 @@ enum FilterOperation {
 )]
 // Because the wrappers for adapt() and filter() would only differ in one line,
 // we use this underlying implementation.
-fn adapt_filter_impl<'py, A>(
-    filter: &mut FilterBase<A>,
+fn adapt_filter_impl<'py, F>(
+    filter: &mut F,
     py: Python<'py>,
     input_signal: PyReadonlyArray1<f64>,
     noise_ref: PyReadonlyArray1<f64>,
     op: FilterOperation,
 ) -> PyResult<Bound<'py, PyArray1<f64>>>
 where
-    A: Algorithm,
+    F: AdaptiveFilter,
 {
     let input_signal = InputSignal::from_pyarray(&input_signal)?;
     let noise_ref = NoiseReference::from_pyarray(&noise_ref)?;
@@ -93,18 +93,17 @@ where
 #[pymodule]
 mod adaptif {
     #[pymodule_export]
-    use super::{LMSFilter, NLMSFilter};
+    use super::{BlockLMSFilter, LMSFilter, NLMSFilter};
 }
 
 #[pyclass]
-pub struct LMSFilter(FilterBase<LeastMeanSquares>);
+pub struct LMSFilter(FilterBase<Lms>);
 #[pymethods]
 impl LMSFilter {
     #[new]
     fn new(mu: f64, window_size: usize) -> PyResult<Self> {
-        let lms = LeastMeanSquares::new(mu).map_err(|e| e.to_pyerr())?;
-        let filter =
-            FilterBase::<LeastMeanSquares>::new(lms, window_size).map_err(|e| e.to_pyerr())?;
+        let lms = Lms::new(mu).map_err(|e| e.to_pyerr())?;
+        let filter = FilterBase::<Lms>::new(lms, window_size).map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
@@ -113,17 +112,37 @@ impl LMSFilter {
 generate_filter_bindings!(LMSFilter);
 
 #[pyclass]
-pub struct NLMSFilter(FilterBase<NormalizedLeastMeanSquares>);
+pub struct NLMSFilter(FilterBase<Nlms>);
 #[pymethods]
 impl NLMSFilter {
     #[new]
-    fn new(mu: f64, window_size: usize) -> PyResult<Self> {
-        let nlms = NormalizedLeastMeanSquares::new(mu, 1e-8).map_err(|e| e.to_pyerr())?;
-        let filter = FilterBase::<NormalizedLeastMeanSquares>::new(nlms, window_size)
-            .map_err(|e| e.to_pyerr())?;
+    fn new(mu: f64, eps: f64, window_size: usize) -> PyResult<Self> {
+        let nlms = Nlms::new(mu, eps).map_err(|e| e.to_pyerr())?;
+        let filter = FilterBase::<Nlms>::new(nlms, window_size).map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
 }
 
 generate_filter_bindings!(NLMSFilter);
+
+#[pyclass]
+pub struct BlockLMSFilter(BlockFilterBase<Lms>);
+#[pymethods]
+impl BlockLMSFilter {
+    #[new]
+    fn new(mu: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
+        let lms = Lms::new(mu).map_err(|e| e.to_pyerr())?;
+        let filter =
+            BlockFilterBase::<Lms>::new(lms, window_size, block_size).map_err(|e| e.to_pyerr())?;
+
+        Ok(Self(filter))
+    }
+
+    #[getter]
+    fn block_size(&self) -> usize {
+        self.0.block_size()
+    }
+}
+
+generate_filter_bindings!(BlockLMSFilter);

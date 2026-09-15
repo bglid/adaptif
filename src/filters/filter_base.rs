@@ -1,16 +1,19 @@
 use crate::algorithms::Algorithm;
 use crate::error::Result;
 use crate::types::buffers::NoiseBuffer;
-use crate::types::signals::{InputSignal, NoiseReference, OutputSignal};
+use crate::types::signals::{
+    InputSample, InputSignal, NoiseReference, NoiseSample, OutputSample, OutputSignal,
+};
 use crate::types::{FilterWeights, WindowSize};
 
-use crate::filters::common::{check_signal_lengths, process_sample};
+use crate::filters::AdaptiveFilter;
+use crate::filters::common::{check_signal_lengths, compute_error, estimate_noise};
 
 // TODO: make f64 generic
 
 /// Underlying, algorithm-agnostic filter implementation.
 ///
-/// Typically, it's more convenient to use an alias like `LMSFilter` over its equivalent `FilterBase<LeastMeanSquares>`.
+/// Typically, it's more convenient to use an alias like `LMSFilter` over its equivalent `FilterBase<Lms>`.
 /// As such, `FilterBase` is mainly recommended for use with custom algorithms.
 #[derive(Debug, Clone)]
 pub struct FilterBase<A: Algorithm> {
@@ -45,6 +48,21 @@ impl<A: Algorithm> FilterBase<A> {
 
     // TODO: getter fn for weights + loading weights w/ setter (from_weights() or load_weights())
 
+    fn process_sample(
+        &self,
+        noise_ref_buffer: &mut NoiseBuffer,
+        input_sample: InputSample,
+        noise_sample: NoiseSample,
+    ) -> OutputSample {
+        noise_ref_buffer.push(*noise_sample);
+
+        let noise_estimate = estimate_noise(&self.weights, noise_ref_buffer);
+
+        compute_error(input_sample, noise_estimate)
+    }
+}
+
+impl<A: Algorithm> AdaptiveFilter for FilterBase<A> {
     /// Iteratively adapts the filter to the input signal and noise reference
     /// using the chosen algorithm, and returns the denoised signal.
     ///
@@ -56,7 +74,7 @@ impl<A: Algorithm> FilterBase<A> {
     /// # Errors
     ///
     /// Returns an error if `input_signal.len() > noise_ref.len()`.
-    pub fn adapt(
+    fn adapt(
         &mut self,
         input_signal: &InputSignal,
         noise_ref: &NoiseReference,
@@ -70,8 +88,7 @@ impl<A: Algorithm> FilterBase<A> {
             // We set n_samples = input_signal.len() and called check_signal_lengths() (putting in comment so fmt doesn't split lines)
             #[allow(clippy::unwrap_used, reason = "Bounds checked")]
             #[allow(clippy::missing_panics_doc, reason = "Bounds checked")]
-            let error = process_sample(
-                &self.weights,
+            let error = self.process_sample(
                 &mut noise_ref_buffer,
                 input_signal.get_sample(n).unwrap(),
                 noise_ref.get_sample(n).unwrap(),
@@ -92,11 +109,7 @@ impl<A: Algorithm> FilterBase<A> {
     /// # Errors
     ///
     /// Returns an error if `input_signal.len() > noise_ref.len()`.
-    pub fn filter(
-        &self,
-        input_signal: &InputSignal,
-        noise_ref: &NoiseReference,
-    ) -> Result<Vec<f64>> {
+    fn filter(&self, input_signal: &InputSignal, noise_ref: &NoiseReference) -> Result<Vec<f64>> {
         check_signal_lengths(input_signal, noise_ref)?;
 
         let mut noise_ref_buffer = NoiseBuffer::new(&self.weights);
@@ -106,8 +119,7 @@ impl<A: Algorithm> FilterBase<A> {
             // We set n_samples = input_signal.len() and called check_signal_lengths()
             #[allow(clippy::unwrap_used, reason = "Bounds checked")]
             #[allow(clippy::missing_panics_doc, reason = "Bounds checked")]
-            let error = process_sample(
-                &self.weights,
+            let error = self.process_sample(
                 &mut noise_ref_buffer,
                 input_signal.get_sample(n).unwrap(),
                 noise_ref.get_sample(n).unwrap(),
@@ -125,17 +137,15 @@ impl<A: Algorithm> FilterBase<A> {
 mod tests {
     use super::*;
 
-    use crate::algorithms::LeastMeanSquares;
+    use crate::algorithms::Lms;
     use crate::error::Error;
     use crate::test_utils::all_approx_equal;
 
-    fn testing_filter() -> FilterBase<LeastMeanSquares> {
+    fn testing_filter() -> FilterBase<Lms> {
         let window_size = 3;
         let weights = [1.0, -2.0, 0.5];
 
-        let mut filter =
-            FilterBase::<LeastMeanSquares>::new(LeastMeanSquares::new(1.0).unwrap(), window_size)
-                .unwrap();
+        let mut filter = FilterBase::<Lms>::new(Lms::new(1.0).unwrap(), window_size).unwrap();
         for (i, val) in weights.iter().enumerate() {
             filter.weights[i] = *val;
         }

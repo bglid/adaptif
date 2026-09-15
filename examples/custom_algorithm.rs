@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used, clippy::exhaustive_structs, reason = "Examples")]
 
 use adaptif::algorithms::Algorithm;
-use adaptif::filters::FilterBase;
+use adaptif::filters::{AdaptiveFilter as _, FilterBase};
 use adaptif::types::FilterWeights;
 use adaptif::types::buffers::NoiseBuffer;
 use adaptif::types::signals::{InputSignal, NoiseReference, OutputSample};
