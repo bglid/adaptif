@@ -1,5 +1,4 @@
 import pytest
-
 from adaptif import LMSFilter, NLMSFilter
 
 
