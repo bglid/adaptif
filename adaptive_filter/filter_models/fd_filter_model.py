@@ -18,7 +18,7 @@ class FrequencyDomainAF:
         self.half_bins = self.block_size // 2 + 1
         self.eps = 1e-8
         self.algorithm = "FDAF"
-        self.W = np.zeros(self.half_bins, dtype=np.complex128)
+        self.W = np.zeros(self.half_bins, dtype=np.float64)
 
     def noise_estimate(self, x_n: NDArray[np.float64]) -> np.float64:
         """Predict the noise estimate, given vector X[n], noise reference. Uses formula W^T[n]X[n].

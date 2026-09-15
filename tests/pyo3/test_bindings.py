@@ -1,11 +1,27 @@
 import pytest
-from adaptif import LMSFilter, NLMSFilter, RLSFilter
+from adaptif import BlockLMSFilter, LMSFilter, NLMSFilter, RLSFilter
 
 
-@pytest.mark.parametrize("filter_algo", [LMSFilter, NLMSFilter, RLSFilter])
-def test_filter_bindings(filter_algo):
-    filter = filter_algo(1.0, 1024)
+# TODO: update kwargs once default args are added (+ in other tests too)
+@pytest.mark.parametrize(
+    ["filter_class", "kwargs"],
+    [
+        (LMSFilter, {"mu": 1.0, "window_size": 1024}),
+        (NLMSFilter, {"mu": 1.0, "eps": 1e-8, "window_size": 1024}),
+        (RLSFilter, {"mu": 0.5, "window_size": 1024}),
+    ],
+)
+def test_filter_bindings(filter_class, kwargs):
+    filter = filter_class(**kwargs)
     assert hasattr(filter, "window_size")
     assert hasattr(filter, "adapt")
     assert hasattr(filter, "filter")
-    assert not hasattr(filter, "adapt_filter_impl")
+    assert not hasattr(filter, "block_size")
+
+
+def test_block_filter_bindings():
+    filter = BlockLMSFilter(1.0, 1024, 1024)
+    assert hasattr(filter, "window_size")
+    assert hasattr(filter, "block_size")
+    assert hasattr(filter, "adapt")
+    assert hasattr(filter, "filter")

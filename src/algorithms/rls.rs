@@ -1,4 +1,6 @@
-use crate::types::{FilterWeights, OutputSample, SampleBuffer};
+use crate::types::FilterWeights;
+use crate::types::buffers::NoiseBuffer;
+use crate::types::signals::OutputSample;
 use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
@@ -50,7 +52,7 @@ impl RecursiveLeastSquares {
         p
     }
 
-    fn calculate_k(&self, noise_ref: &SampleBuffer) -> Vec<f64> {
+    fn calculate_k(&self, noise_ref: &NoiseBuffer) -> Vec<f64> {
         #[allow(clippy::unwrap_used, reason = "p_matrix Option checked")]
         let p = self.p_matrix.as_deref().unwrap();
         let numerator: Vec<f64> = p
@@ -68,7 +70,7 @@ impl RecursiveLeastSquares {
     }
 
     // bruh
-    fn update_p_matrix(&mut self, k_n: &[f64], noise_ref: &SampleBuffer) {
+    fn update_p_matrix(&mut self, k_n: &[f64], noise_ref: &NoiseBuffer) {
         // Breaking this up in parts for sanity, temporary
         #[allow(
             clippy::unwrap_used,
@@ -108,7 +110,7 @@ impl Algorithm for RecursiveLeastSquares {
         &mut self,
         weights: &mut FilterWeights,
         error: OutputSample,
-        noise_ref: &SampleBuffer,
+        noise_ref: &NoiseBuffer,
     ) {
         // Updates p_matrix on first iteration once n is known
         if self.p_matrix.is_none() {
@@ -130,10 +132,9 @@ impl Algorithm for RecursiveLeastSquares {
 mod tests {
     use super::*;
     use crate::{
-        test_utils::{all_approx_equal, sample_buffer_from},
-        types::FilterWeights,
+        test_utils::{all_approx_equal, noise_buffer_from},
+        types::{FilterWeights, WindowSize},
     };
-    use std::num::NonZero;
 
     #[test]
     fn init_p_matrix_works() {
@@ -148,7 +149,7 @@ mod tests {
     fn calculate_k_works() {
         let mut rls = RecursiveLeastSquares::new(1.0, 1.0).unwrap();
         rls.p_matrix = Some(vec![1.0, 0.0, 0.0, 1.0]);
-        let x_n = sample_buffer_from(&[1.0, 2.0]);
+        let x_n = noise_buffer_from(&[1.0, 2.0]);
         let expected = [1.0 / 6.0, 1.0 / 3.0];
 
         let k_n = rls.calculate_k(&x_n);
@@ -160,7 +161,7 @@ mod tests {
     fn update_p_matrix_works() {
         let mut rls = RecursiveLeastSquares::new(1.0, 1.0).unwrap();
         rls.p_matrix = Some(vec![1.0, 0.0, 0.0, 1.0]);
-        let x_n = sample_buffer_from(&[1.0, 2.0]);
+        let x_n = noise_buffer_from(&[1.0, 2.0]);
         let k_n = vec![1.0 / 6.0, 1.0 / 3.0];
 
         rls.update_p_matrix(&k_n, &x_n);
@@ -177,9 +178,9 @@ mod tests {
     fn update_rls_1() {
         let mut rls = RecursiveLeastSquares::new(0.5, 1.0).unwrap();
         let e_n = OutputSample(2.0);
-        let x_n = sample_buffer_from(&[1.0, -1.0]);
+        let x_n = noise_buffer_from(&[1.0, -1.0]);
         let expected = [0.8, -0.8];
-        let mut weights = FilterWeights::zeros(NonZero::new(2).unwrap());
+        let mut weights = FilterWeights::new(WindowSize::new(2).unwrap());
 
         rls.update_step(&mut weights, e_n, &x_n);
 
@@ -190,9 +191,9 @@ mod tests {
     fn update_rls_2() {
         let mut rls = RecursiveLeastSquares::new(1.0, 1.0).unwrap();
         let e_n = OutputSample(1.0);
-        let x_n = sample_buffer_from(&[5.0, 2.0]);
+        let x_n = noise_buffer_from(&[5.0, 2.0]);
         let expected = [5.0 / 30.0, 2.0 / 30.0];
-        let mut weights = FilterWeights::zeros(NonZero::new(2).unwrap());
+        let mut weights = FilterWeights::new(WindowSize::new(2).unwrap());
 
         rls.update_step(&mut weights, e_n, &x_n);
 

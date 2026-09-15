@@ -50,7 +50,7 @@ def test_filter_returns_array(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(
         model,
         "update_step",
-        lambda e_n, x_n: np.array([0.0], dtype=np.float64),
+        lambda e_n, x_n: np.array([0.0], dtype=np.complex128),
     )
 
     d = np.linspace(1, 5, 5)
