@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-
 from adaptif import BlockLMSFilter
 
 

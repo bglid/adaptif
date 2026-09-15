@@ -1,5 +1,4 @@
 import pytest
-
 from adaptif import BlockLMSFilter, LMSFilter, NLMSFilter
 
 
