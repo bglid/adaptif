@@ -3,7 +3,6 @@
 [![Actions status](https://github.com/bglid/adaptive-filters/workflows/build/badge.svg)](https://github.com/bglid/adaptive-filters/actions)
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Security: bandit](https://img.shields.io/badge/security-bandit-green.svg)](https://github.com/PyCQA/bandit)
 [![License](https://img.shields.io/github/license/bglid/adaptive-filters)](https://github.com/bglid/adaptive-filters/blob/master/LICENSE)
 
 #### Python adaptive filtering DSP algorithms package that uses pyo3 for fast processing.
@@ -42,6 +41,7 @@ git clone https://github.com/bglid/adaptive-filters.git
 ```
 
 Install the project dev dependencies and build the Python bindings with `maturin`:
+
 ```bash
 uv sync
 uv run maturin develop

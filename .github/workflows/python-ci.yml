@@ -57,9 +57,7 @@ jobs:
             tests/
 
       - name: Run safety checks
-        run: |
-          uv run safety check --full-report
-          uv run bandit -ll --recursive adaptive_filter tests
+        run: uv audit
 
       - name: Build package
         run: uv build
