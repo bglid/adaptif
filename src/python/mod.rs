@@ -12,7 +12,7 @@ use pyo3::exceptions::PyValueError;
 use numpy::{PyArray1, PyReadonlyArray1};
 
 use crate::Error;
-use crate::algorithms::{Lms, Nlms, RecursiveLeastSquares};
+use crate::algorithms::{Lms, Nlms, Rls};
 use crate::filters::{AdaptiveFilter, BlockFilterBase, FilterBase};
 use crate::types::signals::{InputSignal, NoiseReference};
 
@@ -129,14 +129,13 @@ impl NLMSFilter {
 generate_filter_bindings!(NLMSFilter);
 
 #[pyclass]
-pub struct RLSFilter(FilterBase<RecursiveLeastSquares>);
+pub struct RLSFilter(FilterBase<Rls>);
 #[pymethods]
 impl RLSFilter {
     #[new]
-    fn new(mu: f64, window_size: usize) -> PyResult<Self> {
-        let rls = RecursiveLeastSquares::new(mu, 1.0).map_err(|e| e.to_pyerr())?;
-        let filter =
-            FilterBase::<RecursiveLeastSquares>::new(rls, window_size).map_err(|e| e.to_pyerr())?;
+    fn new(mu: f64, delta: f64, window_size: usize) -> PyResult<Self> {
+        let rls = Rls::new(mu, delta).map_err(|e| e.to_pyerr())?;
+        let filter = FilterBase::<Rls>::new(rls, window_size).map_err(|e| e.to_pyerr())?;
         Ok(Self(filter))
     }
 }

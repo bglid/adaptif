@@ -4,7 +4,7 @@ use crate::types::signals::{InputSignal, NoiseReference};
 mod filter_base;
 pub use filter_base::FilterBase;
 
-use crate::algorithms::{Lms, Nlms, RecursiveLeastSquares};
+use crate::algorithms::{Lms, Nlms, Rls};
 
 mod block_filter_base;
 pub use block_filter_base::BlockFilterBase;
@@ -15,7 +15,7 @@ mod common;
 pub type LMSFilter = FilterBase<Lms>;
 pub type BlockLMSFilter = BlockFilterBase<Lms>;
 pub type NLMSFilter = FilterBase<Nlms>;
-pub type RLSFilter = FilterBase<RecursiveLeastSquares>;
+pub type RLSFilter = FilterBase<Rls>;
 
 /// Defines the public API for filter models.
 pub trait AdaptiveFilter {

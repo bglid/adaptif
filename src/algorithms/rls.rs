@@ -7,7 +7,7 @@ use crate::algorithms::Algorithm;
 
 #[derive(Debug, Clone)]
 #[allow(clippy::exhaustive_structs, reason = "No more fields have to be added")]
-pub struct RecursiveLeastSquares {
+pub struct Rls {
     /// Forgetting factor for weight updates.
     #[allow(
         dead_code,
@@ -20,7 +20,7 @@ pub struct RecursiveLeastSquares {
     p_matrix: Option<Vec<f64>>,
 }
 
-impl RecursiveLeastSquares {
+impl Rls {
     /// # Errors
     ///
     /// Returns an error if lambda <= 0.0 or > 1.0.
@@ -34,7 +34,7 @@ impl RecursiveLeastSquares {
             return Err(Error::NonPositiveDelta);
         }
 
-        Ok(RecursiveLeastSquares {
+        Ok(Rls {
             lambda,
             delta,
             p_matrix: None,
@@ -103,7 +103,7 @@ impl RecursiveLeastSquares {
     }
 }
 
-impl Algorithm for RecursiveLeastSquares {
+impl Algorithm for Rls {
     /// Updates the filter weights using the following equation:
     ///
     fn update_step(
@@ -138,7 +138,7 @@ mod tests {
 
     #[test]
     fn init_p_matrix_works() {
-        let rls = RecursiveLeastSquares::new(0.5, 10.0).unwrap();
+        let rls = Rls::new(0.5, 10.0).unwrap();
         let n = 3;
         let expected = [10.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 10.0];
         let p_matrix = rls.initial_p_matrix(n);
@@ -147,7 +147,7 @@ mod tests {
 
     #[test]
     fn calculate_k_works() {
-        let mut rls = RecursiveLeastSquares::new(1.0, 1.0).unwrap();
+        let mut rls = Rls::new(1.0, 1.0).unwrap();
         rls.p_matrix = Some(vec![1.0, 0.0, 0.0, 1.0]);
         let x_n = noise_buffer_from(&[1.0, 2.0]);
         let expected = [1.0 / 6.0, 1.0 / 3.0];
@@ -159,7 +159,7 @@ mod tests {
 
     #[test]
     fn update_p_matrix_works() {
-        let mut rls = RecursiveLeastSquares::new(1.0, 1.0).unwrap();
+        let mut rls = Rls::new(1.0, 1.0).unwrap();
         rls.p_matrix = Some(vec![1.0, 0.0, 0.0, 1.0]);
         let x_n = noise_buffer_from(&[1.0, 2.0]);
         let k_n = vec![1.0 / 6.0, 1.0 / 3.0];
@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn update_rls_1() {
-        let mut rls = RecursiveLeastSquares::new(0.5, 1.0).unwrap();
+        let mut rls = Rls::new(0.5, 1.0).unwrap();
         let e_n = OutputSample(2.0);
         let x_n = noise_buffer_from(&[1.0, -1.0]);
         let expected = [0.8, -0.8];
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn update_rls_2() {
-        let mut rls = RecursiveLeastSquares::new(1.0, 1.0).unwrap();
+        let mut rls = Rls::new(1.0, 1.0).unwrap();
         let e_n = OutputSample(1.0);
         let x_n = noise_buffer_from(&[5.0, 2.0]);
         let expected = [5.0 / 30.0, 2.0 / 30.0];
@@ -202,26 +202,23 @@ mod tests {
 
     #[test]
     fn lambda_range() {
-        RecursiveLeastSquares::new(0.01, 3.0).unwrap();
-        RecursiveLeastSquares::new(1.0, 3.0).unwrap();
+        Rls::new(0.01, 3.0).unwrap();
+        Rls::new(1.0, 3.0).unwrap();
 
         assert!(matches!(
-            RecursiveLeastSquares::new(0.0, 1.0),
+            Rls::new(0.0, 1.0),
             Err(Error::IncorrectLambdaRange)
         ));
         assert!(matches!(
-            RecursiveLeastSquares::new(-1.0, 1.0),
+            Rls::new(-1.0, 1.0),
             Err(Error::IncorrectLambdaRange)
         ));
     }
 
     #[test]
     fn delta_range() {
-        RecursiveLeastSquares::new(0.01, 100.0).unwrap();
+        Rls::new(0.01, 100.0).unwrap();
 
-        assert!(matches!(
-            RecursiveLeastSquares::new(0.5, 0.0),
-            Err(Error::NonPositiveDelta)
-        ));
+        assert!(matches!(Rls::new(0.5, 0.0), Err(Error::NonPositiveDelta)));
     }
 }
