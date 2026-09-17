@@ -23,7 +23,7 @@ impl Rls {
     /// Returns an error if forgetting factor <= 0.0 or > 1.0.
     /// Returns an error if delta <= 0.0.
     pub fn new(forgetting_factor: f64, delta: f64) -> Result<Self> {
-        if !(forgetting_factor > 0.0 && forgetting_factor <= 1.0) {
+        if forgetting_factor <= 0.0 || forgetting_factor > 1.0 {
             return Err(Error::IncorrectForgettingFactorRange);
         }
 
@@ -215,6 +215,11 @@ mod tests {
         ));
         assert!(matches!(
             Rls::new(-1.0, 1.0),
+            Err(Error::IncorrectForgettingFactorRange)
+        ));
+
+        assert!(matches!(
+            Rls::new(2.0, 1.0),
             Err(Error::IncorrectForgettingFactorRange)
         ));
     }
