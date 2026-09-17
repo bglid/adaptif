@@ -50,10 +50,10 @@ impl Rls {
     }
 
     fn calculate_k(&self, p: &[f64], noise_ref: &NoiseBuffer) -> Vec<f64> {
-        let numerator: Vec<f64> = p
+        let numerator = p
             .chunks_exact(noise_ref.len())
             .map(|row| row.iter().zip(noise_ref.iter()).map(|(px, x)| px * x).sum())
-            .collect();
+            .collect::<Vec<f64>>();
         let denominator = self.forgetting_factor
             + noise_ref
                 .iter()
@@ -64,17 +64,20 @@ impl Rls {
         numerator.iter().map(|n| n / denominator).collect()
     }
 
+    // I've added comments to try and make this reasonable to read and compare to lit
     fn next_p_matrix(&self, p: &[f64], k_n: &[f64], noise_ref: &NoiseBuffer) -> Vec<f64> {
+        // This gets computes the section [x^T_n p_{n-1}]
         let xt_p = (0..noise_ref.len())
             .map(|col| {
                 noise_ref
                     .iter()
                     .zip(p.iter().skip(col).step_by(noise_ref.len()))
-                    .map(|(ft, p)| ft * p)
+                    .map(|(x, p)| x * p)
                     .sum::<f64>()
             })
             .collect::<Vec<f64>>();
 
+        // takes result^ and computes lambda^-1 * [p_{n-1} - k(xt_p)]
         p.iter()
             .zip(k_n.iter().flat_map(|k| xt_p.iter().map(move |val| k * val)))
             .map(|(p, update)| (p - update) / self.forgetting_factor)
@@ -121,12 +124,11 @@ impl Algorithm for Rls {
 
         let k_n = self.calculate_k(p, noise_ref);
         let new_p_matrix = self.next_p_matrix(p, &k_n, noise_ref);
+        self.p_matrix = Some(new_p_matrix);
 
         for (w, k) in weights.iter_mut().zip(k_n.iter()) {
             *w += k * (*error);
         }
-
-        self.p_matrix = Some(new_p_matrix);
     }
 }
 
