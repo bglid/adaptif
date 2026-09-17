@@ -7,7 +7,7 @@ use crate::algorithms::Algorithm;
 
 #[derive(Debug, Clone)]
 #[allow(clippy::exhaustive_structs, reason = "No more fields have to be added")]
-// Normalized least mean squares algorithm.
+/// Normalized least mean squares algorithm.
 pub struct Nlms {
     /// Step size for weight updates.
     mu: f64,

@@ -24,7 +24,7 @@ impl Error {
             | Self::BlockSizeZero
             | Self::NoiseRefTooShort { .. }
             | Self::NonPositiveStepSize
-            | Self::IncorrectLambdaRange
+            | Self::IncorrectForgettingFactorRange
             | Self::NonPositiveDelta
             | Self::NonPositiveEpsilon => PyValueError::new_err(self.to_string()),
         }
@@ -133,8 +133,8 @@ pub struct RLSFilter(FilterBase<Rls>);
 #[pymethods]
 impl RLSFilter {
     #[new]
-    fn new(mu: f64, delta: f64, window_size: usize) -> PyResult<Self> {
-        let rls = Rls::new(mu, delta).map_err(|e| e.to_pyerr())?;
+    fn new(forgetting_factor: f64, delta: f64, window_size: usize) -> PyResult<Self> {
+        let rls = Rls::new(forgetting_factor, delta).map_err(|e| e.to_pyerr())?;
         let filter = FilterBase::<Rls>::new(rls, window_size).map_err(|e| e.to_pyerr())?;
         Ok(Self(filter))
     }
