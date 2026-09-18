@@ -24,7 +24,7 @@ impl Error {
             | Self::BlockSizeZero
             | Self::NoiseRefTooShort { .. }
             | Self::NonPositiveStepSize
-            | Self::IncorrectForgettingFactorRange
+            | Self::InvalidForgettingFactorRange
             | Self::NonPositiveDelta
             | Self::NonPositiveEpsilon => PyValueError::new_err(self.to_string()),
         }

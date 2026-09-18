@@ -23,8 +23,8 @@ impl Rls {
     /// Returns an error if forgetting factor <= 0.0 or > 1.0.
     /// Returns an error if delta <= 0.0.
     pub fn new(forgetting_factor: f64, delta: f64) -> Result<Self> {
-        if forgetting_factor <= 0.0 || forgetting_factor > 1.0 {
-            return Err(Error::IncorrectForgettingFactorRange);
+        if !(forgetting_factor > 0.0 && forgetting_factor <= 1.0) {
+            return Err(Error::InvalidForgettingFactorRange);
         }
 
         if delta <= 0.0 {
@@ -116,11 +116,10 @@ impl Algorithm for Rls {
             self.p_matrix = Some(self.initial_p_matrix(weights.len()));
         }
 
-        #[allow(
-            clippy::unwrap_used,
-            reason = "p_matrix Option checked and initialized above"
-        )]
-        let p = self.p_matrix.as_deref().unwrap();
+        let p = match self.p_matrix.as_deref() {
+            Some(p) => p,
+            None => &self.initial_p_matrix(weights.len()),
+        };
 
         let k_n = self.calculate_k(p, noise_ref);
         let new_p_matrix = self.next_p_matrix(p, &k_n, noise_ref);
@@ -211,16 +210,16 @@ mod tests {
 
         assert!(matches!(
             Rls::new(0.0, 1.0),
-            Err(Error::IncorrectForgettingFactorRange)
+            Err(Error::InvalidForgettingFactorRange)
         ));
         assert!(matches!(
             Rls::new(-1.0, 1.0),
-            Err(Error::IncorrectForgettingFactorRange)
+            Err(Error::InvalidForgettingFactorRange)
         ));
 
         assert!(matches!(
             Rls::new(2.0, 1.0),
-            Err(Error::IncorrectForgettingFactorRange)
+            Err(Error::InvalidForgettingFactorRange)
         ));
     }
 
