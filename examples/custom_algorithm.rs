@@ -14,7 +14,7 @@ pub struct MyAlgorithm {
 impl Algorithm for MyAlgorithm {
     // This function is called every iteration during adaptation to update the weights
     fn update_step(
-        &self,
+        &mut self,
         weights: &mut FilterWeights,
         error: OutputSample,
         noise_ref: &NoiseBuffer,

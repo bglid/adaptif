@@ -13,6 +13,8 @@ pub enum Error {
     NoiseRefTooShort { input_len: usize, noise_len: usize },
     NonPositiveStepSize,
     NonPositiveEpsilon,
+    InvalidForgettingFactorRange,
+    NonPositiveDelta,
 }
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -29,6 +31,10 @@ impl Display for Error {
             ),
             Self::NonPositiveStepSize => write!(f, "step size (mu) must be greater than 0.0"),
             Self::NonPositiveEpsilon => write!(f, "epsilon (eps) must be greater than 0.0"),
+            Self::InvalidForgettingFactorRange => {
+                write!(f, "lambda, the forgetting factor, must be > 0.0 and <= 1.0")
+            }
+            Self::NonPositiveDelta => write!(f, "delta must be greater than 0.0"),
         }
     }
 }

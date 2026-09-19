@@ -1,5 +1,5 @@
 import pytest
-from adaptif import BlockLMSFilter, LMSFilter, NLMSFilter
+from adaptif import BlockLMSFilter, LMSFilter, NLMSFilter, RLSFilter
 
 
 # TODO: update kwargs once default args are added (+ in other tests too)
@@ -8,6 +8,7 @@ from adaptif import BlockLMSFilter, LMSFilter, NLMSFilter
     [
         (LMSFilter, {"mu": 1.0, "window_size": 1024}),
         (NLMSFilter, {"mu": 1.0, "eps": 1e-8, "window_size": 1024}),
+        (RLSFilter, {"forgetting_factor": 0.5, "delta": 1.0, "window_size": 1024}),
     ],
 )
 def test_filter_bindings(filter_class, kwargs):

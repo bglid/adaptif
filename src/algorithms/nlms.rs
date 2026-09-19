@@ -7,7 +7,7 @@ use crate::algorithms::Algorithm;
 
 #[derive(Debug, Clone)]
 #[allow(clippy::exhaustive_structs, reason = "No more fields have to be added")]
-// Normalized least mean squares algorithm.
+/// Normalized least mean squares algorithm.
 pub struct Nlms {
     /// Step size for weight updates.
     mu: f64,
@@ -39,7 +39,7 @@ impl Algorithm for Nlms {
     /// and $``x_n``$ is a vector of length `window_size` of the
     /// most recent noise reference samples.
     fn update_step(
-        &self,
+        &mut self,
         weights: &mut FilterWeights,
         error: OutputSample,
         noise_ref: &NoiseBuffer,
@@ -64,7 +64,7 @@ mod tests {
 
     #[test]
     fn update_nlms_1() {
-        let nlms = Nlms::new(0.5, 1e-8).unwrap();
+        let mut nlms = Nlms::new(0.5, 1e-8).unwrap();
         let e_n = OutputSample(2.0);
         let x_n = noise_buffer_from(&[1.0, -1.0]);
         let expected = [1.0 / (2.0 + nlms.eps), -1.0 / (2.0 + nlms.eps)];
@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn update_nlms_2() {
-        let nlms = Nlms::new(1.0, 1e-8).unwrap();
+        let mut nlms = Nlms::new(1.0, 1e-8).unwrap();
         let e_n = OutputSample(1.0);
         let x_n = noise_buffer_from(&[5.0, 2.0]);
         let expected = [(5.0 / (29.0 + nlms.eps)), (2.0 / (29.0 + nlms.eps))];
