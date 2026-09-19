@@ -9,7 +9,7 @@ mod nlms;
 pub use nlms::Nlms;
 
 mod rls;
-pub use rls::Rls;
+pub use rls::{Delta, Rls};
 
 /// Trait used for implementing algorithms with sample-based processing used in conjuction with
 /// `SampleFilter`.

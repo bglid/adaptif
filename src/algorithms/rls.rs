@@ -1,9 +1,35 @@
+use std::ops::Deref;
+
 use crate::types::buffers::NoiseBuffer;
 use crate::types::signals::OutputSample;
 use crate::types::{FilterWeights, WindowSize};
 use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
+
+#[derive(Debug, Clone, Copy)]
+/// Positive scalar of `f64` used in initalizing the RLS inverse correlation matrix.
+///
+/// `Delta` must be greater than zero.
+pub struct Delta(f64);
+impl Delta {
+    /// # Errors
+    ///
+    /// Returns an error if delta <= 0.0.
+    pub fn new(delta: f64) -> Result<Self> {
+        if delta <= 0.0 {
+            return Err(Error::NonPositiveDelta);
+        }
+
+        Ok(Delta(delta))
+    }
+}
+impl Deref for Delta {
+    type Target = f64;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[derive(Debug, Clone)]
 #[allow(clippy::exhaustive_structs, reason = "No more fields have to be added")]
@@ -12,7 +38,7 @@ pub struct Rls {
     /// Forgetting factor for weight updates.
     forgetting_factor: f64,
     /// Delta scalar value used for initalizing the inverse correlation `p_matrix`.
-    delta: f64,
+    delta: Delta,
     /// Inverse correlation matrix, referred to as P[n], for RLS updates.
     p_matrix: Option<Vec<f64>>,
 }
@@ -22,13 +48,9 @@ impl Rls {
     ///
     /// Returns an error if forgetting factor <= 0.0 or > 1.0.
     /// Returns an error if delta <= 0.0.
-    pub fn new(forgetting_factor: f64, delta: f64) -> Result<Self> {
+    pub fn new(forgetting_factor: f64, delta: Delta) -> Result<Self> {
         if forgetting_factor <= 0.0 || forgetting_factor > 1.0 {
             return Err(Error::InvalidForgettingFactorRange);
-        }
-
-        if delta <= 0.0 {
-            return Err(Error::NonPositiveDelta);
         }
 
         Ok(Rls {
@@ -44,7 +66,7 @@ impl Rls {
 
         for i in 0..n {
             if let Some(elem) = p.get_mut(i * n + i) {
-                *elem = self.delta;
+                *elem = *self.delta;
             }
         }
         p
@@ -149,7 +171,7 @@ mod tests {
 
     #[test]
     fn init_p_matrix_works() {
-        let rls = Rls::new(0.5, 10.0).unwrap();
+        let rls = Rls::new(0.5, Delta::new(10.0).unwrap()).unwrap();
         let n = WindowSize::new(3).unwrap();
         let expected = [10.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 10.0];
         let p_matrix = rls.initial_p_matrix(n);
@@ -158,7 +180,7 @@ mod tests {
 
     #[test]
     fn calculate_k_works() {
-        let mut rls = Rls::new(1.0, 1.0).unwrap();
+        let mut rls = Rls::new(1.0, Delta::new(1.0).unwrap()).unwrap();
         rls.p_matrix = Some(vec![1.0, 0.0, 0.0, 1.0]);
         let p = rls.p_matrix.as_deref().unwrap();
         let x_n = noise_buffer_from(&[1.0, 2.0]);
@@ -171,7 +193,7 @@ mod tests {
 
     #[test]
     fn update_p_matrix_works() {
-        let mut rls = Rls::new(1.0, 1.0).unwrap();
+        let mut rls = Rls::new(1.0, Delta::new(1.0).unwrap()).unwrap();
         rls.p_matrix = Some(vec![1.0, 0.0, 0.0, 1.0]);
         let p = rls.p_matrix.as_deref().unwrap();
         let x_n = noise_buffer_from(&[1.0, 2.0]);
@@ -186,7 +208,7 @@ mod tests {
 
     #[test]
     fn update_rls_1() {
-        let mut rls = Rls::new(0.5, 1.0).unwrap();
+        let mut rls = Rls::new(0.5, Delta::new(1.0).unwrap()).unwrap();
         let e_n = OutputSample(2.0);
         let x_n = noise_buffer_from(&[1.0, -1.0]);
         let expected = [0.8, -0.8];
@@ -199,7 +221,7 @@ mod tests {
 
     #[test]
     fn update_rls_2() {
-        let mut rls = Rls::new(1.0, 1.0).unwrap();
+        let mut rls = Rls::new(1.0, Delta::new(1.0).unwrap()).unwrap();
         let e_n = OutputSample(1.0);
         let x_n = noise_buffer_from(&[5.0, 2.0]);
         let expected = [5.0 / 30.0, 2.0 / 30.0];
@@ -212,28 +234,31 @@ mod tests {
 
     #[test]
     fn forgetting_factor_range() {
-        Rls::new(0.01, 3.0).unwrap();
-        Rls::new(1.0, 3.0).unwrap();
+        let delta: Delta = Delta::new(1.0).unwrap();
+        Rls::new(0.01, delta).unwrap();
+        Rls::new(1.0, delta).unwrap();
 
         assert!(matches!(
-            Rls::new(0.0, 1.0),
+            Rls::new(0.0, delta),
             Err(Error::InvalidForgettingFactorRange)
         ));
         assert!(matches!(
-            Rls::new(-1.0, 1.0),
+            Rls::new(-1.0, delta),
             Err(Error::InvalidForgettingFactorRange)
         ));
 
         assert!(matches!(
-            Rls::new(2.0, 1.0),
+            Rls::new(2.0, delta),
             Err(Error::InvalidForgettingFactorRange)
         ));
     }
 
     #[test]
     fn delta_range() {
-        Rls::new(0.01, 100.0).unwrap();
+        let good_delta: Delta = Delta::new(100.0).unwrap();
+        Rls::new(0.01, good_delta).unwrap();
 
-        assert!(matches!(Rls::new(0.5, 0.0), Err(Error::NonPositiveDelta)));
+        assert!(matches!(Delta::new(0.0), Err(Error::NonPositiveDelta)));
+        assert!(matches!(Delta::new(-1.0), Err(Error::NonPositiveDelta)));
     }
 }
