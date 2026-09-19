@@ -91,7 +91,7 @@ no need to run `make python`.
 ### Adding new bindings
 
 New bindings should be imported in `adaptif/__init__.py`.
-In order for `ty` to resolve imports correctly, you also have too add any new functions/classes to the stub file (`adaptif/adaptif.pyi`).
+In order for `ty` to resolve imports correctly, you also have to add any new functions/classes to the stub file (`adaptif/adaptif.pyi`).
 
 ## Codestyle
 
