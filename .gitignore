@@ -29,6 +29,8 @@
 !pyproject.toml
 !uv.lock
 
+!Makefile
+
 # docs
 !*.md
 !LICENSE-APACHE
