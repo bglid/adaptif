@@ -1,6 +1,6 @@
-use crate::types::FilterWeights;
 use crate::types::buffers::NoiseBuffer;
 use crate::types::signals::OutputSample;
+use crate::types::{FilterWeights, WindowSize};
 use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
@@ -23,7 +23,7 @@ impl Rls {
     /// Returns an error if forgetting factor <= 0.0 or > 1.0.
     /// Returns an error if delta <= 0.0.
     pub fn new(forgetting_factor: f64, delta: f64) -> Result<Self> {
-        if !(forgetting_factor > 0.0 && forgetting_factor <= 1.0) {
+        if forgetting_factor <= 0.0 || forgetting_factor > 1.0 {
             return Err(Error::InvalidForgettingFactorRange);
         }
 
@@ -38,7 +38,8 @@ impl Rls {
         })
     }
 
-    fn initial_p_matrix(&self, n: usize) -> Vec<f64> {
+    fn initial_p_matrix(&self, window_size: WindowSize) -> Vec<f64> {
+        let n = *window_size;
         let mut p = vec![0.0; n * n];
 
         for i in 0..n {
@@ -112,13 +113,19 @@ impl Algorithm for Rls {
         noise_ref: &NoiseBuffer,
     ) {
         // Updates p_matrix on first iteration once n is known
+        #[allow(
+            clippy::unwrap_used,
+            reason = "weights is initialized from a WindowSize so it can't panic"
+        )]
+        let window_size = WindowSize::new(weights.len()).unwrap();
+
         if self.p_matrix.is_none() {
-            self.p_matrix = Some(self.initial_p_matrix(weights.len()));
+            self.p_matrix = Some(self.initial_p_matrix(window_size));
         }
 
         let p = match self.p_matrix.as_deref() {
             Some(p) => p,
-            None => &self.initial_p_matrix(weights.len()),
+            None => &self.initial_p_matrix(window_size),
         };
 
         let k_n = self.calculate_k(p, noise_ref);
@@ -143,7 +150,7 @@ mod tests {
     #[test]
     fn init_p_matrix_works() {
         let rls = Rls::new(0.5, 10.0).unwrap();
-        let n = 3;
+        let n = WindowSize::new(3).unwrap();
         let expected = [10.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 10.0];
         let p_matrix = rls.initial_p_matrix(n);
         assert_eq!(p_matrix, expected);
