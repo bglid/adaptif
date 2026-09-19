@@ -13,6 +13,8 @@ use std::ops::Deref;
 
 use crate::error::{Error, Result};
 
+// TODO: use pub(crate) to limit public exports to only the types needed for the public API
+
 #[derive(Debug, Clone, Copy)]
 pub struct WindowSize(usize);
 impl WindowSize {
