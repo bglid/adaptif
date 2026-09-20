@@ -214,23 +214,18 @@ impl Algorithm for Rls {
             None => &mut InverseCorrMatrix::new(window_size, self.delta),
         };
 
-        let k = match self.kalman_gain.as_mut() {
+        let kalman = match self.kalman_gain.as_mut() {
             Some(k) => k,
             None => &mut KalmanGain::new(noise_ref),
         };
 
-        Self::calculate_k(self.forgetting_factor, p, k, noise_ref);
+        Self::calculate_k(self.forgetting_factor, p, kalman, noise_ref);
 
-        let new_kalman = match self.kalman_gain.as_mut() {
-            Some(new_k) => new_k,
-            None => &mut KalmanGain::new(noise_ref),
-        };
-
-        for (w, new_k) in weights.iter_mut().zip(new_kalman.iter()) {
+        for (w, new_k) in weights.iter_mut().zip(kalman.iter()) {
             *w += new_k * (*error);
         }
 
-        Self::next_p_matrix(self.forgetting_factor, p, new_kalman, noise_ref);
+        Self::next_p_matrix(self.forgetting_factor, p, kalman, noise_ref);
     }
 }
 
