@@ -123,21 +123,24 @@ impl Rls {
         kalman: &mut KalmanGain,
         noise_ref: &NoiseBuffer,
     ) {
-        let numerator = p.chunks_exact(noise_ref.len()).map(|row| {
-            row.iter()
+        // resuing kalman buffer for getting numerator to avoid clone of numerator
+        for (k_i, row) in kalman.iter_mut().zip(p.chunks_exact(noise_ref.len())) {
+            *k_i = row
+                .iter()
                 .zip(noise_ref.iter())
                 .map(|(px, x)| px * x)
-                .sum::<f64>()
-        });
+                .sum::<f64>();
+        }
+
         let denominator = forgetting_factor
             + noise_ref
                 .iter()
-                .zip(numerator.clone())
+                .zip(kalman.iter())
                 .map(|(noise, num)| noise * num)
                 .sum::<f64>();
 
-        for (kalman_i, numberator_i) in (*kalman).iter_mut().zip(numerator) {
-            *kalman_i = numberator_i / denominator;
+        for kalman_i in (*kalman).iter_mut() {
+            *kalman_i /= denominator;
         }
     }
 
