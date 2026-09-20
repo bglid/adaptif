@@ -37,12 +37,12 @@ pub struct KalmanGain(Vec<f64>);
 impl KalmanGain {
     pub fn new(noise_ref: &NoiseBuffer) -> Self {
         let mut k = KalmanGain(Vec::with_capacity(noise_ref.len()));
-        k.resize(noise_ref.len(), 0.0);
+        k.0.resize(noise_ref.len(), 0.0);
         k
     }
 }
 impl Deref for KalmanGain {
-    type Target = Vec<f64>;
+    type Target = [f64];
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -148,7 +148,7 @@ impl Rls {
     fn next_p_matrix(
         forgetting_factor: f64,
         p: &mut InverseCorrMatrix,
-        kalman: &mut KalmanGain,
+        kalman: &KalmanGain,
         noise_ref: &NoiseBuffer,
     ) {
         for col in 0..noise_ref.len() {
@@ -159,7 +159,7 @@ impl Rls {
                 .map(|(x, p)| x * p)
                 .sum::<f64>();
 
-            // takes result^ and computes lambda^-1 * [p_{n-1} - k(xt_p)]
+            // takes result^ and computes lambda^-1 * [p_{n-1} - k(xt_p column)]
             for (row, k) in kalman.iter().enumerate() {
                 // index is into a flat buffer, so row * n gives us the start of each row
                 let index = row * noise_ref.len() + col;
@@ -209,6 +209,7 @@ impl Algorithm for Rls {
             self.kalman_gain = Some(KalmanGain::new(noise_ref));
         }
 
+        // TODO: We probably want to replace these two patterns
         let p = match self.inverse_corr_matrix.as_mut() {
             Some(p) => p,
             None => &mut InverseCorrMatrix::new(window_size, self.delta),
@@ -267,9 +268,9 @@ mod tests {
         let rls = Rls::new(1.0, Delta::new(1.0).unwrap()).unwrap();
         let mut p = InverseCorrMatrix(vec![1.0, 0.0, 0.0, 1.0]);
         let x_n = noise_buffer_from(&[1.0, 2.0]);
-        let mut k = KalmanGain(vec![1.0 / 6.0, 1.0 / 3.0]);
+        let k = KalmanGain(vec![1.0 / 6.0, 1.0 / 3.0]);
 
-        Rls::next_p_matrix(rls.forgetting_factor, &mut p, &mut k, &x_n);
+        Rls::next_p_matrix(rls.forgetting_factor, &mut p, &k, &x_n);
 
         let expected = InverseCorrMatrix(vec![5.0 / 6.0, -1.0 / 3.0, -1.0 / 3.0, 1.0 / 3.0]);
 
