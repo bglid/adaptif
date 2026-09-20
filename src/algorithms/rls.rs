@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used, reason = "Temporary")]
 use std::ops::{Deref, DerefMut};
 
 use crate::types::buffers::NoiseBuffer;
@@ -117,14 +118,14 @@ impl Rls {
         })
     }
 
-    fn calculate_k(
-        forgetting_factor: f64,
-        p: &InverseCorrMatrix,
-        kalman: &mut KalmanGain,
-        noise_ref: &NoiseBuffer,
-    ) {
+    fn update_kalman_gain(&mut self, noise_ref: &NoiseBuffer) {
         // resuing kalman buffer for getting numerator to avoid clone of numerator
-        for (k_i, row) in kalman.iter_mut().zip(p.chunks_exact(noise_ref.len())) {
+        for (k_i, row) in self.kalman_gain.as_mut().unwrap().iter_mut().zip(
+            self.inverse_corr_matrix
+                .as_ref()
+                .unwrap()
+                .chunks_exact(noise_ref.len()),
+        ) {
             *k_i = row
                 .iter()
                 .zip(noise_ref.iter())
@@ -132,39 +133,37 @@ impl Rls {
                 .sum::<f64>();
         }
 
-        let denominator = forgetting_factor
+        let denominator = self.forgetting_factor
             + noise_ref
                 .iter()
-                .zip(kalman.iter())
+                .zip(self.kalman_gain.as_ref().unwrap().iter())
                 .map(|(noise, num)| noise * num)
                 .sum::<f64>();
 
-        for kalman_i in (*kalman).iter_mut() {
+        for kalman_i in self.kalman_gain.as_mut().unwrap().iter_mut() {
             *kalman_i /= denominator;
         }
     }
 
     // I've added comments to try and make this reasonable to read and compare to lit
-    fn next_p_matrix(
-        forgetting_factor: f64,
-        p: &mut InverseCorrMatrix,
-        kalman: &KalmanGain,
-        noise_ref: &NoiseBuffer,
-    ) {
+    fn update_p_matrix(&mut self, noise_ref: &NoiseBuffer) {
+        let p_ref_mut = self.inverse_corr_matrix.as_mut().unwrap();
+        let k_ref = self.kalman_gain.as_ref().unwrap();
+
         for col in 0..noise_ref.len() {
             // This gets computes the section [x^T_n p_{n-1}]
             let xt_p_col = noise_ref
                 .iter()
-                .zip(p.iter().skip(col).step_by(noise_ref.len()))
+                .zip(p_ref_mut.iter().skip(col).step_by(noise_ref.len()))
                 .map(|(x, p)| x * p)
                 .sum::<f64>();
 
             // takes result^ and computes lambda^-1 * [p_{n-1} - k(xt_p column)]
-            for (row, k) in kalman.iter().enumerate() {
+            for (row, k) in k_ref.iter().enumerate() {
                 // index is into a flat buffer, so row * n gives us the start of each row
                 let index = row * noise_ref.len() + col;
-                if let Some(p_i) = p.get_mut(index) {
-                    *p_i = (*p_i - k * xt_p_col) / forgetting_factor;
+                if let Some(p_i) = p_ref_mut.get_mut(index) {
+                    *p_i = (*p_i - k * xt_p_col) / self.forgetting_factor;
                 }
             }
         }
@@ -197,36 +196,34 @@ impl Algorithm for Rls {
         error: OutputSample,
         noise_ref: &NoiseBuffer,
     ) {
-        // Updates p_matrix on first iteration once n is known
+        // TODO: replace with weights.window_size() after merge
         #[allow(
             clippy::unwrap_used,
             reason = "weights is initialized from a WindowSize so it can't panic"
         )]
         let window_size = WindowSize::new(weights.len()).unwrap();
 
+        // TODO: We probably want to replace these two patterns
+        // Updates p_matrix on first iteration once n is known
+
         if self.inverse_corr_matrix.is_none() {
             self.inverse_corr_matrix = Some(InverseCorrMatrix::new(window_size, self.delta));
+        }
+
+        if self.kalman_gain.is_none() {
             self.kalman_gain = Some(KalmanGain::new(noise_ref));
         }
 
-        // TODO: We probably want to replace these two patterns
-        let p = match self.inverse_corr_matrix.as_mut() {
-            Some(p) => p,
-            None => &mut InverseCorrMatrix::new(window_size, self.delta),
-        };
+        self.update_kalman_gain(noise_ref);
 
-        let kalman = match self.kalman_gain.as_mut() {
-            Some(k) => k,
-            None => &mut KalmanGain::new(noise_ref),
-        };
-
-        Self::calculate_k(self.forgetting_factor, p, kalman, noise_ref);
-
-        for (w, new_k) in weights.iter_mut().zip(kalman.iter()) {
-            *w += new_k * (*error);
+        for (w, new_k) in weights
+            .iter_mut()
+            .zip(self.kalman_gain.as_ref().unwrap().iter())
+        {
+            *w += (*new_k) * (*error);
         }
 
-        Self::next_p_matrix(self.forgetting_factor, p, kalman, noise_ref);
+        self.update_p_matrix(noise_ref);
     }
 }
 
@@ -250,31 +247,37 @@ mod tests {
     }
 
     #[test]
-    fn calculate_k_works() {
-        let rls = Rls::new(1.0, Delta::new(1.0).unwrap()).unwrap();
-        let p = InverseCorrMatrix(vec![1.0, 0.0, 0.0, 1.0]);
+    fn update_kalman_gain_works() {
+        let mut rls = Rls::new(1.0, Delta::new(1.0).unwrap()).unwrap();
+        rls.inverse_corr_matrix = Some(InverseCorrMatrix(vec![1.0, 0.0, 0.0, 1.0]));
+        rls.kalman_gain = Some(KalmanGain(vec![0.0; 2]));
         let x_n = noise_buffer_from(&[1.0, 2.0]);
-        let mut k = KalmanGain(vec![0.0; 2]);
 
-        Rls::calculate_k(rls.forgetting_factor, &p, &mut k, &x_n);
+        rls.update_kalman_gain(&x_n);
 
         let expected = [1.0 / 6.0, 1.0 / 3.0];
 
-        assert!(all_approx_equal(k.iter(), expected.iter()));
+        assert!(all_approx_equal(
+            rls.kalman_gain.unwrap().iter(),
+            expected.iter()
+        ));
     }
 
     #[test]
     fn update_p_matrix_works() {
-        let rls = Rls::new(1.0, Delta::new(1.0).unwrap()).unwrap();
-        let mut p = InverseCorrMatrix(vec![1.0, 0.0, 0.0, 1.0]);
+        let mut rls = Rls::new(1.0, Delta::new(1.0).unwrap()).unwrap();
+        rls.inverse_corr_matrix = Some(InverseCorrMatrix(vec![1.0, 0.0, 0.0, 1.0]));
+        rls.kalman_gain = Some(KalmanGain(vec![1.0 / 6.0, 1.0 / 3.0]));
         let x_n = noise_buffer_from(&[1.0, 2.0]);
-        let k = KalmanGain(vec![1.0 / 6.0, 1.0 / 3.0]);
 
-        Rls::next_p_matrix(rls.forgetting_factor, &mut p, &k, &x_n);
+        rls.update_p_matrix(&x_n);
 
         let expected = InverseCorrMatrix(vec![5.0 / 6.0, -1.0 / 3.0, -1.0 / 3.0, 1.0 / 3.0]);
 
-        assert!(all_approx_equal(p.iter(), expected.iter()));
+        assert!(all_approx_equal(
+            rls.inverse_corr_matrix.unwrap().iter(),
+            expected.iter()
+        ));
     }
 
     #[test]
