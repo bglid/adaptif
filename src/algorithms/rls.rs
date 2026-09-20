@@ -136,8 +136,8 @@ impl Rls {
                 .map(|(noise, num)| noise * num)
                 .sum::<f64>();
 
-        for kalman_i in self.kalman_gain.iter_mut() {
-            *kalman_i /= denominator;
+        for k_i in self.kalman_gain.iter_mut() {
+            *k_i /= denominator;
         }
     }
 
@@ -157,11 +157,11 @@ impl Rls {
                 .sum::<f64>();
 
             // takes result^ and computes lambda^-1 * [p_{n-1} - k(xt_p column)]
-            for (row, k) in self.kalman_gain.iter().enumerate() {
+            for (row, k_i) in self.kalman_gain.iter().enumerate() {
                 // index is into a flat buffer, so row * n gives us the start of each row
                 let index = row * noise_ref.len() + col;
                 if let Some(p_i) = self.inverse_corr_matrix.get_mut(index) {
-                    *p_i = (*p_i - k * xt_p_col) / self.forgetting_factor;
+                    *p_i = (*p_i - k_i * xt_p_col) / self.forgetting_factor;
                 }
             }
         }
@@ -213,8 +213,8 @@ impl Algorithm for Rls {
 
         self.update_kalman_gain(noise_ref);
 
-        for (w, new_k) in weights.iter_mut().zip(self.kalman_gain.iter()) {
-            *w += (*new_k) * (*error);
+        for (w, k) in weights.iter_mut().zip(self.kalman_gain.iter()) {
+            *w += (*k) * (*error);
         }
 
         self.update_p_matrix(noise_ref);
