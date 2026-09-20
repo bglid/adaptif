@@ -39,6 +39,27 @@ impl<A: Algorithm> FilterBase<A> {
         })
     }
 
+    /// Creates a filter of the specified algorithm with set weights.
+    /// The filter's window size is equal to `weights.len()`.
+    ///
+    /// This method is intended for loading previously adapted weights
+    /// or for non-zero weight initialization, e.g. from a sampled distribution.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `weights.is_empty()`.
+    // TODO: move weights instead of ref
+    pub fn from_weights(algorithm: A, weights: &[f64]) -> Result<Self> {
+        let weights = FilterWeights::try_from(weights)?;
+        let window_size = weights.window_size();
+
+        Ok(FilterBase {
+            algorithm,
+            weights,
+            window_size,
+        })
+    }
+
     // TODO: Impl Default
 
     /// Returns the filter's window size. This number is equal to the number of weights.
@@ -46,7 +67,11 @@ impl<A: Algorithm> FilterBase<A> {
         *self.window_size
     }
 
-    // TODO: getter fn for weights + loading weights w/ setter (from_weights() or load_weights())
+    /// Returns a reference to the filter's weights.
+    pub fn weights(&self) -> &[f64] {
+        // Returning a slice so that FilterWeights doesn't have to part of the public API
+        &self.weights
+    }
 
     fn process_sample(
         &self,
@@ -153,6 +178,33 @@ mod tests {
     }
 
     #[test]
+    fn new_works() {
+        let window_size = 3;
+        let filter = FilterBase::<Lms>::new(Lms::new(1.0).unwrap(), window_size).unwrap();
+
+        assert_eq!(filter.window_size, WindowSize::new(window_size).unwrap());
+        assert_eq!(filter.algorithm, Lms::new(1.0).unwrap());
+        assert!(all_approx_equal(filter.weights.iter(), [0.0; 3].iter()));
+    }
+
+    #[test]
+    fn window_size_works() {
+        let filter = testing_filter();
+
+        assert_eq!(filter.window_size(), *filter.window_size);
+    }
+
+    #[test]
+    fn weights_works() {
+        let filter = testing_filter();
+
+        assert!(all_approx_equal(
+            filter.weights().iter(),
+            filter.weights.iter()
+        ));
+    }
+
+    #[test]
     fn adapt_weights_update() {
         let mut filter = testing_filter();
 
@@ -234,5 +286,37 @@ mod tests {
 
         filter.adapt(&input, &noise).unwrap();
         filter.filter(&input, &noise).unwrap();
+    }
+
+    #[test]
+    fn from_weights_vec() {
+        let weights = vec![1.0, 2.0, 3.0];
+
+        let filter = FilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), &weights).unwrap();
+
+        assert!(all_approx_equal(weights.iter(), filter.weights().iter()));
+    }
+
+    #[test]
+    fn from_weights_arr() {
+        let weights = [1.0, 2.0, 3.0];
+
+        let filter = FilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), &weights).unwrap();
+
+        assert!(all_approx_equal(weights.iter(), filter.weights().iter()));
+    }
+
+    #[test]
+    fn from_weights_reject_empty() {
+        let empty_vec = vec![];
+
+        assert!(matches!(
+            FilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), &empty_vec),
+            Err(Error::EmptyInputArr)
+        ));
+        assert!(matches!(
+            FilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), &[]),
+            Err(Error::EmptyInputArr)
+        ));
     }
 }

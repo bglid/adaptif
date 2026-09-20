@@ -36,12 +36,43 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
         })
     }
 
+    /// Creates a filter of the specified algorithm with set weights.
+    /// The filter's window size is equal to `weights.len()`.
+    ///
+    /// This method is intended for loading previously adapted weights
+    /// or for non-zero weight initialization, e.g. from a sampled distribution.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `weights.is_empty()`.
+    // TODO: move weights instead of ref
+    pub fn from_weights(algorithm: B, weights: &[f64], block_size: usize) -> Result<Self> {
+        let weights = FilterWeights::try_from(weights)?;
+        let window_size = weights.window_size();
+        let block_size = BlockSize::new(block_size)?;
+
+        Ok(BlockFilterBase {
+            algorithm,
+            weights,
+            window_size,
+            block_size,
+        })
+    }
+
+    /// Returns the filter's window size. This number is equal to the number of weights.
     pub fn window_size(&self) -> usize {
         *self.window_size
     }
 
+    /// Returns the filter's block size.
     pub fn block_size(&self) -> usize {
         *self.block_size
+    }
+
+    /// Returns a reference to the filter's weights.
+    pub fn weights(&self) -> &[f64] {
+        // Returning a slice so that FilterWeights doesn't have to part of the public API
+        &self.weights
     }
 
     /// # Panics
@@ -183,6 +214,7 @@ impl<B: BlockAlgorithm> AdaptiveFilter for BlockFilterBase<B> {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::indexing_slicing, reason = "Tests")]
 mod tests {
+    // TODO: more tests
     use std::cell::RefCell;
 
     use super::*;
@@ -349,5 +381,39 @@ mod tests {
         assert_eq!(filter.algorithm.call_count(), 2);
 
         filter.filter(&input, &noise).unwrap();
+    }
+
+    #[test]
+    fn from_weights_vec() {
+        let weights = vec![1.0, 2.0, 3.0];
+
+        let filter =
+            BlockFilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), &weights, 1024).unwrap();
+
+        assert!(all_approx_equal(weights.iter(), filter.weights().iter()));
+    }
+
+    #[test]
+    fn from_weights_arr() {
+        let weights = [1.0, 2.0, 3.0];
+
+        let filter =
+            BlockFilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), &weights, 1024).unwrap();
+
+        assert!(all_approx_equal(weights.iter(), filter.weights().iter()));
+    }
+
+    #[test]
+    fn from_weights_reject_empty() {
+        let empty_vec = vec![];
+
+        assert!(matches!(
+            BlockFilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), &empty_vec, 1024),
+            Err(Error::EmptyInputArr)
+        ));
+        assert!(matches!(
+            BlockFilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), &empty_vec, 1024),
+            Err(Error::EmptyInputArr)
+        ));
     }
 }

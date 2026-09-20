@@ -15,7 +15,7 @@ use crate::error::{Error, Result};
 
 // TODO: use pub(crate) to limit public exports to only the types needed for the public API
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WindowSize(usize);
 impl WindowSize {
     /// # Errors
@@ -42,7 +42,7 @@ impl From<WindowSize> for NonZero<usize> {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BlockSize(usize);
 impl BlockSize {
     /// # Errors

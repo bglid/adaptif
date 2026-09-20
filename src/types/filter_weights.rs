@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::types::WindowSize;
+use crate::{Error, types::WindowSize};
 
 #[derive(Debug, Clone)]
 pub struct FilterWeights {
@@ -19,6 +19,22 @@ impl FilterWeights {
 
     pub fn window_size(&self) -> WindowSize {
         self.window_size
+    }
+}
+impl TryFrom<&[f64]> for FilterWeights {
+    type Error = crate::Error;
+
+    fn try_from(value: &[f64]) -> Result<Self, Self::Error> {
+        let window_size = WindowSize::new(value.len()).map_err(|_e| Error::EmptyInputArr)?;
+        Ok(FilterWeights {
+            weights: Vec::from(value).into_boxed_slice(),
+            window_size,
+        })
+    }
+}
+impl From<FilterWeights> for Vec<f64> {
+    fn from(value: FilterWeights) -> Self {
+        value.weights.into()
     }
 }
 impl Deref for FilterWeights {
