@@ -7,12 +7,7 @@ use std::ops::{Deref, DerefMut};
 pub struct NoiseBuffer(SampleBuffer);
 impl NoiseBuffer {
     pub fn new(weights: &FilterWeights) -> Self {
-        #[allow(
-            clippy::unwrap_used,
-            clippy::missing_panics_doc,
-            reason = "FilterWeights::new() checks that the number of weights is greater than 0"
-        )]
-        NoiseBuffer(SampleBuffer::new(NonZero::new(weights.len()).unwrap()))
+        NoiseBuffer(SampleBuffer::new(weights.window_size().into()))
     }
 }
 impl Deref for NoiseBuffer {
@@ -38,7 +33,7 @@ impl BlockNoiseBuffer {
             clippy::missing_panics_doc,
             reason = "FilterWeights and BlockSize types ensure that capacity > 0"
         )]
-        let capacity = NonZero::new(weights.len() + *block_size - 1).unwrap();
+        let capacity = NonZero::new(*weights.window_size() + *block_size - 1).unwrap();
         let buffer = SampleBuffer::new(capacity);
 
         BlockNoiseBuffer(buffer)
