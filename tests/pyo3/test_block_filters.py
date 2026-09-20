@@ -38,9 +38,14 @@ def test_block_size(filter_class):
         filter_class(mu=0.1, window_size=1024, block_size=0)
 
 
-def test_adapt(filter):
-    # TODO: check that weights update
+def test_weights(filter):
+    assert isinstance(filter.weights, np.ndarray)
+    assert np.allclose(filter.weights, np.zeros(filter.window_size))
 
+
+@pytest.mark.parametrize("filter_class", [BlockLMSFilter])
+def test_adapt(filter_class):
+    filter = filter_class(mu=0.1, window_size=1, block_size=1)
     input_signal = np.linspace(1, 5, 5)
     noise_ref = np.linspace(0.5, 2.5, 5)
 
@@ -48,11 +53,10 @@ def test_adapt(filter):
 
     assert isinstance(output, np.ndarray)
     assert output.shape == input_signal.shape
+    assert not np.allclose(filter.weights, np.zeros(filter.window_size))
 
 
 def test_filter(filter):
-    # TODO: check that weights don't update
-
     input_signal = np.linspace(1, 5, 5)
     noise_ref = np.linspace(0.5, 2.5, 5)
 
@@ -60,6 +64,7 @@ def test_filter(filter):
 
     assert isinstance(output, np.ndarray)
     assert output.shape == input_signal.shape
+    assert np.allclose(filter.weights, np.zeros(filter.window_size))
 
 
 @pytest.mark.parametrize(

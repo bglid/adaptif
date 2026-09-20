@@ -13,6 +13,7 @@ from adaptif import BlockLMSFilter, LMSFilter, NLMSFilter
 def test_filter_bindings(filter_class, kwargs):
     filter = filter_class(**kwargs)
     assert hasattr(filter, "window_size")
+    assert hasattr(filter, "weights")
     assert hasattr(filter, "adapt")
     assert hasattr(filter, "filter")
     assert not hasattr(filter, "block_size")
@@ -22,5 +23,6 @@ def test_block_filter_bindings():
     filter = BlockLMSFilter(1.0, 1024, 1024)
     assert hasattr(filter, "window_size")
     assert hasattr(filter, "block_size")
+    assert hasattr(filter, "weights")
     assert hasattr(filter, "adapt")
     assert hasattr(filter, "filter")
