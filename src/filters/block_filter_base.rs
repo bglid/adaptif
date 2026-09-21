@@ -37,6 +37,7 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
     }
 
     /// Creates a filter of the specified algorithm with set weights.
+    /// Ownership of the weights is transferred to `BlockFilterBase`.
     /// The filter's window size is equal to `weights.len()`.
     ///
     /// This method is intended for loading previously adapted weights
@@ -45,8 +46,7 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
     /// # Errors
     ///
     /// Returns an error if `weights.is_empty()`.
-    // TODO: move weights instead of ref
-    pub fn from_weights(algorithm: B, weights: &[f64], block_size: usize) -> Result<Self> {
+    pub fn from_weights(algorithm: B, weights: Vec<f64>, block_size: usize) -> Result<Self> {
         let weights = FilterWeights::try_from(weights)?;
         let window_size = weights.window_size();
         let block_size = BlockSize::new(block_size)?;
@@ -384,21 +384,12 @@ mod tests {
     }
 
     #[test]
-    fn from_weights_vec() {
+    fn from_weights_works() {
         let weights = vec![1.0, 2.0, 3.0];
 
         let filter =
-            BlockFilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), &weights, 1024).unwrap();
-
-        assert!(all_approx_equal(weights.iter(), filter.weights().iter()));
-    }
-
-    #[test]
-    fn from_weights_arr() {
-        let weights = [1.0, 2.0, 3.0];
-
-        let filter =
-            BlockFilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), &weights, 1024).unwrap();
+            BlockFilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), weights.clone(), 1024)
+                .unwrap();
 
         assert!(all_approx_equal(weights.iter(), filter.weights().iter()));
     }
@@ -408,11 +399,7 @@ mod tests {
         let empty_vec = vec![];
 
         assert!(matches!(
-            BlockFilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), &empty_vec, 1024),
-            Err(Error::EmptyInputArr)
-        ));
-        assert!(matches!(
-            BlockFilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), &empty_vec, 1024),
+            BlockFilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), empty_vec, 1024),
             Err(Error::EmptyInputArr)
         ));
     }

@@ -39,7 +39,8 @@ impl<A: Algorithm> FilterBase<A> {
         })
     }
 
-    /// Creates a filter of the specified algorithm with set weights.
+    /// Creates a filter of the specified algorithm using the provided weights.
+    /// Ownership of the weights is transferred to `FilterBase`.
     /// The filter's window size is equal to `weights.len()`.
     ///
     /// This method is intended for loading previously adapted weights
@@ -48,8 +49,7 @@ impl<A: Algorithm> FilterBase<A> {
     /// # Errors
     ///
     /// Returns an error if `weights.is_empty()`.
-    // TODO: move weights instead of ref
-    pub fn from_weights(algorithm: A, weights: &[f64]) -> Result<Self> {
+    pub fn from_weights(algorithm: A, weights: Vec<f64>) -> Result<Self> {
         let weights = FilterWeights::try_from(weights)?;
         let window_size = weights.window_size();
 
@@ -289,19 +289,11 @@ mod tests {
     }
 
     #[test]
-    fn from_weights_vec() {
+    fn from_weights_works() {
         let weights = vec![1.0, 2.0, 3.0];
 
-        let filter = FilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), &weights).unwrap();
-
-        assert!(all_approx_equal(weights.iter(), filter.weights().iter()));
-    }
-
-    #[test]
-    fn from_weights_arr() {
-        let weights = [1.0, 2.0, 3.0];
-
-        let filter = FilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), &weights).unwrap();
+        let filter =
+            FilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), weights.clone()).unwrap();
 
         assert!(all_approx_equal(weights.iter(), filter.weights().iter()));
     }
@@ -311,11 +303,7 @@ mod tests {
         let empty_vec = vec![];
 
         assert!(matches!(
-            FilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), &empty_vec),
-            Err(Error::EmptyInputArr)
-        ));
-        assert!(matches!(
-            FilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), &[]),
+            FilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), empty_vec),
             Err(Error::EmptyInputArr)
         ));
     }

@@ -21,13 +21,13 @@ impl FilterWeights {
         self.window_size
     }
 }
-impl TryFrom<&[f64]> for FilterWeights {
+impl TryFrom<Vec<f64>> for FilterWeights {
     type Error = crate::Error;
 
-    fn try_from(value: &[f64]) -> Result<Self, Self::Error> {
+    fn try_from(value: Vec<f64>) -> Result<Self, Self::Error> {
         let window_size = WindowSize::new(value.len()).map_err(|_e| Error::EmptyInputArr)?;
         Ok(FilterWeights {
-            weights: Vec::from(value).into_boxed_slice(),
+            weights: value.into_boxed_slice(),
             window_size,
         })
     }
