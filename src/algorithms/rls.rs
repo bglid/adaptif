@@ -12,8 +12,8 @@ use crate::algorithms::Algorithm;
 pub struct KalmanGain(Box<[f64]>);
 impl KalmanGain {
     // TODO: this should probably be init from WindowSize
-    pub fn new(noise_ref: &NoiseBuffer) -> Self {
-        KalmanGain(vec![0.0; noise_ref.len()].into_boxed_slice())
+    pub fn new(window_size: WindowSize) -> Self {
+        KalmanGain(vec![0.0; *window_size].into_boxed_slice())
     }
 }
 impl Deref for KalmanGain {
@@ -61,16 +61,16 @@ impl DerefMut for InverseCorrMatrix {
 #[allow(clippy::exhaustive_structs, reason = "No more fields have to be added")]
 /// Recursive least squares algorithm.
 pub struct Rls {
-    /// Forgetting factor for weight updates.
+    /// Forgetting factor, often referred to as `lambda`, used for weight updates.
     forgetting_factor: f64,
     /// Positive scalar value, often referred to as `delta`, used for initalizing the inverse correlation `p_matrix`.
     p_init_scale: f64,
-    /// Inverse correlation matrix, referred to as P[n], for RLS updates.
+    /// Inverse correlation matrix, referred to as P[n], for RLS updates. Size is determined by the filter's
+    /// window size. The matrix size is M x M, where M corresponds to the filter's window size.
     inverse_corr_matrix: InverseCorrMatrix,
     /// Kalman Gain vector used in updating filter coefficients
     /// Initialized as none because past history is unnecessary. Size is determined by the filter's
     /// window size.
-    /// NOTE: Double check with other lit.
     kalman_gain: KalmanGain,
 }
 
@@ -78,6 +78,7 @@ impl Rls {
     /// # Errors
     ///
     /// Returns an error if forgetting factor <= 0.0 or > 1.0.
+    /// Returns an error if init scale <= 0.0.
     pub fn new(forgetting_factor: f64, p_init_scale: f64) -> Result<Self> {
         if forgetting_factor <= 0.0 || forgetting_factor > 1.0 {
             return Err(Error::InvalidForgettingFactorRange);
@@ -187,7 +188,7 @@ impl Algorithm for Rls {
         }
 
         if self.kalman_gain.is_empty() {
-            self.kalman_gain = KalmanGain::new(noise_ref);
+            self.kalman_gain = KalmanGain::new(window_size);
         }
 
         self.update_kalman_gain(noise_ref);
