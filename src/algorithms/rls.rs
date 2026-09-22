@@ -7,30 +7,6 @@ use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
 
-#[derive(Debug, Clone, Copy)]
-/// Positive scalar of `f64` used in initalizing the RLS inverse correlation matrix.
-///
-/// `Delta` must be greater than zero.
-pub struct Delta(f64);
-impl Delta {
-    /// # Errors
-    ///
-    /// Returns an error if delta <= 0.0.
-    pub fn new(delta: f64) -> Result<Self> {
-        if delta <= 0.0 {
-            return Err(Error::NonPositiveDelta);
-        }
-
-        Ok(Delta(delta))
-    }
-}
-impl Deref for Delta {
-    type Target = f64;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 #[derive(Debug, Clone)]
 /// M-dimensional vector of Kalman gains, where M is the filter's window size.
 pub struct KalmanGain(Box<[f64]>);
@@ -57,12 +33,12 @@ impl DerefMut for KalmanGain {
 /// Inverse Correlation Matrix with shape M * M, where M is the filter's window size.
 pub struct InverseCorrMatrix(Box<[f64]>);
 impl InverseCorrMatrix {
-    pub fn new(window_size: WindowSize, delta: Delta) -> Self {
+    pub fn new(window_size: WindowSize, p_init_scale: f64) -> Self {
         let mut p = vec![0.0; (*window_size) * (*window_size)].into_boxed_slice();
 
         for i in 0..(*window_size) {
             if let Some(elem) = p.get_mut(i * (*window_size) + i) {
-                *elem = *delta;
+                *elem = p_init_scale;
             }
         }
         InverseCorrMatrix(p)
@@ -87,8 +63,8 @@ impl DerefMut for InverseCorrMatrix {
 pub struct Rls {
     /// Forgetting factor for weight updates.
     forgetting_factor: f64,
-    /// Delta scalar value used for initalizing the inverse correlation `p_matrix`.
-    delta: Delta,
+    /// Positive scalar value, often referred to as `delta`, used for initalizing the inverse correlation `p_matrix`.
+    p_init_scale: f64,
     /// Inverse correlation matrix, referred to as P[n], for RLS updates.
     inverse_corr_matrix: InverseCorrMatrix,
     /// Kalman Gain vector used in updating filter coefficients
@@ -102,14 +78,17 @@ impl Rls {
     /// # Errors
     ///
     /// Returns an error if forgetting factor <= 0.0 or > 1.0.
-    pub fn new(forgetting_factor: f64, delta: Delta) -> Result<Self> {
+    pub fn new(forgetting_factor: f64, p_init_scale: f64) -> Result<Self> {
         if forgetting_factor <= 0.0 || forgetting_factor > 1.0 {
             return Err(Error::InvalidForgettingFactorRange);
         }
 
+        if p_init_scale <= 0.0 {
+            return Err(Error::NonPositivePInitScale);
+        }
         Ok(Rls {
             forgetting_factor,
-            delta,
+            p_init_scale,
             inverse_corr_matrix: InverseCorrMatrix(vec![].into_boxed_slice()),
             kalman_gain: KalmanGain(vec![].into_boxed_slice()),
         })
@@ -204,7 +183,7 @@ impl Algorithm for Rls {
         // Updates p_matrix on first iteration once n is known
         // TODO: remove once proper init is implemented
         if self.inverse_corr_matrix.is_empty() {
-            self.inverse_corr_matrix = InverseCorrMatrix::new(window_size, self.delta);
+            self.inverse_corr_matrix = InverseCorrMatrix::new(window_size, self.p_init_scale);
         }
 
         if self.kalman_gain.is_empty() {
@@ -233,7 +212,7 @@ mod tests {
     #[test]
     fn init_p_matrix_works() {
         let n = WindowSize::new(3).unwrap();
-        let p_matrix = InverseCorrMatrix::new(n, Delta::new(10.0).unwrap());
+        let p_matrix = InverseCorrMatrix::new(n, 10.0);
 
         let expected = [10.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 10.0];
 
@@ -242,7 +221,7 @@ mod tests {
 
     #[test]
     fn update_kalman_gain_works() {
-        let mut rls = Rls::new(1.0, Delta::new(1.0).unwrap()).unwrap();
+        let mut rls = Rls::new(1.0, 1.0).unwrap();
         rls.inverse_corr_matrix = InverseCorrMatrix(vec![1.0, 0.0, 0.0, 1.0].into_boxed_slice());
         rls.kalman_gain = KalmanGain(vec![0.0; 2].into_boxed_slice());
         let x_n = noise_buffer_from(&[1.0, 2.0]);
@@ -256,7 +235,7 @@ mod tests {
 
     #[test]
     fn update_p_matrix_works() {
-        let mut rls = Rls::new(1.0, Delta::new(1.0).unwrap()).unwrap();
+        let mut rls = Rls::new(1.0, 1.0).unwrap();
         rls.inverse_corr_matrix = InverseCorrMatrix(vec![1.0, 0.0, 0.0, 1.0].into_boxed_slice());
         rls.kalman_gain = KalmanGain(vec![1.0 / 6.0, 1.0 / 3.0].into_boxed_slice());
         let x_n = noise_buffer_from(&[1.0, 2.0]);
@@ -275,7 +254,7 @@ mod tests {
 
     #[test]
     fn update_rls_1() {
-        let mut rls = Rls::new(0.5, Delta::new(1.0).unwrap()).unwrap();
+        let mut rls = Rls::new(0.5, 1.0).unwrap();
         let e_n = OutputSample(2.0);
         let x_n = noise_buffer_from(&[1.0, -1.0]);
         let expected = [0.8, -0.8];
@@ -288,7 +267,7 @@ mod tests {
 
     #[test]
     fn update_rls_2() {
-        let mut rls = Rls::new(1.0, Delta::new(1.0).unwrap()).unwrap();
+        let mut rls = Rls::new(1.0, 1.0).unwrap();
         let e_n = OutputSample(1.0);
         let x_n = noise_buffer_from(&[5.0, 2.0]);
         let expected = [5.0 / 30.0, 2.0 / 30.0];
@@ -301,31 +280,37 @@ mod tests {
 
     #[test]
     fn forgetting_factor_range() {
-        let delta: Delta = Delta::new(1.0).unwrap();
-        Rls::new(0.01, delta).unwrap();
-        Rls::new(1.0, delta).unwrap();
+        let p_init_scale = 1.0;
+        Rls::new(0.01, p_init_scale).unwrap();
+        Rls::new(1.0, p_init_scale).unwrap();
 
         assert!(matches!(
-            Rls::new(0.0, delta),
+            Rls::new(0.0, p_init_scale),
             Err(Error::InvalidForgettingFactorRange)
         ));
         assert!(matches!(
-            Rls::new(-1.0, delta),
+            Rls::new(-1.0, p_init_scale),
             Err(Error::InvalidForgettingFactorRange)
         ));
 
         assert!(matches!(
-            Rls::new(2.0, delta),
+            Rls::new(2.0, p_init_scale),
             Err(Error::InvalidForgettingFactorRange)
         ));
     }
 
     #[test]
-    fn delta_range() {
-        let good_delta: Delta = Delta::new(100.0).unwrap();
-        Rls::new(0.01, good_delta).unwrap();
+    fn p_init_scale_range() {
+        let good_init_scale = 100.0;
+        Rls::new(0.01, good_init_scale).unwrap();
 
-        assert!(matches!(Delta::new(0.0), Err(Error::NonPositiveDelta)));
-        assert!(matches!(Delta::new(-1.0), Err(Error::NonPositiveDelta)));
+        assert!(matches!(
+            Rls::new(0.5, 0.0),
+            Err(Error::NonPositivePInitScale)
+        ));
+        assert!(matches!(
+            Rls::new(0.5, -1.0),
+            Err(Error::NonPositivePInitScale)
+        ));
     }
 }

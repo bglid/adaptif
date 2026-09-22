@@ -7,7 +7,10 @@ from adaptif import LMSFilter, NLMSFilter, RLSFilter
     params=[
         (LMSFilter, {"mu": 1.0, "window_size": 1024}),
         (NLMSFilter, {"mu": 1.0, "eps": 1e-8, "window_size": 1024}),
-        (RLSFilter, {"forgetting_factor": 0.5, "delta": 1.0, "window_size": 1024}),
+        (
+            RLSFilter,
+            {"forgetting_factor": 0.5, "p_init_scale": 1.0, "window_size": 1024},
+        ),
     ]
 )
 def filter(request):
@@ -20,7 +23,7 @@ def filter(request):
     [
         (LMSFilter, {"mu": 1.0}),
         (NLMSFilter, {"mu": 1.0, "eps": 1e-8}),
-        (RLSFilter, {"forgetting_factor": 0.5, "delta": 1.0}),
+        (RLSFilter, {"forgetting_factor": 0.5, "p_init_scale": 1.0}),
     ],
 )
 def test_window_size(filter_class, kwargs):

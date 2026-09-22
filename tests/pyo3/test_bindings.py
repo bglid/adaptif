@@ -8,7 +8,10 @@ from adaptif import BlockLMSFilter, LMSFilter, NLMSFilter, RLSFilter
     [
         (LMSFilter, {"mu": 1.0, "window_size": 1024}),
         (NLMSFilter, {"mu": 1.0, "eps": 1e-8, "window_size": 1024}),
-        (RLSFilter, {"forgetting_factor": 0.5, "delta": 1.0, "window_size": 1024}),
+        (
+            RLSFilter,
+            {"forgetting_factor": 0.5, "p_init_scale": 1.0, "window_size": 1024},
+        ),
     ],
 )
 def test_filter_bindings(filter_class, kwargs):

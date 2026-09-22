@@ -16,7 +16,7 @@ class NLMSFilter:
 
 class RLSFilter:
     def __init__(
-        self, forgetting_factor: float, delta: float, window_size: int
+        self, forgetting_factor: float, p_init_scale: float, window_size: int
     ) -> None: ...
     @property
     def window_size(self) -> int: ...

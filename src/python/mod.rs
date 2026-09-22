@@ -12,7 +12,7 @@ use pyo3::exceptions::PyValueError;
 use numpy::{PyArray1, PyReadonlyArray1};
 
 use crate::Error;
-use crate::algorithms::{Delta, Lms, Nlms, Rls};
+use crate::algorithms::{Lms, Nlms, Rls};
 use crate::filters::{AdaptiveFilter, BlockFilterBase, FilterBase};
 use crate::types::signals::{InputSignal, NoiseReference};
 
@@ -25,7 +25,7 @@ impl Error {
             | Self::NoiseRefTooShort { .. }
             | Self::NonPositiveStepSize
             | Self::InvalidForgettingFactorRange
-            | Self::NonPositiveDelta
+            | Self::NonPositivePInitScale
             | Self::NonPositiveEpsilon => PyValueError::new_err(self.to_string()),
         }
     }
@@ -133,12 +133,8 @@ pub struct RLSFilter(FilterBase<Rls>);
 #[pymethods]
 impl RLSFilter {
     #[new]
-    fn new(forgetting_factor: f64, delta: f64, window_size: usize) -> PyResult<Self> {
-        let rls = Rls::new(
-            forgetting_factor,
-            Delta::new(delta).map_err(|e| e.to_pyerr())?,
-        )
-        .map_err(|e| e.to_pyerr())?;
+    fn new(forgetting_factor: f64, p_init_scale: f64, window_size: usize) -> PyResult<Self> {
+        let rls = Rls::new(forgetting_factor, p_init_scale).map_err(|e| e.to_pyerr())?;
         let filter = FilterBase::<Rls>::new(rls, window_size).map_err(|e| e.to_pyerr())?;
         Ok(Self(filter))
     }

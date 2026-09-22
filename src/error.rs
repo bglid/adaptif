@@ -14,7 +14,7 @@ pub enum Error {
     NonPositiveStepSize,
     NonPositiveEpsilon,
     InvalidForgettingFactorRange,
-    NonPositiveDelta,
+    NonPositivePInitScale,
 }
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -34,7 +34,10 @@ impl Display for Error {
             Self::InvalidForgettingFactorRange => {
                 write!(f, "lambda, the forgetting factor, must be > 0.0 and <= 1.0")
             }
-            Self::NonPositiveDelta => write!(f, "delta must be greater than 0.0"),
+            Self::NonPositivePInitScale => write!(
+                f,
+                "The scalar used in initiatlizing the inverse correlation matrix for RLS must be greater than 0.0"
+            ),
         }
     }
 }
