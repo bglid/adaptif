@@ -7,7 +7,7 @@ use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 /// M-dimensional vector of Kalman gains, where M is the filter's window size.
 pub struct KalmanGain(Box<[f64]>);
 impl KalmanGain {
@@ -29,7 +29,7 @@ impl DerefMut for KalmanGain {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 /// Inverse Correlation Matrix with shape M * M, where M is the filter's window size.
 pub struct InverseCorrMatrix(Box<[f64]>);
 impl InverseCorrMatrix {
@@ -57,7 +57,7 @@ impl DerefMut for InverseCorrMatrix {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[allow(clippy::exhaustive_structs, reason = "No more fields have to be added")]
 /// Recursive least squares algorithm.
 pub struct Rls {
