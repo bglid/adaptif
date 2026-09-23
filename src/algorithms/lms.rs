@@ -5,7 +5,7 @@ use crate::{Error, Result};
 
 use crate::algorithms::{Algorithm, BlockAlgorithm};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[allow(clippy::exhaustive_structs, reason = "No more fields have to be added")]
 /// Least mean squares algorithm.
 pub struct Lms {

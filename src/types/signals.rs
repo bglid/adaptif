@@ -6,20 +6,18 @@
 use crate::error::{Error, Result};
 use std::ops::Deref;
 
-// TODO: make InputSignal and NoiseReference own their inner values (&[f64] -> Vec<f64>, c.f. Vec::from())
-
 #[derive(Debug, Clone)]
-pub struct InputSignal<'a>(&'a [f64]);
-impl Deref for InputSignal<'_> {
+pub struct InputSignal(Vec<f64>);
+impl Deref for InputSignal {
     type Target = [f64];
     fn deref(&self) -> &Self::Target {
-        self.0
+        &self.0
     }
 }
-impl<'a> InputSignal<'a> {
+impl InputSignal {
     /// # Errors
     /// Returns an error if `input_signal` is empty.
-    pub fn new(input_signal: &'a [f64]) -> Result<Self> {
+    pub fn new(input_signal: Vec<f64>) -> Result<Self> {
         if input_signal.is_empty() {
             Err(Error::EmptyInputArr)
         } else {
@@ -42,17 +40,17 @@ impl Deref for InputSample {
 }
 
 #[derive(Debug, Clone)]
-pub struct NoiseReference<'a>(&'a [f64]);
-impl Deref for NoiseReference<'_> {
+pub struct NoiseReference(Vec<f64>);
+impl Deref for NoiseReference {
     type Target = [f64];
     fn deref(&self) -> &Self::Target {
-        self.0
+        &self.0
     }
 }
-impl<'a> NoiseReference<'a> {
+impl NoiseReference {
     /// # Errors
     /// Returns an error if `noise_ref` is empty.
-    pub fn new(noise_ref: &'a [f64]) -> Result<Self> {
+    pub fn new(noise_ref: Vec<f64>) -> Result<Self> {
         if noise_ref.is_empty() {
             Err(Error::EmptyInputArr)
         } else {
@@ -112,10 +110,13 @@ mod tests {
 
     #[test]
     fn reject_empty_signals() {
-        assert!(matches!(InputSignal::new(&[]), Err(Error::EmptyInputArr)));
+        assert!(matches!(
+            InputSignal::new(vec![]),
+            Err(Error::EmptyInputArr)
+        ));
 
         assert!(matches!(
-            NoiseReference::new(&[]),
+            NoiseReference::new(vec![]),
             Err(Error::EmptyInputArr)
         ));
     }

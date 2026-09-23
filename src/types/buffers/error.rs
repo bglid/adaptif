@@ -1,4 +1,3 @@
-use std::num::NonZero;
 use std::ops::{Deref, DerefMut};
 
 use crate::types::signals::OutputSample;
@@ -8,12 +7,7 @@ use super::{BlockSize, SampleBuffer};
 pub struct ErrorBuffer(SampleBuffer);
 impl ErrorBuffer {
     pub fn new(block_size: BlockSize) -> Self {
-        #[allow(
-            clippy::unwrap_used,
-            clippy::missing_panics_doc,
-            reason = "BlockSize type cannot be zero"
-        )]
-        ErrorBuffer(SampleBuffer::new(NonZero::new(*block_size).unwrap()))
+        ErrorBuffer(SampleBuffer::new(block_size.into()))
     }
 
     pub fn push(&mut self, item: OutputSample) {

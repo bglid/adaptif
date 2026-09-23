@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from adaptif import LMSFilter, NLMSFilter, RLSFilter
+from adaptif import BlockLMSFilter, LMSFilter, NLMSFilter, RLSFilter
 
 
 @pytest.fixture(
@@ -11,6 +11,7 @@ from adaptif import LMSFilter, NLMSFilter, RLSFilter
             RLSFilter,
             {"forgetting_factor": 0.5, "p_init_scale": 1.0, "window_size": 1024},
         ),
+        (BlockLMSFilter, {"mu": 1.0, "window_size": 1024, "block_size": 1024}),
     ]
 )
 def filter(request):
@@ -24,6 +25,7 @@ def filter(request):
         (LMSFilter, {"mu": 1.0}),
         (NLMSFilter, {"mu": 1.0, "eps": 1e-8}),
         (RLSFilter, {"forgetting_factor": 0.5, "p_init_scale": 1.0}),
+        (BlockLMSFilter, {"mu": 1.0, "block_size": 1024}),
     ],
 )
 def test_window_size(filter_class, kwargs):
@@ -40,9 +42,38 @@ def test_window_size(filter_class, kwargs):
         filter_class(**kwargs)
 
 
-def test_adapt(filter):
-    # TODO: check that weights update
+@pytest.mark.parametrize("filter_class", [BlockLMSFilter])
+def test_block_size(filter_class):
+    filter = filter_class(mu=0.1, window_size=1024, block_size=1)
+    assert filter.block_size == 1
 
+    with pytest.raises(OverflowError):
+        filter_class(mu=0.1, window_size=1024, block_size=-1)
+    with pytest.raises(ValueError):
+        filter_class(mu=0.1, window_size=1024, block_size=0)
+
+
+def test_from_weights():
+    weights = np.array([1.0, 2.0, 3.0])
+    filter = LMSFilter.from_weights(1.0, weights)
+    assert filter.window_size == 3
+    assert np.allclose(filter.weights, weights)
+
+    with pytest.raises(ValueError):
+        LMSFilter.from_weights(1.0, np.array([]))
+
+
+def test_weights(filter):
+    assert isinstance(filter.weights, np.ndarray)
+    assert np.allclose(filter.weights, np.zeros(filter.window_size))
+
+
+def test_adapt(filter):
+    if isinstance(filter, BlockLMSFilter):
+        # Block LMS doesn't update on the final block (see Rust code for reason)
+        # Since the test signals fit within one block we need a filter with a smaller
+        # block size to test if the weights update.
+        filter = BlockLMSFilter(mu=0.1, window_size=1, block_size=1)
     input_signal = np.linspace(1, 5, 5)
     noise_ref = np.linspace(0.5, 2.5, 5)
 
@@ -50,11 +81,10 @@ def test_adapt(filter):
 
     assert isinstance(output, np.ndarray)
     assert output.shape == input_signal.shape
+    assert not np.allclose(filter.weights, np.zeros(filter.window_size))
 
 
 def test_filter(filter):
-    # TODO: check that weights don't update
-
     input_signal = np.linspace(1, 5, 5)
     noise_ref = np.linspace(0.5, 2.5, 5)
 
@@ -62,6 +92,7 @@ def test_filter(filter):
 
     assert isinstance(output, np.ndarray)
     assert output.shape == input_signal.shape
+    assert np.allclose(filter.weights, np.zeros(filter.window_size))
 
 
 @pytest.mark.parametrize(
@@ -95,25 +126,27 @@ def test_signal_lengths(filter, fn_name):
         filter_fn(long_input, noise_ref)
 
 
-@pytest.mark.parametrize("fn_name", ["adapt", "filter"])
-def test_input_contiguous(filter, fn_name):
-    filter_fn = getattr(filter, fn_name)
-
-    input_signal = np.linspace(1, 5, 10)
-    noise_ref = np.linspace(0.5, 2.5, 10)
-
-    # regular slices are contiguous -> allowed
-    filter_fn(input_signal[:5], noise_ref[:5])
-
-    # strided slices are not contiguous -> not allowed
-    with pytest.raises(ValueError):
-        filter_fn(input_signal[::2], noise_ref[:5])
-    with pytest.raises(ValueError):
-        filter_fn(input_signal[:5], noise_ref[::2])
-    with pytest.raises(ValueError):
-        filter_fn(input_signal[::2], noise_ref[::2])
-
-    # calling np.ascontiguousarray makes it possible to use non-contiguous arrays as input
-    filter_fn(
-        np.ascontiguousarray(input_signal[::2]), np.ascontiguousarray(noise_ref[::2])
-    )
+# NOTE: this test is only needed if input signals are passed by reference
+# If they are copied instead, the can be non-contiguous.
+# @pytest.mark.parametrize("fn_name", ["adapt", "filter"])
+# def test_input_contiguous(filter, fn_name):
+#     filter_fn = getattr(filter, fn_name)
+#
+#     input_signal = np.linspace(1, 5, 10)
+#     noise_ref = np.linspace(0.5, 2.5, 10)
+#
+#     # regular slices are contiguous -> allowed
+#     filter_fn(input_signal[:5], noise_ref[:5])
+#
+#     # strided slices are not contiguous -> not allowed
+#     with pytest.raises(ValueError):
+#         filter_fn(input_signal[::2], noise_ref[:5])
+#     with pytest.raises(ValueError):
+#         filter_fn(input_signal[:5], noise_ref[::2])
+#     with pytest.raises(ValueError):
+#         filter_fn(input_signal[::2], noise_ref[::2])
+#
+#     # calling np.ascontiguousarray makes it possible to use non-contiguous arrays as input
+#     filter_fn(
+#         np.ascontiguousarray(input_signal[::2]), np.ascontiguousarray(noise_ref[::2])
+#     )
