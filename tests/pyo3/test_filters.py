@@ -48,6 +48,16 @@ def test_block_size(filter_class):
         filter_class(mu=0.1, window_size=1024, block_size=0)
 
 
+def test_from_weights():
+    weights = np.array([1.0, 2.0, 3.0])
+    filter = LMSFilter.from_weights(1.0, weights)
+    assert filter.window_size == 3
+    assert np.allclose(filter.weights, weights)
+
+    with pytest.raises(ValueError):
+        LMSFilter.from_weights(1.0, np.array([]))
+
+
 def test_weights(filter):
     assert isinstance(filter.weights, np.ndarray)
     assert np.allclose(filter.weights, np.zeros(filter.window_size))
@@ -111,25 +121,27 @@ def test_signal_lengths(filter, fn_name):
         filter_fn(long_input, noise_ref)
 
 
-@pytest.mark.parametrize("fn_name", ["adapt", "filter"])
-def test_input_contiguous(filter, fn_name):
-    filter_fn = getattr(filter, fn_name)
-
-    input_signal = np.linspace(1, 5, 10)
-    noise_ref = np.linspace(0.5, 2.5, 10)
-
-    # regular slices are contiguous -> allowed
-    filter_fn(input_signal[:5], noise_ref[:5])
-
-    # strided slices are not contiguous -> not allowed
-    with pytest.raises(ValueError):
-        filter_fn(input_signal[::2], noise_ref[:5])
-    with pytest.raises(ValueError):
-        filter_fn(input_signal[:5], noise_ref[::2])
-    with pytest.raises(ValueError):
-        filter_fn(input_signal[::2], noise_ref[::2])
-
-    # calling np.ascontiguousarray makes it possible to use non-contiguous arrays as input
-    filter_fn(
-        np.ascontiguousarray(input_signal[::2]), np.ascontiguousarray(noise_ref[::2])
-    )
+# NOTE: this test is only needed if input signals are passed by reference
+# If they are copied instead, the can be non-contiguous.
+# @pytest.mark.parametrize("fn_name", ["adapt", "filter"])
+# def test_input_contiguous(filter, fn_name):
+#     filter_fn = getattr(filter, fn_name)
+#
+#     input_signal = np.linspace(1, 5, 10)
+#     noise_ref = np.linspace(0.5, 2.5, 10)
+#
+#     # regular slices are contiguous -> allowed
+#     filter_fn(input_signal[:5], noise_ref[:5])
+#
+#     # strided slices are not contiguous -> not allowed
+#     with pytest.raises(ValueError):
+#         filter_fn(input_signal[::2], noise_ref[:5])
+#     with pytest.raises(ValueError):
+#         filter_fn(input_signal[:5], noise_ref[::2])
+#     with pytest.raises(ValueError):
+#         filter_fn(input_signal[::2], noise_ref[::2])
+#
+#     # calling np.ascontiguousarray makes it possible to use non-contiguous arrays as input
+#     filter_fn(
+#         np.ascontiguousarray(input_signal[::2]), np.ascontiguousarray(noise_ref[::2])
+#     )

@@ -6,8 +6,6 @@
 use crate::error::{Error, Result};
 use std::ops::Deref;
 
-// TODO: make InputSignal and NoiseReference own their inner values (&[f64] -> Vec<f64>, c.f. Vec::from())
-
 #[derive(Debug, Clone)]
 pub struct InputSignal(Vec<f64>);
 impl Deref for InputSignal {
