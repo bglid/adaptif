@@ -325,8 +325,8 @@ mod tests {
 
         let weights_before = filter.weights.clone();
 
-        let input = InputSignal::new(&[5.0, 3.5, 2.6, -8.4]).unwrap();
-        let noise = NoiseReference::new(&[3.0, 2.8, -1.7, 2.24]).unwrap();
+        let input = InputSignal::new(vec![5.0, 3.5, 2.6, -8.4]).unwrap();
+        let noise = NoiseReference::new(vec![3.0, 2.8, -1.7, 2.24]).unwrap();
 
         filter.adapt(&input, &noise).unwrap();
 
@@ -342,8 +342,8 @@ mod tests {
 
         let weights_before = filter.weights.clone();
 
-        let input = InputSignal::new(&[5.0, 3.5, 2.6, -8.4]).unwrap();
-        let noise = NoiseReference::new(&[3.0, 2.8, -1.7, 2.24]).unwrap();
+        let input = InputSignal::new(vec![5.0, 3.5, 2.6, -8.4]).unwrap();
+        let noise = NoiseReference::new(vec![3.0, 2.8, -1.7, 2.24]).unwrap();
 
         filter.filter(&input, &noise).unwrap();
 
@@ -359,8 +359,8 @@ mod tests {
 
         let before = filter.weights.len();
 
-        let input = InputSignal::new(&[1.0, 2.0, 3.0]).unwrap();
-        let noise = NoiseReference::new(&[4.0, 5.0, 6.0]).unwrap();
+        let input = InputSignal::new(vec![1.0, 2.0, 3.0]).unwrap();
+        let noise = NoiseReference::new(vec![4.0, 5.0, 6.0]).unwrap();
 
         filter.adapt(&input, &noise).unwrap();
         let after = filter.weights.len();
@@ -372,8 +372,8 @@ mod tests {
     fn reject_shorter_noise_ref() {
         let mut filter = testing_filter();
 
-        let input = InputSignal::new(&[1.0, 2.0, 3.0]).unwrap();
-        let noise = NoiseReference::new(&[4.0, 5.0]).unwrap();
+        let input = InputSignal::new(vec![1.0, 2.0, 3.0]).unwrap();
+        let noise = NoiseReference::new(vec![4.0, 5.0]).unwrap();
 
         assert!(matches!(
             filter.adapt(&input, &noise),
@@ -396,8 +396,8 @@ mod tests {
     fn allow_longer_noise_ref() {
         let mut filter = testing_filter();
 
-        let input = InputSignal::new(&[1.0, 2.0]).unwrap();
-        let noise = NoiseReference::new(&[4.0, 5.0, 6.0]).unwrap();
+        let input = InputSignal::new(vec![1.0, 2.0]).unwrap();
+        let noise = NoiseReference::new(vec![4.0, 5.0, 6.0]).unwrap();
 
         filter.adapt(&input, &noise).unwrap();
         filter.filter(&input, &noise).unwrap();
@@ -412,8 +412,8 @@ mod tests {
             BlockFilterBase::<UpdateCallCounter>::new(UpdateCallCounter::new(), 3, block_size)
                 .unwrap();
 
-        let input = InputSignal::new(&[1.0, 2.0, 3.0, 4.0]).unwrap();
-        let noise = NoiseReference::new(&[4.0, 5.0, 6.0, 7.0]).unwrap();
+        let input = InputSignal::new(vec![1.0, 2.0, 3.0, 4.0]).unwrap();
+        let noise = NoiseReference::new(vec![4.0, 5.0, 6.0, 7.0]).unwrap();
 
         filter.adapt(&input, &noise).unwrap();
         assert_eq!(filter.algorithm.call_count(), 2);
@@ -430,8 +430,8 @@ mod tests {
             BlockFilterBase::<UpdateCallCounter>::new(UpdateCallCounter::new(), 3, block_size)
                 .unwrap();
 
-        let input = InputSignal::new(&[1.0, 2.0, 3.0, 4.0, 5.0]).unwrap();
-        let noise = NoiseReference::new(&[4.0, 5.0, 6.0, 7.0, 8.0]).unwrap();
+        let input = InputSignal::new(vec![1.0, 2.0, 3.0, 4.0, 5.0]).unwrap();
+        let noise = NoiseReference::new(vec![4.0, 5.0, 6.0, 7.0, 8.0]).unwrap();
 
         filter.adapt(&input, &noise).unwrap();
         // update not called on final block because the shapes don't match

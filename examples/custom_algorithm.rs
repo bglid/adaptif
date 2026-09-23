@@ -29,8 +29,8 @@ impl Algorithm for MyAlgorithm {
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Sample inputs
-    let input_signal = InputSignal::new(&[1.0, -2.5, 3.0])?;
-    let noise_ref = NoiseReference::new(&[2.0, -1.2, -3.8])?;
+    let input_signal = InputSignal::new(vec![1.0, -2.5, 3.0])?;
+    let noise_ref = NoiseReference::new(vec![2.0, -1.2, -3.8])?;
 
     // Define the algorithm parameters
     let algorithm_cfg = MyAlgorithm { alpha: 1.0 };

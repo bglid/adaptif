@@ -32,26 +32,26 @@ impl Error {
 // In Python, we use NumPy arrays as inputs, so we have to convert them to the Rust input types.
 // Because we're using slices in Rust, the input NumPy arrays need to be contiguous.
 // Strided slices like x[::2] or x[:, 0] are not allowed, and need to be made contiguous first.
-impl<'a> InputSignal<'a> {
-    fn from_pyarray(input_signal: &'a PyReadonlyArray1<f64>) -> PyResult<InputSignal<'a>> {
+impl InputSignal {
+    fn from_pyarray(input_signal: &PyReadonlyArray1<f64>) -> PyResult<InputSignal> {
         let input_signal = input_signal.as_slice().map_err(|_e| {
             PyValueError::new_err(
                 "input_signal must be a contiguous NumPy array; use numpy.ascontiguousarray().",
             )
         })?;
 
-        let input_signal = InputSignal::new(input_signal).map_err(|e| e.to_pyerr())?;
+        let input_signal = InputSignal::new(input_signal.to_vec()).map_err(|e| e.to_pyerr())?;
         Ok(input_signal)
     }
 }
-impl<'a> NoiseReference<'a> {
-    fn from_pyarray(noise_ref: &'a PyReadonlyArray1<f64>) -> PyResult<NoiseReference<'a>> {
+impl NoiseReference {
+    fn from_pyarray(noise_ref: &PyReadonlyArray1<f64>) -> PyResult<NoiseReference> {
         let noise_ref = noise_ref.as_slice().map_err(|_e| {
             PyValueError::new_err(
                 "noise_ref must be a contiguous NumPy array; use numpy.ascontiguousarray().",
             )
         })?;
-        let noise_ref = NoiseReference::new(noise_ref).map_err(|e| e.to_pyerr())?;
+        let noise_ref = NoiseReference::new(noise_ref.to_vec()).map_err(|e| e.to_pyerr())?;
         Ok(noise_ref)
     }
 }
