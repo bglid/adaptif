@@ -36,12 +36,43 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
         })
     }
 
+    /// Creates a filter of the specified algorithm with set weights.
+    /// Ownership of the weights is transferred to `BlockFilterBase`.
+    /// The filter's window size is equal to `weights.len()`.
+    ///
+    /// This method is intended for loading previously adapted weights
+    /// or for non-zero weight initialization, e.g. from a sampled distribution.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `weights.is_empty()`.
+    pub fn from_weights(algorithm: B, weights: Vec<f64>, block_size: usize) -> Result<Self> {
+        let weights = FilterWeights::try_from(weights)?;
+        let window_size = weights.window_size();
+        let block_size = BlockSize::new(block_size)?;
+
+        Ok(BlockFilterBase {
+            algorithm,
+            weights,
+            window_size,
+            block_size,
+        })
+    }
+
+    /// Returns the filter's window size. This number is equal to the number of weights.
     pub fn window_size(&self) -> usize {
         *self.window_size
     }
 
+    /// Returns the filter's block size.
     pub fn block_size(&self) -> usize {
         *self.block_size
+    }
+
+    /// Returns a reference to the filter's weights.
+    pub fn weights(&self) -> &[f64] {
+        // Returning a slice so that FilterWeights doesn't have to part of the public API
+        &self.weights
     }
 
     /// # Panics
@@ -231,13 +262,71 @@ mod tests {
     }
 
     #[test]
+    fn new_works() {
+        let window_size = 3;
+        let block_size = 4;
+        let filter =
+            BlockFilterBase::<Lms>::new(Lms::new(1.0).unwrap(), window_size, block_size).unwrap();
+
+        assert_eq!(filter.window_size, WindowSize::new(window_size).unwrap());
+        assert_eq!(filter.block_size, BlockSize::new(block_size).unwrap());
+        assert_eq!(filter.algorithm, Lms::new(1.0).unwrap());
+        assert!(all_approx_equal(filter.weights.iter(), [0.0; 3].iter()));
+    }
+
+    #[test]
+    fn window_size_works() {
+        let filter = testing_filter();
+
+        assert_eq!(filter.window_size(), *filter.window_size);
+    }
+
+    #[test]
+    fn block_size_works() {
+        let filter = testing_filter();
+
+        assert_eq!(filter.block_size(), *filter.block_size);
+    }
+
+    #[test]
+    fn weights_works() {
+        let filter = testing_filter();
+
+        assert!(all_approx_equal(
+            filter.weights().iter(),
+            filter.weights.iter()
+        ));
+    }
+
+    #[test]
+    fn from_weights_works() {
+        let weights = vec![1.0, 2.0, 3.0];
+
+        let filter =
+            BlockFilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), weights.clone(), 1024)
+                .unwrap();
+
+        assert!(all_approx_equal(weights.iter(), filter.weights().iter()));
+    }
+
+    #[test]
+    fn from_weights_reject_empty() {
+        let empty_vec = vec![];
+
+        assert!(matches!(
+            BlockFilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), empty_vec, 1024),
+            Err(Error::EmptyInputArr)
+        ));
+    }
+
+    #[test]
     fn adapt_weights_update() {
         let mut filter = testing_filter();
 
         let weights_before = filter.weights.clone();
 
-        let input = InputSignal::new(&[5.0, 3.5, 2.6, -8.4]).unwrap();
-        let noise = NoiseReference::new(&[3.0, 2.8, -1.7, 2.24]).unwrap();
+        let input = InputSignal::new(vec![5.0, 3.5, 2.6, -8.4]).unwrap();
+        let noise = NoiseReference::new(vec![3.0, 2.8, -1.7, 2.24]).unwrap();
 
         filter.adapt(&input, &noise).unwrap();
 
@@ -253,8 +342,8 @@ mod tests {
 
         let weights_before = filter.weights.clone();
 
-        let input = InputSignal::new(&[5.0, 3.5, 2.6, -8.4]).unwrap();
-        let noise = NoiseReference::new(&[3.0, 2.8, -1.7, 2.24]).unwrap();
+        let input = InputSignal::new(vec![5.0, 3.5, 2.6, -8.4]).unwrap();
+        let noise = NoiseReference::new(vec![3.0, 2.8, -1.7, 2.24]).unwrap();
 
         filter.filter(&input, &noise).unwrap();
 
@@ -270,8 +359,8 @@ mod tests {
 
         let before = filter.weights.len();
 
-        let input = InputSignal::new(&[1.0, 2.0, 3.0]).unwrap();
-        let noise = NoiseReference::new(&[4.0, 5.0, 6.0]).unwrap();
+        let input = InputSignal::new(vec![1.0, 2.0, 3.0]).unwrap();
+        let noise = NoiseReference::new(vec![4.0, 5.0, 6.0]).unwrap();
 
         filter.adapt(&input, &noise).unwrap();
         let after = filter.weights.len();
@@ -283,8 +372,8 @@ mod tests {
     fn reject_shorter_noise_ref() {
         let mut filter = testing_filter();
 
-        let input = InputSignal::new(&[1.0, 2.0, 3.0]).unwrap();
-        let noise = NoiseReference::new(&[4.0, 5.0]).unwrap();
+        let input = InputSignal::new(vec![1.0, 2.0, 3.0]).unwrap();
+        let noise = NoiseReference::new(vec![4.0, 5.0]).unwrap();
 
         assert!(matches!(
             filter.adapt(&input, &noise),
@@ -307,8 +396,8 @@ mod tests {
     fn allow_longer_noise_ref() {
         let mut filter = testing_filter();
 
-        let input = InputSignal::new(&[1.0, 2.0]).unwrap();
-        let noise = NoiseReference::new(&[4.0, 5.0, 6.0]).unwrap();
+        let input = InputSignal::new(vec![1.0, 2.0]).unwrap();
+        let noise = NoiseReference::new(vec![4.0, 5.0, 6.0]).unwrap();
 
         filter.adapt(&input, &noise).unwrap();
         filter.filter(&input, &noise).unwrap();
@@ -323,8 +412,8 @@ mod tests {
             BlockFilterBase::<UpdateCallCounter>::new(UpdateCallCounter::new(), 3, block_size)
                 .unwrap();
 
-        let input = InputSignal::new(&[1.0, 2.0, 3.0, 4.0]).unwrap();
-        let noise = NoiseReference::new(&[4.0, 5.0, 6.0, 7.0]).unwrap();
+        let input = InputSignal::new(vec![1.0, 2.0, 3.0, 4.0]).unwrap();
+        let noise = NoiseReference::new(vec![4.0, 5.0, 6.0, 7.0]).unwrap();
 
         filter.adapt(&input, &noise).unwrap();
         assert_eq!(filter.algorithm.call_count(), 2);
@@ -341,8 +430,8 @@ mod tests {
             BlockFilterBase::<UpdateCallCounter>::new(UpdateCallCounter::new(), 3, block_size)
                 .unwrap();
 
-        let input = InputSignal::new(&[1.0, 2.0, 3.0, 4.0, 5.0]).unwrap();
-        let noise = NoiseReference::new(&[4.0, 5.0, 6.0, 7.0, 8.0]).unwrap();
+        let input = InputSignal::new(vec![1.0, 2.0, 3.0, 4.0, 5.0]).unwrap();
+        let noise = NoiseReference::new(vec![4.0, 5.0, 6.0, 7.0, 8.0]).unwrap();
 
         filter.adapt(&input, &noise).unwrap();
         // update not called on final block because the shapes don't match

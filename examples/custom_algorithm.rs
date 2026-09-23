@@ -1,4 +1,6 @@
-#![allow(clippy::unwrap_used, clippy::exhaustive_structs, reason = "Examples")]
+#![allow(clippy::exhaustive_structs, reason = "Examples")]
+
+use std::error::Error;
 
 use adaptif::algorithms::Algorithm;
 use adaptif::filters::{AdaptiveFilter as _, FilterBase};
@@ -25,18 +27,20 @@ impl Algorithm for MyAlgorithm {
     }
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     // Sample inputs
-    let input_signal = InputSignal::new(&[1.0, -2.5, 3.0]).unwrap();
-    let noise_ref = NoiseReference::new(&[2.0, -1.2, -3.8]).unwrap();
+    let input_signal = InputSignal::new(vec![1.0, -2.5, 3.0])?;
+    let noise_ref = NoiseReference::new(vec![2.0, -1.2, -3.8])?;
 
     // Define the algorithm parameters
     let algorithm_cfg = MyAlgorithm { alpha: 1.0 };
     let window_size = 1024;
 
     // Instantiate the filter using FilterBase and our custom algorithm
-    let mut filter = FilterBase::<MyAlgorithm>::new(algorithm_cfg, window_size).unwrap();
+    let mut filter = FilterBase::<MyAlgorithm>::new(algorithm_cfg, window_size)?;
 
     // Adapt the filter using our algorithm's update rules
-    let _output = filter.adapt(&input_signal, &noise_ref).unwrap();
+    let _output = filter.adapt(&input_signal, &noise_ref)?;
+
+    Ok(())
 }

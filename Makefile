@@ -7,7 +7,7 @@ CARGO_FLAGS = --all-features --all-targets
 ##################################################
 
 # Check installs
-.PHONY: check-rust check-uv check-installs
+.PHONY: check-rust-install check-uv-install check-installs
 check-rust-install:
 	@command rustup --version >/dev/null 2>&1 || \
 		{ echo "Rust toolchain not found; install it with make setup-rust"; exit 1; }
@@ -70,7 +70,7 @@ test-rs: check-rust-install
 	# Since we don't have any tests in the Python features, leaving it out for now.
 	cargo tarpaulin --frozen --skip-clean
 test-py: $(PY_BINDINGS)
-	uv run pytest
+	uv run pytest --cov
 test-all: test-rs test-py
 
 
