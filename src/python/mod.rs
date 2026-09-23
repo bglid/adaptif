@@ -176,6 +176,20 @@ impl RLSFilter {
         let filter = FilterBase::<Rls>::new(rls, window_size).map_err(|e| e.to_pyerr())?;
         Ok(Self(filter))
     }
+    #[staticmethod]
+    fn from_weights(
+        forgetting_factor: f64,
+        p_init_scale: f64,
+        weights: PyReadonlyArray1<f64>,
+    ) -> PyResult<Self> {
+        let rls = Rls::new(forgetting_factor, p_init_scale).map_err(|e| e.to_pyerr())?;
+
+        let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
+
+        let filter = FilterBase::<Rls>::from_weights(rls, weights).map_err(|e| e.to_pyerr())?;
+
+        Ok(Self(filter))
+    }
 }
 
 generate_filter_bindings!(RLSFilter);
