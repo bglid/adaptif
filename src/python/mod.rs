@@ -96,6 +96,8 @@ mod adaptif {
     use super::{BlockLMSFilter, LMSFilter, NLMSFilter};
 }
 
+// TODO: bindings for from_weights()
+
 #[pyclass]
 pub struct LMSFilter(FilterBase<Lms>);
 #[pymethods]

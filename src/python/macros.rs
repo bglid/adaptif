@@ -8,7 +8,6 @@ macro_rules! generate_filter_bindings {
                 self.0.window_size()
             }
 
-            // TODO: weights() (+ check before/after in tests)
             #[getter]
             fn weights<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray1<f64>>> {
                 Ok(PyArray1::from_vec(py, Vec::from(self.0.weights())))
