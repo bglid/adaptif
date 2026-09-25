@@ -144,6 +144,7 @@ impl Rls {
     ///
     /// The matrix is stored as a flat buffer and updated in place.
     fn update_p_matrix(&mut self, noise_ref: &NoiseBuffer) {
+        // Matrix multiplication column by column to emulate a transpose
         for col in 0..noise_ref.len() {
             // This gets computes the section [x^T_n p_{n-1}]
             let xt_p_col = noise_ref
