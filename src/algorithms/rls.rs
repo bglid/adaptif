@@ -32,8 +32,8 @@ impl DerefMut for KalmanGain {
 /// Inverse Correlation Matrix with shape M * M, where M is the filter's window size.
 pub struct InverseCorrMatrix(Box<[f64]>);
 impl InverseCorrMatrix {
-    /// Creates an M x M-dimensional Identity matrix initialized with a positive scalar with `p_init_scale`.
-    /// I.e. `p_init_scale` is the value along main diagonal and all other values are initialized
+    /// Creates an M x M-dimensional Identity matrix multiplied by a positive scalar `p_init_scale`.
+    /// I.e. `p_init_scale` is the resulting value along main diagonal and all other values are initialized
     /// to zero.
     ///
     /// Serves as inverse correlation matrix in RLS algorithm, where M is the filter's window size.
@@ -62,7 +62,6 @@ impl DerefMut for InverseCorrMatrix {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-#[allow(clippy::exhaustive_structs, reason = "No more fields have to be added")]
 /// Recursive least squares algorithm.
 pub struct Rls {
     /// Forgetting factor, often referred to as `lambda`, used for weight updates.
@@ -144,27 +143,30 @@ impl Rls {
     ///
     /// The matrix is stored as a flat buffer and updated in place.
     fn update_p_matrix(&mut self, noise_ref: &NoiseBuffer) {
-        // Matrix multiplication column by column to emulate a transpose
+        // We calculate [x^T_n p_{n-1}] by computing the dot product of
+        // ``noise_ref`` with each columnn in ``inverse_corr_matrix``
         for col in 0..noise_ref.len() {
-            // This gets computes the section [x^T_n p_{n-1}]
-            let xt_p_col = noise_ref
+            let p_col = self
+                .inverse_corr_matrix
                 .iter()
-                .zip(
-                    self.inverse_corr_matrix
-                        .iter()
-                        .skip(col)
-                        .step_by(noise_ref.len()),
-                )
-                .map(|(x, p)| x * p)
-                .sum::<f64>();
+                .skip(col)
+                .step_by(noise_ref.len());
+            let xt_p_col = noise_ref.iter().zip(p_col).map(|(x, p)| x * p).sum::<f64>();
 
             // takes result^ and computes lambda^-1 * [p_{n-1} - k(xt_p column)]
             for (row, k_i) in self.kalman_gain.iter().enumerate() {
                 // index is into a flat buffer, so row * n gives us the start of each row
                 let index = row * noise_ref.len() + col;
-                if let Some(p_i) = self.inverse_corr_matrix.get_mut(index) {
-                    *p_i = (*p_i - k_i * xt_p_col) / self.forgetting_factor;
-                }
+
+                #[allow(
+                    clippy::expect_used,
+                    reason = "Index should always be valid based on the type invariants"
+                )]
+                let p_i = self
+                    .inverse_corr_matrix
+                    .get_mut(index)
+                    .expect("internal error, index should always be valid");
+                *p_i = (*p_i - k_i * xt_p_col) / self.forgetting_factor;
             }
         }
     }

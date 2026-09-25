@@ -1,5 +1,3 @@
-#![allow(clippy::exhaustive_structs, reason = "Examples")]
-
 use std::error::Error;
 
 use adaptif::algorithms::Algorithm;

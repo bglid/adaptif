@@ -32,11 +32,11 @@ impl Display for Error {
             Self::NonPositiveStepSize => write!(f, "step size (mu) must be greater than 0.0"),
             Self::NonPositiveEpsilon => write!(f, "epsilon (eps) must be greater than 0.0"),
             Self::InvalidForgettingFactorRange => {
-                write!(f, "lambda, the forgetting factor, must be > 0.0 and <= 1.0")
+                write!(f, "forgetting factor (lambda) must be > 0.0 and <= 1.0")
             }
             Self::NonPositivePInitScale => write!(
                 f,
-                "The scalar used in initiatlizing the inverse correlation matrix for RLS must be greater than 0.0"
+                "scalar (delta) used in initializing the inverse correlation matrix for RLS must be greater than 0.0"
             ),
         }
     }
