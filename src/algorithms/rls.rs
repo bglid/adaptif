@@ -32,6 +32,11 @@ impl DerefMut for KalmanGain {
 /// Inverse Correlation Matrix with shape M * M, where M is the filter's window size.
 pub struct InverseCorrMatrix(Box<[f64]>);
 impl InverseCorrMatrix {
+    /// Creates an M x M-dimensional Identity matrix initialized with a positive scalar with `p_init_scale`.
+    /// I.e. `p_init_scale` is the value along main diagonal and all other values are initialized
+    /// to zero.
+    ///
+    /// Serves as inverse correlation matrix in RLS algorithm, where M is the filter's window size.
     pub fn new(window_size: WindowSize, p_init_scale: f64) -> Self {
         let mut p = vec![0.0; (*window_size) * (*window_size)].into_boxed_slice();
 
@@ -94,6 +99,15 @@ impl Rls {
         })
     }
 
+    /// Updates the Kalman gain vector used in the RLS weight update.
+    ///
+    /// Kalman gain vector update calculated as:
+    ///
+    /// $``k_n`` = \frac{P_{n-1} ``x_n``}
+    /// {\lambda + ``x_n^T`` P_{n-1} ``x_n``}$.
+    ///
+    /// Existing Kalman gain buffer gets reused to store the numerator
+    /// value in update calculation to avoid reallocating a new vector.
     fn update_kalman_gain(&mut self, noise_ref: &NoiseBuffer) {
         // reusing kalman buffer for getting numerator to avoid clone of numerator
         for (k_i, row) in self
@@ -120,7 +134,15 @@ impl Rls {
         }
     }
 
-    // I've added comments to try and make this reasonable to read and compare to lit
+    /// Updates the inverse correlation matrix used in the RLS weight update.
+    /// Utilizes current Kalman gain ``k_n``.
+    ///
+    /// Inverse correlation matrix update calculated as:
+    ///
+    /// $``P_n`` = \frac{1}{\lambda}
+    /// \left(P_{n-1} - ``k_n`` ``x_n^T`` P_{n-1}\right)$.
+    ///
+    /// The matrix is stored as a flat buffer and updated in place.
     fn update_p_matrix(&mut self, noise_ref: &NoiseBuffer) {
         for col in 0..noise_ref.len() {
             // This gets computes the section [x^T_n p_{n-1}]
@@ -150,7 +172,7 @@ impl Rls {
 impl Algorithm for Rls {
     /// Updates the filter weights using the following algorithm.
     ///
-    /// The gain vector, ``k_n`` is calculated as:
+    /// The Kalman gain vector, ``k_n`` is calculated as:
     ///
     /// $``k_n`` = \frac{P_{n-1} ``x_n``}
     /// {\lambda + ``x_n^T`` P_{n-1} ``x_n``}$.
