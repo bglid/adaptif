@@ -11,7 +11,6 @@ use crate::algorithms::Algorithm;
 /// M-dimensional vector of Kalman gains, where M is the filter's window size.
 pub struct KalmanGain(Box<[f64]>);
 impl KalmanGain {
-    // TODO: this should probably be init from WindowSize
     pub fn new(window_size: WindowSize) -> Self {
         KalmanGain(vec![0.0; *window_size].into_boxed_slice())
     }
@@ -174,21 +173,13 @@ impl Algorithm for Rls {
         error: OutputSample,
         noise_ref: &NoiseBuffer,
     ) {
-        // TODO: replace with weights.window_size() after merge
-        #[allow(
-            clippy::unwrap_used,
-            reason = "weights is initialized from a WindowSize so it can't panic"
-        )]
-        let window_size = WindowSize::new(weights.len()).unwrap();
-
         // Updates p_matrix on first iteration once n is known
+        // No scenario where one is initialized and the other isn't
         // TODO: remove once proper init is implemented
         if self.inverse_corr_matrix.is_empty() {
-            self.inverse_corr_matrix = InverseCorrMatrix::new(window_size, self.p_init_scale);
-        }
-
-        if self.kalman_gain.is_empty() {
-            self.kalman_gain = KalmanGain::new(window_size);
+            self.inverse_corr_matrix =
+                InverseCorrMatrix::new(weights.window_size(), self.p_init_scale);
+            self.kalman_gain = KalmanGain::new(weights.window_size());
         }
 
         self.update_kalman_gain(noise_ref);
