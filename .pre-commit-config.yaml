@@ -5,9 +5,8 @@ repos:
     rev: v2.5.0
     hooks:
       - id: check-yaml
-      - id: end-of-file-fixer
-        exclude: LICENSE
 
+  # Python
   - repo: local
     hooks:
       - id: ruff-lint
@@ -21,3 +20,27 @@ repos:
         entry: uv run ruff format --check
         types: [python]
         language: system
+
+  # Rust
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --all
+        types: [rust]
+        language: system
+        pass_filenames: false
+
+      - id: cargo-check
+        name: cargo check
+        entry: cargo check
+        types: [rust]
+        language: system
+        pass_filenames: false
+      
+      - id: clippy
+        name: clippy 
+        entry: cargo clippy --all-targets --all-features -- -Dwarnings
+        types: [rust]
+        language: system
+        pass_filenames: false

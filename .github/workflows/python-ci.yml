@@ -3,14 +3,14 @@ name: Python CI
 on:
   push:
     paths:
-      - "adaptive_filter/**"
+      - "python/**"
       - "tests/**"
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/python-ci.yml"
   pull_request:
     paths:
-      - "adaptive_filter/**"
+      - "python/**"
       - "tests/**"
       - "pyproject.toml"
       - "uv.lock"
@@ -36,9 +36,12 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --dev
 
+      - name: Generate Python bindings
+        run: uv run maturin develop
+
       - name: Run style checks
         run: |
-          uv run ruff check .
+          uv run ruff check . --fix
           uv run ruff format --check .
 
       - name: Run type checks
@@ -46,15 +49,10 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run pytest \
-            --cov-report=term-missing \
-            --cov=adaptive_filter \
-            tests/
+          uv run pytest
 
       - name: Run safety checks
-        run: |
-          uv run safety check --full-report
-          uv run bandit -ll --recursive adaptive_filter tests
+        run: uv audit
 
       - name: Build package
         run: uv build

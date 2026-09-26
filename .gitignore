@@ -1,22 +1,31 @@
 *
 !.gitignore
 
-!adaptive_filter/
-!adaptive_filter/**/
-!adaptive_filter/**/*.py
+!src/
+!src/**/
+!src/**/*.rs
 
-!adaptif/
-!adaptif/*.py
-!adaptif/*.pyi
-
+!python/
+!python/adaptif/
+!python/adaptif/*.py
+!python/adaptif/*.pyi
 
 !tests/
 !tests/**/
 !tests/**/*.py
 
+!examples/
+!examples/**/
+!examples/**/*.rs
+
+!Cargo.toml
+!Cargo.lock
+
 # uv
 !pyproject.toml
 !uv.lock
+
+!Makefile
 
 # docs
 !*.md
