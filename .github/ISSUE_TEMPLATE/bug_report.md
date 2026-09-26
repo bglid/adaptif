@@ -28,6 +28,17 @@ Steps to reproduce the behavior:
 python --version
 ```
 
+* Rust & Cargo versions, get it with:
+
+```bash
+rustc --version
+cargo --version
+```
+* Specify whether you're on Rust stable, nightly, or beta:
+```bash
+rustup show active-toolchain
+``` 
+
 ### Screenshots
 
 <!-- If applicable, add screenshots to help explain your problem. -->

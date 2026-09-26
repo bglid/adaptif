@@ -4,7 +4,6 @@ import pytest
 from adaptive_filter.filter_models.fd_filter_model import FrequencyDomainAF
 
 
-# creating a sample pytest model
 @pytest.fixture
 def sample_model():
     # creating a sample model
@@ -14,20 +13,17 @@ def sample_model():
     return filter_model
 
 
-# testing noise estimate function
 def test_noise_estimate(sample_model):
     x_n = np.array([2.0, 3.0, 4.0])
     assert sample_model.noise_estimate(x_n) == pytest.approx(-2.0)
 
 
-# testing the error function
 def test_error(sample_model):
     d_n = 5.0
     noise_estimate = 3.5
     assert sample_model.error(d_n, noise_estimate) == pytest.approx(1.5)
 
 
-# testing the update step
 def test_update_step(sample_model):
     e_n = np.array([5.0, 5.0, 5.0], dtype=np.complex128)
     x_n = np.array([2.0, 3.0, 4.0], dtype=np.complex128)

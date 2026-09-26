@@ -5,17 +5,17 @@ name-template: "v$NEXT_PATCH_VERSION"
 tag-template: "v$NEXT_PATCH_VERSION"
 
 categories:
-  - title: ":rocket: Features"
+  - title: "Features"
     labels: [enhancement, feature]
-  - title: ":wrench: Fixes & Refactoring"
+  - title: "Fixes & Refactoring"
     labels: [bug, refactoring, bugfix, fix]
-  - title: ":package: Build System & CI/CD"
+  - title: "Build System & CI/CD"
     labels: [build, ci, testing]
-  - title: ":boom: Breaking Changes"
+  - title: "Breaking Changes"
     labels: [breaking]
-  - title: ":pencil: Documentation"
+  - title: "Documentation"
     labels: [documentation]
-  - title: ":arrow_up: Dependencies updates"
+  - title: "Dependencies updates"
     labels: [dependencies]
 
 template: |

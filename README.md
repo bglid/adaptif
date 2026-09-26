@@ -1,6 +1,6 @@
 # Adaptif
 
-[![Actions status](https://github.com/bglid/adaptive-filters/workflows/build/badge.svg)](https://github.com/bglid/adaptive-filters/actions)
+[![Actions status](https://github.com/bglid/adaptif/workflows/build/badge.svg)](https://github.com/bglid/adaptif/actions)
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![License](https://img.shields.io/github/license/bglid/adaptive-filters)](https://github.com/bglid/adaptive-filters/blob/master/LICENSE)
@@ -37,7 +37,7 @@ The projects currently supports python 3.10 - 3.14. The project uses `uv` for de
 Cloning the repo:
 
 ```bash
-git clone https://github.com/bglid/adaptive-filters.git
+git clone https://github.com/bglid/adaptif.git
 ```
 
 Install the project dev dependencies and build the Python bindings with `maturin`:
@@ -58,7 +58,7 @@ uv run pytest
 
 #### Contributing
 
-See [CONTRIBUTING.md](https://github.com/bglid/adaptive-filters/blob/main/CONTRIBUTING.md) for setup and contribution guidelines.
+See [CONTRIBUTING.md](https://github.com/bglid/adaptif/blob/main/CONTRIBUTING.md) for setup and contribution guidelines.
 
 In short,
 
@@ -105,7 +105,7 @@ If you found any of this helpful, feel free to cite it, or just send us an email
   year = {2026},
   publisher = {GitHub},
   journal = {GitHub repository},
-  howpublished = {\url{https://github.com/bglid/adaptive_filter}}
+  howpublished = {\url{https://github.com/bglid/adaptif}}
 }
 ```
 
