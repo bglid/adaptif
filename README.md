@@ -3,7 +3,7 @@
 [![Actions status](https://github.com/bglid/adaptif/workflows/build/badge.svg)](https://github.com/bglid/adaptif/actions)
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![License](https://img.shields.io/github/license/bglid/adaptive-filters)](https://github.com/bglid/adaptive-filters/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/bglid/adaptif)](https://github.com/bglid/adaptif/blob/master/LICENSE)
 
 #### Rust crate for DSP Adaptive Filters with Python bindings. 
 
