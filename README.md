@@ -88,10 +88,6 @@ Here:
 
 ---
 
-## Credits
-
-Organization and project originally inspired by [`Padasip`](https://github.com/matousc89/padasip)
-
 ## Citation
 
 If you found any of this helpful, feel free to cite it, or just send us an email.

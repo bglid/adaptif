@@ -41,7 +41,6 @@ Repository = "https://github.com/bglid/adaptif"
 dev = [
     "pre-commit>=4.0.1,<5.0.0",
     "pytest>=9.1.1",
-    # "pytest-cov>=6.0.0,<7.0.0",
     "ruff>=0.16.4",
     "ty>=0.0.75",
     "maturin>=1.15.0",
@@ -87,13 +86,3 @@ addopts = [
   "--doctest-continue-on-failure",
 ]
 
-# [tool.coverage.run]
-# source = ["adaptive_filter"]
-# branch = true
-#
-# [tool.coverage.paths]
-# source = ["adaptive_filter"]
-#
-# [tool.coverage.report]
-# fail_under = 50
-# show_missing = true
