@@ -3,7 +3,6 @@ name: Python CI
 on:
   push:
     paths:
-      - "adaptive_filter/**"
       - "python/**"
       - "tests/**"
       - "pyproject.toml"
@@ -11,7 +10,6 @@ on:
       - ".github/workflows/python-ci.yml"
   pull_request:
     paths:
-      - "adaptive_filter/**"
       - "python/**"
       - "tests/**"
       - "pyproject.toml"
@@ -51,10 +49,7 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run pytest \
-            --cov-report=term-missing \
-            --cov=adaptive_filter \
-            tests/
+          uv run pytest
 
       - name: Run safety checks
         run: uv audit

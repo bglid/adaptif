@@ -70,7 +70,7 @@ test-rs: check-rust-install
 	# Since we don't have any tests in the Python features, leaving it out for now.
 	cargo tarpaulin --frozen --skip-clean
 test-py: $(PY_BINDINGS)
-	uv run pytest --cov
+	uv run pytest
 test-all: test-rs test-py
 
 
