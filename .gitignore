@@ -1,9 +1,9 @@
 *
 !.gitignore
 
-!adaptive_filter/
-!adaptive_filter/**/
-!adaptive_filter/**/*.py
+!src/
+!src/**/
+!src/**/*.rs
 
 !python/
 !python/adaptif/
@@ -13,10 +13,6 @@
 !tests/
 !tests/**/
 !tests/**/*.py
-
-!src/
-!src/**/
-!src/**/*.rs
 
 !examples/
 !examples/**/
