@@ -47,7 +47,7 @@ mod_module_files = "allow" # modules should be self-contained to a directory
 let_underscore_untyped = "allow" # if we aren't going to use a return value, we generally don't care about its type
 error_impl_error = "allow" # Naming errors just "Error" and using them as `some_module::Error` matches the standard library
 pub_with_shorthand = "allow" # Allows for macros do be shared within the same crate using the pub(crate) ... shorthand
-
+exhaustive_structs = "allow" # Allows for exhaustive structs, which even Clippy ref says are fine
 
 # maybe
 missing_docs_in_private_items = "allow"

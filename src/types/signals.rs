@@ -1,8 +1,3 @@
-#![allow(
-    clippy::exhaustive_structs,
-    reason = "Simple wrappers for primitives, so adding fields is highly unlikely."
-)]
-
 use crate::error::{Error, Result};
 use std::ops::Deref;
 

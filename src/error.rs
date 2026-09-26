@@ -13,6 +13,8 @@ pub enum Error {
     NoiseRefTooShort { input_len: usize, noise_len: usize },
     NonPositiveStepSize,
     NonPositiveEpsilon,
+    InvalidForgettingFactorRange,
+    NonPositivePInitScale,
 }
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -29,6 +31,13 @@ impl Display for Error {
             ),
             Self::NonPositiveStepSize => write!(f, "step size (mu) must be greater than 0.0"),
             Self::NonPositiveEpsilon => write!(f, "epsilon (eps) must be greater than 0.0"),
+            Self::InvalidForgettingFactorRange => {
+                write!(f, "forgetting factor (lambda) must be > 0.0 and <= 1.0")
+            }
+            Self::NonPositivePInitScale => write!(
+                f,
+                "scalar (delta) used in initializing the inverse correlation matrix for RLS must be greater than 0.0"
+            ),
         }
     }
 }

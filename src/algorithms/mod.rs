@@ -8,6 +8,9 @@ pub use lms::Lms;
 mod nlms;
 pub use nlms::Nlms;
 
+mod rls;
+pub use rls::Rls;
+
 /// Trait used for implementing algorithms with sample-based processing used in conjuction with
 /// `SampleFilter`.
 pub trait Algorithm {
@@ -17,7 +20,7 @@ pub trait Algorithm {
     /// `noise_ref` is the noise reference signal within the current processing window (the $k$ most recent samples).
     ///
     fn update_step(
-        &self,
+        &mut self,
         weights: &mut FilterWeights,
         error: OutputSample,
         noise_ref: &NoiseBuffer,

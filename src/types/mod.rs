@@ -1,8 +1,3 @@
-#![allow(
-    clippy::exhaustive_structs,
-    reason = "Simple wrappers for primitives, so adding fields is highly unlikely."
-)]
-
 mod filter_weights;
 pub use filter_weights::FilterWeights;
 

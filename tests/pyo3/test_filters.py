@@ -1,12 +1,16 @@
 import numpy as np
 import pytest
-from adaptif import BlockLMSFilter, LMSFilter, NLMSFilter
+from adaptif import BlockLMSFilter, LMSFilter, NLMSFilter, RLSFilter
 
 
 @pytest.fixture(
     params=[
         (LMSFilter, {"mu": 1.0, "window_size": 1024}),
         (NLMSFilter, {"mu": 1.0, "eps": 1e-8, "window_size": 1024}),
+        (
+            RLSFilter,
+            {"forgetting_factor": 0.5, "p_init_scale": 1.0, "window_size": 1024},
+        ),
         (BlockLMSFilter, {"mu": 1.0, "window_size": 1024, "block_size": 1024}),
     ]
 )
@@ -20,6 +24,7 @@ def filter(request):
     [
         (LMSFilter, {"mu": 1.0}),
         (NLMSFilter, {"mu": 1.0, "eps": 1e-8}),
+        (RLSFilter, {"forgetting_factor": 0.5, "p_init_scale": 1.0}),
         (BlockLMSFilter, {"mu": 1.0, "block_size": 1024}),
     ],
 )

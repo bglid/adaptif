@@ -6,7 +6,6 @@ use crate::{Error, Result};
 use crate::algorithms::{Algorithm, BlockAlgorithm};
 
 #[derive(Debug, Clone, PartialEq)]
-#[allow(clippy::exhaustive_structs, reason = "No more fields have to be added")]
 /// Least mean squares algorithm.
 pub struct Lms {
     /// Step size for weight updates.
@@ -32,7 +31,7 @@ impl Algorithm for Lms {
     /// and $``x_n``$ is a vector of length `window_size` of the
     /// most recent noise reference samples.
     fn update_step(
-        &self,
+        &mut self,
         weights: &mut FilterWeights,
         error: OutputSample,
         noise_ref: &NoiseBuffer,
@@ -93,7 +92,7 @@ mod tests {
 
     #[test]
     fn update_lms_1() {
-        let lms = Lms::new(0.5).unwrap();
+        let mut lms = Lms::new(0.5).unwrap();
         let e_n = OutputSample(2.0);
         let x_n = noise_buffer_from(&[1.0, -1.0]);
         let expected = [1.0, -1.0];
@@ -106,7 +105,7 @@ mod tests {
 
     #[test]
     fn update_lms_2() {
-        let lms = Lms::new(1.0).unwrap();
+        let mut lms = Lms::new(1.0).unwrap();
         let e_n = OutputSample(1.0);
         let x_n = noise_buffer_from(&[5.0, 2.0]);
         let expected = [5.0, 2.0];
