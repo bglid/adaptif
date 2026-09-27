@@ -1,27 +1,29 @@
 use std::ops::{Deref, DerefMut};
 
+use num_traits::Float;
+
 use crate::types::signals::OutputSample;
 
 use super::{BlockSize, SampleBuffer};
 
-pub struct BlockError(SampleBuffer);
-impl BlockError {
+pub struct BlockError<F: Float>(SampleBuffer<F>);
+impl<F: Float> BlockError<F> {
     pub fn new(block_size: BlockSize) -> Self {
         BlockError(SampleBuffer::new(block_size.into()))
     }
 
-    pub fn push(&mut self, item: OutputSample) {
+    pub fn push(&mut self, item: OutputSample<F>) {
         self.0.push(*item);
     }
 }
-impl Deref for BlockError {
-    type Target = SampleBuffer;
+impl<F: Float> Deref for BlockError<F> {
+    type Target = SampleBuffer<F>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
-impl DerefMut for BlockError {
+impl<F: Float> DerefMut for BlockError<F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -36,6 +38,6 @@ mod tests {
     #[test]
     fn error_buffer_init_to_zero() {
         let buffer = BlockError::new(BlockSize::new(2).unwrap());
-        assert!(all_approx_equal(buffer.iter(), [0_f64; 2].iter()));
+        assert!(all_approx_equal(buffer.iter(), [0.0; 2].iter()));
     }
 }

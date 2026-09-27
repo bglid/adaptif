@@ -1,17 +1,19 @@
 use std::ops::{Deref, DerefMut};
 
+use num_traits::Float;
+
 use crate::{Error, types::WindowSize};
 
 #[derive(Debug, Clone)]
-pub struct FilterWeights {
-    weights: Box<[f64]>, // We use a boxed slice instead of a Vec to ensure length doesn't change
+pub struct FilterWeights<F: Float> {
+    weights: Box<[F]>, // We use a boxed slice instead of a Vec to ensure length doesn't change
     window_size: WindowSize,
 }
-impl FilterWeights {
+impl<F: Float> FilterWeights<F> {
     pub fn new(window_size: WindowSize) -> Self {
         FilterWeights {
-            weights: std::iter::repeat_n(0.0, *window_size)
-                .collect::<Vec<f64>>()
+            weights: std::iter::repeat_n(F::zero(), *window_size)
+                .collect::<Vec<F>>()
                 .into_boxed_slice(),
             window_size,
         }
@@ -21,10 +23,10 @@ impl FilterWeights {
         self.window_size
     }
 }
-impl TryFrom<Vec<f64>> for FilterWeights {
+impl<F: Float> TryFrom<Vec<F>> for FilterWeights<F> {
     type Error = crate::Error;
 
-    fn try_from(value: Vec<f64>) -> Result<Self, Self::Error> {
+    fn try_from(value: Vec<F>) -> Result<Self, Self::Error> {
         let window_size = WindowSize::new(value.len()).map_err(|_e| Error::EmptyInputArr)?;
         Ok(FilterWeights {
             weights: value.into_boxed_slice(),
@@ -32,18 +34,18 @@ impl TryFrom<Vec<f64>> for FilterWeights {
         })
     }
 }
-impl From<FilterWeights> for Vec<f64> {
-    fn from(value: FilterWeights) -> Self {
+impl<F: Float> From<FilterWeights<F>> for Vec<F> {
+    fn from(value: FilterWeights<F>) -> Self {
         value.weights.into()
     }
 }
-impl Deref for FilterWeights {
-    type Target = Box<[f64]>;
+impl<F: Float> Deref for FilterWeights<F> {
+    type Target = Box<[F]>;
     fn deref(&self) -> &Self::Target {
         &self.weights
     }
 }
-impl DerefMut for FilterWeights {
+impl<F: Float> DerefMut for FilterWeights<F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.weights
     }

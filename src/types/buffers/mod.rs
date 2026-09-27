@@ -8,6 +8,7 @@ pub use error::*;
 
 mod noise;
 pub use noise::*;
+use num_traits::Float;
 
 /// Fixed-size ring buffer for processing samples.
 /// Functions must ensure that `samples.len()` is the same before and after function calls
@@ -17,21 +18,21 @@ pub use noise::*;
     reason = "Buffer has a fixed size and can't be empty"
 )]
 #[derive(Debug, Clone)]
-pub struct SampleBuffer {
-    samples: VecDeque<f64>,
+pub struct SampleBuffer<F: Float> {
+    samples: VecDeque<F>,
     capacity: NonZeroUsize,
 }
-impl SampleBuffer {
+impl<F: Float> SampleBuffer<F> {
     // We get the capacity directly from the weights to guarantee
     // that the buffer length and the number of weights are the same.
     pub fn new(capacity: NonZeroUsize) -> Self {
         SampleBuffer {
-            samples: std::iter::repeat_n(0.0, capacity.into()).collect(),
+            samples: std::iter::repeat_n(F::zero(), capacity.into()).collect(),
             capacity,
         }
     }
 
-    pub fn push(&mut self, sample: f64) {
+    pub fn push(&mut self, sample: F) {
         // have to bind this because pyo3 adds extra impl of PartialEq
         let capacity: usize = self.capacity.into();
 
@@ -41,7 +42,7 @@ impl SampleBuffer {
         self.samples.push_back(sample);
     }
 
-    pub fn get(&self, index: usize) -> Option<&f64> {
+    pub fn get(&self, index: usize) -> Option<&F> {
         self.samples.get(index)
     }
 
@@ -49,27 +50,27 @@ impl SampleBuffer {
         self.capacity.into()
     }
 
-    pub fn iter(&self) -> SampleIter<'_> {
+    pub fn iter(&self) -> SampleIter<'_, F> {
         SampleIter {
             buffer: self,
             next_idx: 0,
         }
     }
 }
-impl<'a> IntoIterator for &'a SampleBuffer {
-    type Item = &'a f64;
-    type IntoIter = SampleIter<'a>;
+impl<'a, F: Float> IntoIterator for &'a SampleBuffer<F> {
+    type Item = &'a F;
+    type IntoIter = SampleIter<'a, F>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
 }
 
-pub struct SampleIter<'a> {
-    buffer: &'a SampleBuffer,
+pub struct SampleIter<'a, F: Float> {
+    buffer: &'a SampleBuffer<F>,
     next_idx: usize,
 }
-impl<'a> Iterator for SampleIter<'a> {
-    type Item = &'a f64;
+impl<'a, F: Float> Iterator for SampleIter<'a, F> {
+    type Item = &'a F;
 
     fn next(&mut self) -> Option<Self::Item> {
         let item = self.buffer.get(self.next_idx);
@@ -77,7 +78,7 @@ impl<'a> Iterator for SampleIter<'a> {
         item
     }
 }
-impl ExactSizeIterator for SampleIter<'_> {
+impl<F: Float> ExactSizeIterator for SampleIter<'_, F> {
     fn len(&self) -> usize {
         self.buffer.len()
     }
@@ -92,7 +93,7 @@ mod tests {
     #[test]
     fn error_buffer_init_to_zero() {
         let buffer = BlockError::new(BlockSize::new(2).unwrap());
-        assert!(all_approx_equal(buffer.iter(), [0_f64; 2].iter()));
+        assert!(all_approx_equal(buffer.iter(), [0.0; 2].iter()));
     }
 
     #[test]

@@ -1,33 +1,35 @@
-use super::SampleBuffer;
-use crate::types::{BlockSize, FilterWeights};
+use num_traits::Float;
 
 use std::num::NonZero;
 use std::ops::{Deref, DerefMut};
 
-pub struct NoiseBuffer(SampleBuffer);
-impl NoiseBuffer {
-    pub fn new(weights: &FilterWeights) -> Self {
+use super::SampleBuffer;
+use crate::types::{BlockSize, FilterWeights};
+
+pub struct NoiseBuffer<F: Float>(SampleBuffer<F>);
+impl<F: Float> NoiseBuffer<F> {
+    pub fn new(weights: &FilterWeights<F>) -> Self {
         NoiseBuffer(SampleBuffer::new(weights.window_size().into()))
     }
 }
-impl Deref for NoiseBuffer {
-    type Target = SampleBuffer;
+impl<F: Float> Deref for NoiseBuffer<F> {
+    type Target = SampleBuffer<F>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
-impl DerefMut for NoiseBuffer {
+impl<F: Float> DerefMut for NoiseBuffer<F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
 /// Noise reference buffer for block processing.
-pub struct BlockNoiseBuffer(SampleBuffer);
-impl BlockNoiseBuffer {
+pub struct BlockNoiseBuffer<F: Float>(SampleBuffer<F>);
+impl<F: Float> BlockNoiseBuffer<F> {
     /// Creates a buffer of length `window_size` + `block_size` - 1 for block processing.
-    pub fn new(weights: &FilterWeights, block_size: BlockSize) -> Self {
+    pub fn new(weights: &FilterWeights<F>, block_size: BlockSize) -> Self {
         #[allow(
             clippy::unwrap_used,
             clippy::missing_panics_doc,
@@ -39,14 +41,14 @@ impl BlockNoiseBuffer {
         BlockNoiseBuffer(buffer)
     }
 }
-impl Deref for BlockNoiseBuffer {
-    type Target = SampleBuffer;
+impl<F: Float> Deref for BlockNoiseBuffer<F> {
+    type Target = SampleBuffer<F>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
-impl DerefMut for BlockNoiseBuffer {
+impl<F: Float> DerefMut for BlockNoiseBuffer<F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -64,7 +66,7 @@ mod tests {
         let weights = FilterWeights::new(WindowSize::new(3).unwrap());
 
         let buffer = NoiseBuffer::new(&weights);
-        assert!(all_approx_equal(buffer.iter(), [0_f64; 3].iter()));
+        assert!(all_approx_equal(buffer.iter(), [0.0; 3].iter()));
     }
 
     #[test]
@@ -72,6 +74,6 @@ mod tests {
         let weights = FilterWeights::new(WindowSize::new(3).unwrap());
 
         let buffer = BlockNoiseBuffer::new(&weights, BlockSize::new(2).unwrap());
-        assert!(all_approx_equal(buffer.iter(), [0_f64; 4].iter()));
+        assert!(all_approx_equal(buffer.iter(), [0.0; 4].iter()));
     }
 }

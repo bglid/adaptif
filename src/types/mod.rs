@@ -1,3 +1,5 @@
+use num_traits::Float;
+
 mod filter_weights;
 pub use filter_weights::FilterWeights;
 
@@ -65,9 +67,9 @@ impl From<BlockSize> for NonZero<usize> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct NoiseEstimate(pub f64);
-impl Deref for NoiseEstimate {
-    type Target = f64;
+pub struct NoiseEstimate<F: Float>(pub F);
+impl<F: Float> Deref for NoiseEstimate<F> {
+    type Target = F;
     fn deref(&self) -> &Self::Target {
         &self.0
     }

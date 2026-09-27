@@ -36,7 +36,7 @@ impl Display for Error {
             }
             Self::NonPositivePInitScale => write!(
                 f,
-                "scalar (delta) used in initializing the inverse correlation matrix for RLS must be greater than 0.0"
+                "scalar value (delta) used in initializing the  for RLS must be greater than 0.0"
             ),
         }
     }

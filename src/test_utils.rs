@@ -5,37 +5,47 @@
     reason = "Only used in tests"
 )]
 
+use num_traits::Float;
+
 use std::num::NonZero;
 
 use crate::types::buffers::{BlockError, BlockNoiseBuffer, NoiseBuffer};
 use crate::types::signals::OutputSample;
 use crate::types::{BlockSize, FilterWeights, WindowSize};
 
-pub fn approx_equal(a: f64, b: f64, eps: f64) -> bool {
+pub fn approx_equal<F>(a: F, b: F, eps: F) -> bool
+where
+    F: Float,
+{
     (a - b).abs() < eps
 }
 
-pub fn approx_equal_iter<'a, 'b, I, J>(a: I, b: J, eps: f64) -> bool
+pub fn approx_equal_iter<'a, 'b, I, J, F>(a: I, b: J, eps: F) -> bool
 where
-    I: Iterator<Item = &'a f64>,
-    J: Iterator<Item = &'b f64>,
+    I: Iterator<Item = &'a F>,
+    J: Iterator<Item = &'b F>,
+    F: Float + 'a + 'b,
 {
     a.zip(b).all(|(x, y)| approx_equal(*x, *y, eps))
 }
 
-pub fn all_approx_equal<'a, 'b, I, J>(a: I, b: J) -> bool
+pub fn all_approx_equal<'a, 'b, I, J, F>(a: I, b: J) -> bool
 where
-    I: ExactSizeIterator<Item = &'a f64>,
-    J: ExactSizeIterator<Item = &'b f64>,
+    I: ExactSizeIterator<Item = &'a F>,
+    J: ExactSizeIterator<Item = &'b F>,
+    F: Float + 'a + 'b,
 {
     if a.len() == b.len() {
-        approx_equal_iter(a, b, 1e-6)
+        approx_equal_iter(a, b, F::from(1e-6).unwrap())
     } else {
         false
     }
 }
 
-pub fn noise_buffer_from(arr: &[f64]) -> NoiseBuffer {
+pub fn noise_buffer_from<F>(arr: &[F]) -> NoiseBuffer<F>
+where
+    F: Float,
+{
     let weights = FilterWeights::new(WindowSize::new(arr.len()).unwrap());
     let mut buffer = NoiseBuffer::new(&weights);
 
@@ -46,7 +56,10 @@ pub fn noise_buffer_from(arr: &[f64]) -> NoiseBuffer {
     buffer
 }
 
-pub fn block_noise_buffer_from(arr: &[f64]) -> BlockNoiseBuffer {
+pub fn block_noise_buffer_from<F>(arr: &[F]) -> BlockNoiseBuffer<F>
+where
+    F: Float,
+{
     let weights = FilterWeights::new(WindowSize::new(arr.len()).unwrap());
     let mut buffer = BlockNoiseBuffer::new(&weights, BlockSize::new(1).unwrap());
 
@@ -57,7 +70,10 @@ pub fn block_noise_buffer_from(arr: &[f64]) -> BlockNoiseBuffer {
     buffer
 }
 
-pub fn error_buffer_from(arr: &[f64]) -> BlockError {
+pub fn error_buffer_from<F>(arr: &[F]) -> BlockError<F>
+where
+    F: Float,
+{
     let mut buffer = BlockError::new(BlockSize::new(arr.len()).unwrap());
 
     for val in arr {
