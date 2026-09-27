@@ -91,7 +91,7 @@ mod tests {
 
     #[test]
     fn error_buffer_init_to_zero() {
-        let buffer = ErrorBuffer::new(BlockSize::new(2).unwrap());
+        let buffer = BlockError::new(BlockSize::new(2).unwrap());
         assert!(all_approx_equal(buffer.iter(), [0_f64; 2].iter()));
     }
 

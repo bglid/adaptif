@@ -7,7 +7,7 @@
 
 use std::num::NonZero;
 
-use crate::types::buffers::{BlockNoiseBuffer, ErrorBuffer, NoiseBuffer};
+use crate::types::buffers::{BlockError, BlockNoiseBuffer, NoiseBuffer};
 use crate::types::signals::OutputSample;
 use crate::types::{BlockSize, FilterWeights, WindowSize};
 
@@ -57,8 +57,8 @@ pub fn block_noise_buffer_from(arr: &[f64]) -> BlockNoiseBuffer {
     buffer
 }
 
-pub fn error_buffer_from(arr: &[f64]) -> ErrorBuffer {
-    let mut buffer = ErrorBuffer::new(BlockSize::new(arr.len()).unwrap());
+pub fn error_buffer_from(arr: &[f64]) -> BlockError {
+    let mut buffer = BlockError::new(BlockSize::new(arr.len()).unwrap());
 
     for val in arr {
         buffer.push(OutputSample(*val));
