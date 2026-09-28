@@ -9,7 +9,14 @@ where
     F: Float,
 {
     // NoiseBuffer is initiated with the same length as weights, therefore we don't need to check
-    NoiseEstimate(weights.iter().zip(noise.iter()).map(|(w, x)| *w * *x).sum())
+    NoiseEstimate(
+        weights
+            .iter()
+            .copied()
+            .zip(noise.iter().copied())
+            .map(|(w, x)| w * x)
+            .sum(),
+    )
 }
 
 pub fn compute_error<F>(

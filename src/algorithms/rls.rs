@@ -116,16 +116,18 @@ impl<F: Float> Rls<F> {
         {
             *k_i = row
                 .iter()
-                .zip(noise_ref.iter())
-                .map(|(px, x)| (*px) * (*x))
+                .copied()
+                .zip(noise_ref.iter().copied())
+                .map(|(px, x)| px * x)
                 .sum::<F>();
         }
 
         let denominator = self.forgetting_factor
             + noise_ref
                 .iter()
-                .zip(self.kalman_gain.iter())
-                .map(|(noise, num)| (*noise) * (*num))
+                .copied()
+                .zip(self.kalman_gain.iter().copied())
+                .map(|(noise, num)| noise * num)
                 .sum::<F>();
 
         for k_i in self.kalman_gain.iter_mut() {
@@ -149,16 +151,18 @@ impl<F: Float> Rls<F> {
             let p_col = self
                 .inverse_corr_matrix
                 .iter()
+                .copied()
                 .skip(col)
                 .step_by(noise_ref.len());
             let xt_p_col = noise_ref
                 .iter()
+                .copied()
                 .zip(p_col)
-                .map(|(x, p)| (*x) * (*p))
+                .map(|(x, p)| x * p)
                 .sum::<F>();
 
             // takes result^ and computes lambda^-1 * [p_{n-1} - k(xt_p column)]
-            for (row, k_i) in self.kalman_gain.iter().enumerate() {
+            for (row, k_i) in self.kalman_gain.iter().copied().enumerate() {
                 // index is into a flat buffer, so row * n gives us the start of each row
                 let index = row * noise_ref.len() + col;
 
@@ -170,7 +174,7 @@ impl<F: Float> Rls<F> {
                     .inverse_corr_matrix
                     .get_mut(index)
                     .expect("internal error, index should always be valid");
-                *p_i = (*p_i - *k_i * xt_p_col) / self.forgetting_factor;
+                *p_i = (*p_i - k_i * xt_p_col) / self.forgetting_factor;
             }
         }
     }
@@ -213,8 +217,8 @@ impl<F: Float> Algorithm<F> for Rls<F> {
 
         self.update_kalman_gain(noise_ref);
 
-        for (w, k) in weights.iter_mut().zip(self.kalman_gain.iter()) {
-            *w += (*k) * (*error);
+        for (w, k) in weights.iter_mut().zip(self.kalman_gain.iter().copied()) {
+            *w += k * (*error);
         }
 
         self.update_p_matrix(noise_ref);

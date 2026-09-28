@@ -36,9 +36,8 @@ impl<F: Float> Algorithm<F> for Lms<F> {
         error: OutputSample<F>,
         noise_ref: &NoiseBuffer<F>,
     ) {
-        // TODO: see if x can be auto-deref'd
-        for (w, x) in weights.iter_mut().zip(noise_ref.iter()) {
-            *w += self.mu * (*error) * (*x);
+        for (w, x) in weights.iter_mut().zip(noise_ref.iter().copied()) {
+            *w += self.mu * (*error) * x;
         }
     }
 }
@@ -64,7 +63,7 @@ impl<F: Float> BlockAlgorithm<F> for Lms<F> {
                 The max values for `n` and `b` are `window_size - 1` and `block_size - 1` respectively.
                 `(window_size - 1) + (block_size - 1) == window_size + block_size - 2`"
             )]
-            for (b, e) in error.iter().enumerate() {
+            for (b, e) in error.iter().copied().enumerate() {
                 // This is equivalent to a matrix multiplication.
                 // Since the noise references for the samples in the block overlap,
                 // we can save space by keeping them in a linear array of length
@@ -73,7 +72,7 @@ impl<F: Float> BlockAlgorithm<F> for Lms<F> {
                 // a (row-ordered) matrix, we use `n + b` to get the noise sample
                 // for block index `b` in window `n`.
 
-                acc += self.mu * (*e) * (*noise_ref.get(n + b).unwrap());
+                acc += self.mu * e * (*noise_ref.get(n + b).unwrap());
             }
             *w += acc;
         }

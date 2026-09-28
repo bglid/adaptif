@@ -102,12 +102,13 @@ impl<B: BlockAlgorithm<F>, F: Float> BlockFilterBase<B, F> {
 
             noise_ref_buffer.push(*noise_sample);
 
-            let current_window = noise_ref_buffer.iter().take(*self.window_size);
+            let current_window = noise_ref_buffer.iter().copied().take(*self.window_size);
             let noise_estimate = NoiseEstimate(
                 self.weights
                     .iter()
+                    .copied()
                     .zip(current_window)
-                    .map(|(w, x)| *w * *x)
+                    .map(|(w, x)| w * x)
                     .sum(),
             );
 

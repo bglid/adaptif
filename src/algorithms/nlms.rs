@@ -43,11 +43,11 @@ impl<F: Float> Algorithm<F> for Nlms<F> {
         error: OutputSample<F>,
         noise_ref: &NoiseBuffer<F>,
     ) {
-        let norm_squared: F = noise_ref.iter().map(|x| (*x) * (*x)).sum();
+        let norm_squared = noise_ref.iter().copied().map(|x| x * x).sum();
         let mu_normalized = self.mu / (self.eps + norm_squared);
 
-        for (w, x) in weights.iter_mut().zip(noise_ref.iter()) {
-            *w += mu_normalized * (*error) * (*x);
+        for (w, x) in weights.iter_mut().zip(noise_ref.iter().copied()) {
+            *w += mu_normalized * (*error) * x;
         }
     }
 }
