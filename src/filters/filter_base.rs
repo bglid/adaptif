@@ -1,14 +1,10 @@
-use num_traits::Float;
-
-use std::iter;
-
 use crate::algorithms::Algorithm;
 use crate::error::Result;
 use crate::types::buffers::NoiseBuffer;
 use crate::types::signals::{
     InputSample, InputSignal, NoiseReference, NoiseSample, OutputSample, OutputSignal,
 };
-use crate::types::{FilterWeights, WindowSize};
+use crate::types::{FilterWeights, Float, WindowSize};
 
 use crate::filters::AdaptiveFilter;
 use crate::filters::common::{check_signal_lengths, compute_error, estimate_noise};
@@ -23,7 +19,7 @@ pub struct FilterBase<A: Algorithm<F>, F: Float> {
     weights: FilterWeights<F>,
     window_size: WindowSize,
 }
-impl<A: Algorithm<F>, F: Float + iter::Sum> FilterBase<A, F> {
+impl<A: Algorithm<F>, F: Float> FilterBase<A, F> {
     /// Initializes a filter using the provided algorithm configuration and window size.
     /// The weights are intialized to zero.
     ///
@@ -89,7 +85,7 @@ impl<A: Algorithm<F>, F: Float + iter::Sum> FilterBase<A, F> {
     }
 }
 
-impl<A: Algorithm<F>, F: Float + iter::Sum> AdaptiveFilter<F> for FilterBase<A, F> {
+impl<A: Algorithm<F>, F: Float> AdaptiveFilter<F> for FilterBase<A, F> {
     /// Iteratively adapts the filter to the input signal and noise reference
     /// using the chosen algorithm, and returns the denoised signal.
     ///

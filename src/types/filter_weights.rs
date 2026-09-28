@@ -1,8 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
-use num_traits::Float;
-
-use crate::{Error, types::WindowSize};
+use crate::Error;
+use crate::types::{Float, WindowSize};
 
 #[derive(Debug, Clone)]
 pub struct FilterWeights<F: Float> {

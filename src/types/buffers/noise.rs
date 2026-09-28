@@ -1,10 +1,8 @@
-use num_traits::Float;
-
 use std::num::NonZero;
 use std::ops::{Deref, DerefMut};
 
 use super::SampleBuffer;
-use crate::types::{BlockSize, FilterWeights};
+use crate::types::{BlockSize, FilterWeights, Float};
 
 pub struct NoiseBuffer<F: Float>(SampleBuffer<F>);
 impl<F: Float> NoiseBuffer<F> {

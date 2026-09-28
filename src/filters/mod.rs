@@ -1,6 +1,5 @@
-use num_traits::Float;
-
 use crate::Result;
+use crate::types::Float;
 use crate::types::signals::{InputSignal, NoiseReference};
 
 mod filter_base;

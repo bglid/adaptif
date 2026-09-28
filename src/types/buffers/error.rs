@@ -1,7 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use num_traits::Float;
-
+use crate::types::Float;
 use crate::types::signals::OutputSample;
 
 use super::{BlockSize, SampleBuffer};

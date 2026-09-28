@@ -1,20 +1,17 @@
-use num_traits::Float;
-
 use std::error::Error;
-use std::ops::AddAssign;
 
 use adaptif::algorithms::Algorithm;
 use adaptif::filters::{AdaptiveFilter as _, FilterBase};
-use adaptif::types::FilterWeights;
 use adaptif::types::buffers::NoiseBuffer;
 use adaptif::types::signals::{InputSignal, NoiseReference, OutputSample};
+use adaptif::types::{FilterWeights, Float};
 
 // Create a struct to hold any required parameters or state
 pub struct MyAlgorithm<F: Float> {
     pub alpha: F,
 }
 // Implement the Algorithm trait so the algorithm can be used with FilterBase
-impl<F: Float + AddAssign> Algorithm<F> for MyAlgorithm<F> {
+impl<F: Float> Algorithm<F> for MyAlgorithm<F> {
     // This function is called every iteration during adaptation to update the weights
     fn update_step(
         &mut self,

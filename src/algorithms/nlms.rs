@@ -1,11 +1,6 @@
-use std::iter::Sum;
-use std::ops::AddAssign;
-
-use num_traits::Float;
-
-use crate::types::FilterWeights;
 use crate::types::buffers::NoiseBuffer;
 use crate::types::signals::OutputSample;
+use crate::types::{FilterWeights, Float};
 use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
@@ -35,7 +30,7 @@ impl<F: Float> Nlms<F> {
         Ok(Nlms { mu, eps })
     }
 }
-impl<F: Float + Sum + AddAssign> Algorithm<F> for Nlms<F> {
+impl<F: Float> Algorithm<F> for Nlms<F> {
     /// Updates the filter weights using the following equation:
     ///
     /// $w_{n+1} = ``w_n`` + \frac{\mu}{\epsilon + \|``x_n``\|^2} ``e_n`` ``x_n``$

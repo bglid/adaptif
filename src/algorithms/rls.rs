@@ -1,11 +1,8 @@
-use num_traits::Float;
-
-use std::iter::Sum;
-use std::ops::{AddAssign, Deref, DerefMut, DivAssign};
+use std::ops::{Deref, DerefMut};
 
 use crate::types::buffers::NoiseBuffer;
 use crate::types::signals::OutputSample;
-use crate::types::{FilterWeights, WindowSize};
+use crate::types::{FilterWeights, Float, WindowSize};
 use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
@@ -80,7 +77,7 @@ pub struct Rls<F: Float> {
     kalman_gain: KalmanGain<F>,
 }
 
-impl<F: Float + Sum + DivAssign> Rls<F> {
+impl<F: Float> Rls<F> {
     /// # Errors
     ///
     /// Returns an error if forgetting factor <= 0.0 or > 1.0.
@@ -179,7 +176,7 @@ impl<F: Float + Sum + DivAssign> Rls<F> {
     }
 }
 
-impl<F: Float + Sum + DivAssign + AddAssign> Algorithm<F> for Rls<F> {
+impl<F: Float> Algorithm<F> for Rls<F> {
     /// Updates the filter weights using the following algorithm.
     ///
     /// The Kalman gain vector, ``k_n`` is calculated as:

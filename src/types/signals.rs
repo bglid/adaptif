@@ -1,8 +1,7 @@
 use std::ops::Deref;
 
-use num_traits::Float;
-
 use crate::error::{Error, Result};
+use crate::types::Float;
 
 #[derive(Debug, Clone)]
 pub struct InputSignal<F: Float>(Vec<F>);

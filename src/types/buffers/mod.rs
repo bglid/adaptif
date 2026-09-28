@@ -2,13 +2,13 @@ use std::collections::VecDeque;
 use std::num::NonZeroUsize;
 
 use super::BlockSize;
+use crate::types::Float;
 
 mod error;
 pub use error::*;
 
 mod noise;
 pub use noise::*;
-use num_traits::Float;
 
 /// Fixed-size ring buffer for processing samples.
 /// Functions must ensure that `samples.len()` is the same before and after function calls

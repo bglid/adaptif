@@ -1,8 +1,6 @@
-use num_traits::Float;
-
-use crate::types::FilterWeights;
 use crate::types::buffers::{BlockError, BlockNoiseBuffer, NoiseBuffer};
 use crate::types::signals::OutputSample;
+use crate::types::{FilterWeights, Float};
 
 mod lms;
 pub use lms::Lms;

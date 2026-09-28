@@ -1,16 +1,12 @@
 //!  Processing functions used by multiple files in the module that shouldn't be publically exported.
-use num_traits::Float;
-
-use std::iter;
-
 use crate::error::{Error, Result};
 use crate::types::buffers::NoiseBuffer;
 use crate::types::signals::{InputSample, InputSignal, NoiseReference, OutputSample};
-use crate::types::{FilterWeights, NoiseEstimate};
+use crate::types::{FilterWeights, Float, NoiseEstimate};
 
 pub fn estimate_noise<F>(weights: &FilterWeights<F>, noise: &NoiseBuffer<F>) -> NoiseEstimate<F>
 where
-    F: Float + iter::Sum,
+    F: Float,
 {
     // NoiseBuffer is initiated with the same length as weights, therefore we don't need to check
     NoiseEstimate(weights.iter().zip(noise.iter()).map(|(w, x)| *w * *x).sum())

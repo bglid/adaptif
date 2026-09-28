@@ -1,6 +1,3 @@
-use num_traits::Float;
-
-use std::iter::Sum;
 use std::ops::Range;
 
 use crate::algorithms::BlockAlgorithm;
@@ -10,7 +7,7 @@ use crate::filters::AdaptiveFilter;
 use crate::filters::common::{check_signal_lengths, compute_error};
 use crate::types::buffers::{BlockError, BlockNoiseBuffer};
 use crate::types::signals::{InputSignal, NoiseReference, OutputSignal};
-use crate::types::{BlockSize, FilterWeights, NoiseEstimate, WindowSize};
+use crate::types::{BlockSize, FilterWeights, Float, NoiseEstimate, WindowSize};
 
 pub struct BlockFilterBase<B: BlockAlgorithm<F>, F: Float> {
     algorithm: B,
@@ -18,7 +15,7 @@ pub struct BlockFilterBase<B: BlockAlgorithm<F>, F: Float> {
     window_size: WindowSize,
     block_size: BlockSize,
 }
-impl<B: BlockAlgorithm<F>, F: Float + Sum> BlockFilterBase<B, F> {
+impl<B: BlockAlgorithm<F>, F: Float> BlockFilterBase<B, F> {
     /// Initializes a filter using the provided algorithm configuration, window size,
     /// and block size.
     /// The weights are intialized to zero.
@@ -121,7 +118,7 @@ impl<B: BlockAlgorithm<F>, F: Float + Sum> BlockFilterBase<B, F> {
     }
 }
 
-impl<B: BlockAlgorithm<F>, F: Float + Sum> AdaptiveFilter<F> for BlockFilterBase<B, F> {
+impl<B: BlockAlgorithm<F>, F: Float> AdaptiveFilter<F> for BlockFilterBase<B, F> {
     /// # Errors
     ///
     /// Returns an error if `input_signal.len() > noise_ref.len()`.

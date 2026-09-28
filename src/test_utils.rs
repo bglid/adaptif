@@ -5,13 +5,11 @@
     reason = "Only used in tests"
 )]
 
-use num_traits::Float;
-
 use std::num::NonZero;
 
 use crate::types::buffers::{BlockError, BlockNoiseBuffer, NoiseBuffer};
 use crate::types::signals::OutputSample;
-use crate::types::{BlockSize, FilterWeights, WindowSize};
+use crate::types::{BlockSize, FilterWeights, Float, WindowSize};
 
 pub fn approx_equal<F>(a: F, b: F, eps: F) -> bool
 where

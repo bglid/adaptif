@@ -1,10 +1,6 @@
-use std::ops::AddAssign;
-
-use num_traits::Float;
-
-use crate::types::FilterWeights;
 use crate::types::buffers::{BlockError, BlockNoiseBuffer, NoiseBuffer};
 use crate::types::signals::OutputSample;
+use crate::types::{FilterWeights, Float};
 use crate::{Error, Result};
 
 use crate::algorithms::{Algorithm, BlockAlgorithm};
@@ -27,7 +23,7 @@ impl<F: Float> Lms<F> {
         }
     }
 }
-impl<F: Float + AddAssign> Algorithm<F> for Lms<F> {
+impl<F: Float> Algorithm<F> for Lms<F> {
     /// Updates the filter weights using the following equation:
     ///
     /// $w_{n+1} = \mu ``e_n`` ``x_n``$
@@ -46,7 +42,7 @@ impl<F: Float + AddAssign> Algorithm<F> for Lms<F> {
         }
     }
 }
-impl<F: Float + AddAssign> BlockAlgorithm<F> for Lms<F> {
+impl<F: Float> BlockAlgorithm<F> for Lms<F> {
     /// Updates the filter weights using the following equation:
     ///
     /// $w_{n+1} = \mu ``X_n``^T ``e_n``$
