@@ -222,7 +222,7 @@ mod tests {
         let empty_vec = vec![];
 
         assert!(matches!(
-            LMSFilter::from_weights(Lms::new(1.0).unwrap(), empty_vec),
+            FilterBase::from_weights(Lms::new(1.0).unwrap(), empty_vec),
             Err(Error::EmptyInputArr)
         ));
     }
