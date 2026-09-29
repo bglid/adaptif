@@ -19,8 +19,8 @@ impl<F: Float> Algorithm<F> for MyAlgorithm<F> {
         error: OutputSample<F>,
         noise_ref: &NoiseBuffer<F>,
     ) {
-        for (w, x) in weights.iter_mut().zip(noise_ref.iter()) {
-            *w += self.alpha * (*error) * (*x);
+        for (w, x) in weights.iter_mut().zip(noise_ref.iter().copied()) {
+            *w += self.alpha * (*error) * x;
         }
     }
 }
@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let window_size = 1024;
 
     // Instantiate the filter using FilterBase and our custom algorithm
-    let mut filter = FilterBase::<MyAlgorithm<f64>, f64>::new(algorithm_cfg, window_size)?;
+    let mut filter = FilterBase::new(algorithm_cfg, window_size)?;
 
     // Adapt the filter using our algorithm's update rules
     let _output = filter.adapt(&input_signal, &noise_ref)?;

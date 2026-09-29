@@ -9,17 +9,18 @@ use crate::types::{FilterWeights, Float, WindowSize};
 use crate::filters::AdaptiveFilter;
 use crate::filters::common::{check_signal_lengths, compute_error, estimate_noise};
 
+// TODO: rewrite the secion below; the algorithm type can be inferred w/o annotation
 /// Underlying, algorithm-agnostic filter implementation.
 ///
 /// Typically, it's more convenient to use an alias like `LMSFilter` over its equivalent `FilterBase<Lms>`.
 /// As such, `FilterBase` is mainly recommended for use with custom algorithms.
 #[derive(Debug, Clone)]
-pub struct FilterBase<A: Algorithm<F>, F: Float> {
+pub struct FilterBase<F: Float, A: Algorithm<F>> {
     algorithm: A,
     weights: FilterWeights<F>,
     window_size: WindowSize,
 }
-impl<A: Algorithm<F>, F: Float> FilterBase<A, F> {
+impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
     /// Initializes a filter using the provided algorithm configuration and window size.
     /// The weights are intialized to zero.
     ///
@@ -85,7 +86,7 @@ impl<A: Algorithm<F>, F: Float> FilterBase<A, F> {
     }
 }
 
-impl<A: Algorithm<F>, F: Float> AdaptiveFilter<F> for FilterBase<A, F> {
+impl<F: Float, A: Algorithm<F>> AdaptiveFilter<F> for FilterBase<F, A> {
     /// Iteratively adapts the filter to the input signal and noise reference
     /// using the chosen algorithm, and returns the denoised signal.
     ///
@@ -173,7 +174,7 @@ mod tests {
         let window_size = 3;
         let weights = [1.0, -2.0, 0.5];
 
-        let mut filter = LMSFilter::<f64>::new(Lms::new(1.0).unwrap(), window_size).unwrap();
+        let mut filter = FilterBase::new(Lms::new(1.0).unwrap(), window_size).unwrap();
         for (i, val) in weights.iter().enumerate() {
             filter.weights[i] = *val;
         }
@@ -183,7 +184,7 @@ mod tests {
     #[test]
     fn new_works() {
         let window_size = 3;
-        let filter = LMSFilter::new(Lms::new(1.0).unwrap(), window_size).unwrap();
+        let filter = FilterBase::new(Lms::new(1.0).unwrap(), window_size).unwrap();
 
         assert_eq!(filter.window_size, WindowSize::new(window_size).unwrap());
         assert_eq!(filter.algorithm, Lms::new(1.0).unwrap());
@@ -211,7 +212,7 @@ mod tests {
     fn from_weights_works() {
         let weights = vec![1.0, 2.0, 3.0];
 
-        let filter = LMSFilter::from_weights(Lms::new(1.0).unwrap(), weights.clone()).unwrap();
+        let filter = FilterBase::from_weights(Lms::new(1.0).unwrap(), weights.clone()).unwrap();
 
         assert!(all_approx_equal(weights.iter(), filter.weights().iter()));
     }

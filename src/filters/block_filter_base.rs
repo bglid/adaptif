@@ -9,13 +9,13 @@ use crate::types::buffers::{BlockError, BlockNoiseBuffer};
 use crate::types::signals::{InputSignal, NoiseReference, OutputSignal};
 use crate::types::{BlockSize, FilterWeights, Float, NoiseEstimate, WindowSize};
 
-pub struct BlockFilterBase<B: BlockAlgorithm<F>, F: Float> {
+pub struct BlockFilterBase<F: Float, B: BlockAlgorithm<F>> {
     algorithm: B,
     weights: FilterWeights<F>,
     window_size: WindowSize,
     block_size: BlockSize,
 }
-impl<B: BlockAlgorithm<F>, F: Float> BlockFilterBase<B, F> {
+impl<F: Float, B: BlockAlgorithm<F>> BlockFilterBase<F, B> {
     /// Initializes a filter using the provided algorithm configuration, window size,
     /// and block size.
     /// The weights are intialized to zero.
@@ -119,7 +119,7 @@ impl<B: BlockAlgorithm<F>, F: Float> BlockFilterBase<B, F> {
     }
 }
 
-impl<B: BlockAlgorithm<F>, F: Float> AdaptiveFilter<F> for BlockFilterBase<B, F> {
+impl<F: Float, B: BlockAlgorithm<F>> AdaptiveFilter<F> for BlockFilterBase<F, B> {
     /// # Errors
     ///
     /// Returns an error if `input_signal.len() > noise_ref.len()`.
@@ -258,7 +258,7 @@ mod tests {
         let weights = [1.0, -2.0, 0.5];
 
         let mut filter =
-            BlockLMSFilter::<f64>::new(Lms::new(1.0).unwrap(), window_size, block_size).unwrap();
+            BlockFilterBase::new(Lms::new(1.0).unwrap(), window_size, block_size).unwrap();
 
         for (i, val) in weights.iter().enumerate() {
             filter.weights[i] = *val;
@@ -271,8 +271,7 @@ mod tests {
     fn new_works() {
         let window_size = 3;
         let block_size = 4;
-        let filter =
-            BlockLMSFilter::<f64>::new(Lms::new(1.0).unwrap(), window_size, block_size).unwrap();
+        let filter = BlockFilterBase::new(Lms::new(1.0).unwrap(), window_size, block_size).unwrap();
 
         assert_eq!(filter.window_size, WindowSize::new(window_size).unwrap());
         assert_eq!(filter.block_size, BlockSize::new(block_size).unwrap());
@@ -309,8 +308,7 @@ mod tests {
         let weights = vec![1.0, 2.0, 3.0];
 
         let filter =
-            BlockLMSFilter::<f64>::from_weights(Lms::new(1.0).unwrap(), weights.clone(), 1024)
-                .unwrap();
+            BlockFilterBase::from_weights(Lms::new(1.0).unwrap(), weights.clone(), 1024).unwrap();
 
         assert!(all_approx_equal(weights.iter(), filter.weights().iter()));
     }
@@ -320,7 +318,7 @@ mod tests {
         let empty_vec = vec![];
 
         assert!(matches!(
-            BlockLMSFilter::<f64>::from_weights(Lms::new(1.0).unwrap(), empty_vec, 1024),
+            BlockFilterBase::from_weights(Lms::new(1.0).unwrap(), empty_vec, 1024),
             Err(Error::EmptyInputArr)
         ));
     }
@@ -414,9 +412,7 @@ mod tests {
     /// the final sample, the update step is still called.
     fn n_samples_multiple_of_block_size() {
         let block_size = 2;
-        let mut filter =
-            BlockFilterBase::<UpdateCallCounter, f64>::new(UpdateCallCounter::new(), 3, block_size)
-                .unwrap();
+        let mut filter = BlockFilterBase::new(UpdateCallCounter::new(), 3, block_size).unwrap();
 
         let input = InputSignal::new(vec![1.0, 2.0, 3.0, 4.0]).unwrap();
         let noise = NoiseReference::new(vec![4.0, 5.0, 6.0, 7.0]).unwrap();
@@ -432,9 +428,7 @@ mod tests {
     /// with the final sample, the update step is NOT called.
     fn n_samples_not_multiple_of_block_size() {
         let block_size = 2;
-        let mut filter =
-            BlockFilterBase::<UpdateCallCounter, f64>::new(UpdateCallCounter::new(), 3, block_size)
-                .unwrap();
+        let mut filter = BlockFilterBase::new(UpdateCallCounter::new(), 3, block_size).unwrap();
 
         let input = InputSignal::new(vec![1.0, 2.0, 3.0, 4.0, 5.0]).unwrap();
         let noise = NoiseReference::new(vec![4.0, 5.0, 6.0, 7.0, 8.0]).unwrap();

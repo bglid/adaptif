@@ -13,10 +13,11 @@ pub use block_filter_base::BlockFilterBase;
 mod common;
 
 // Define aliases for easier use
-pub type LMSFilter<F> = FilterBase<Lms<F>, F>;
-pub type BlockLMSFilter<F> = BlockFilterBase<Lms<F>, F>;
-pub type NLMSFilter<F> = FilterBase<Nlms<F>, F>;
-pub type RLSFilter<F> = FilterBase<Rls<F>, F>;
+// TODO: these may work better as structs
+pub type LMSFilter<F> = FilterBase<F, Lms<F>>;
+pub type BlockLMSFilter<F> = BlockFilterBase<F, Lms<F>>;
+pub type NLMSFilter<F> = FilterBase<F, Nlms<F>>;
+pub type RLSFilter<F> = FilterBase<F, Rls<F>>;
 
 /// Defines the public API for filter models.
 pub trait AdaptiveFilter<F: Float> {
