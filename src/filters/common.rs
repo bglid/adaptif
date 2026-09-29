@@ -2,14 +2,30 @@
 use crate::error::{Error, Result};
 use crate::types::buffers::NoiseBuffer;
 use crate::types::signals::{InputSample, InputSignal, NoiseReference, OutputSample};
-use crate::types::{FilterWeights, NoiseEstimate};
+use crate::types::{FilterWeights, Float, NoiseEstimate};
 
-pub fn estimate_noise(weights: &FilterWeights, noise: &NoiseBuffer) -> NoiseEstimate {
+pub fn estimate_noise<F>(weights: &FilterWeights<F>, noise: &NoiseBuffer<F>) -> NoiseEstimate<F>
+where
+    F: Float,
+{
     // NoiseBuffer is initiated with the same length as weights, therefore we don't need to check
-    NoiseEstimate(weights.iter().zip(noise.iter()).map(|(w, x)| w * x).sum())
+    NoiseEstimate(
+        weights
+            .iter()
+            .copied()
+            .zip(noise.iter().copied())
+            .map(|(w, x)| w * x)
+            .sum(),
+    )
 }
 
-pub fn compute_error(input_sample: InputSample, noise_estimate: NoiseEstimate) -> OutputSample {
+pub fn compute_error<F>(
+    input_sample: InputSample<F>,
+    noise_estimate: NoiseEstimate<F>,
+) -> OutputSample<F>
+where
+    F: Float,
+{
     OutputSample(*input_sample - *noise_estimate)
 }
 
@@ -19,7 +35,13 @@ pub fn compute_error(input_sample: InputSample, noise_estimate: NoiseEstimate) -
 /// # Errors
 ///
 /// Returns an error if `input_signal.len() > noise_ref.len()`.
-pub fn check_signal_lengths(input_signal: &InputSignal, noise_ref: &NoiseReference) -> Result<()> {
+pub fn check_signal_lengths<F>(
+    input_signal: &InputSignal<F>,
+    noise_ref: &NoiseReference<F>,
+) -> Result<()>
+where
+    F: Float,
+{
     if noise_ref.len() < input_signal.len() {
         Err(Error::NoiseRefTooShort {
             input_len: input_signal.len(),

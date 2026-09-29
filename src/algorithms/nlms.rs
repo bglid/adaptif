@@ -1,36 +1,36 @@
-use crate::types::FilterWeights;
 use crate::types::buffers::NoiseBuffer;
 use crate::types::signals::OutputSample;
+use crate::types::{FilterWeights, Float};
 use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Normalized least mean squares algorithm.
-pub struct Nlms {
+pub struct Nlms<F: Float> {
     /// Step size for weight updates.
-    mu: f64,
+    mu: F,
     /// Regularization term to avoid division by zero.
-    eps: f64,
+    eps: F,
 }
-impl Nlms {
+impl<F: Float> Nlms<F> {
     /// # Errors
     ///
     /// Returns an error if mu <= 0.0.
     /// Returns an error if eps <= 0.0.
-    pub fn new(mu: f64, eps: f64) -> Result<Self> {
-        if mu <= 0.0 {
+    pub fn new(mu: F, eps: F) -> Result<Self> {
+        if mu <= F::zero() {
             return Err(Error::NonPositiveStepSize);
         }
 
-        if eps <= 0.0 {
+        if eps <= F::zero() {
             return Err(Error::NonPositiveEpsilon);
         }
 
         Ok(Nlms { mu, eps })
     }
 }
-impl Algorithm for Nlms {
+impl<F: Float> Algorithm<F> for Nlms<F> {
     /// Updates the filter weights using the following equation:
     ///
     /// $w_{n+1} = ``w_n`` + \frac{\mu}{\epsilon + \|``x_n``\|^2} ``e_n`` ``x_n``$
@@ -39,14 +39,14 @@ impl Algorithm for Nlms {
     /// most recent noise reference samples.
     fn update_step(
         &mut self,
-        weights: &mut FilterWeights,
-        error: OutputSample,
-        noise_ref: &NoiseBuffer,
+        weights: &mut FilterWeights<F>,
+        error: OutputSample<F>,
+        noise_ref: &NoiseBuffer<F>,
     ) {
-        let norm_squared: f64 = noise_ref.iter().map(|x| x * x).sum();
+        let norm_squared = noise_ref.iter().copied().map(|x| x * x).sum();
         let mu_normalized = self.mu / (self.eps + norm_squared);
 
-        for (w, x) in weights.iter_mut().zip(noise_ref.iter()) {
+        for (w, x) in weights.iter_mut().zip(noise_ref.iter().copied()) {
             *w += mu_normalized * (*error) * x;
         }
     }

@@ -4,24 +4,23 @@ use crate::types::buffers::NoiseBuffer;
 use crate::types::signals::{
     InputSample, InputSignal, NoiseReference, NoiseSample, OutputSample, OutputSignal,
 };
-use crate::types::{FilterWeights, WindowSize};
+use crate::types::{FilterWeights, Float, WindowSize};
 
 use crate::filters::AdaptiveFilter;
 use crate::filters::common::{check_signal_lengths, compute_error, estimate_noise};
 
-// TODO: make f64 generic
-
+// TODO: rewrite the secion below; the algorithm type can be inferred w/o annotation
 /// Underlying, algorithm-agnostic filter implementation.
 ///
 /// Typically, it's more convenient to use an alias like `LMSFilter` over its equivalent `FilterBase<Lms>`.
 /// As such, `FilterBase` is mainly recommended for use with custom algorithms.
 #[derive(Debug, Clone)]
-pub struct FilterBase<A: Algorithm> {
+pub struct FilterBase<F: Float, A: Algorithm<F>> {
     algorithm: A,
-    weights: FilterWeights,
+    weights: FilterWeights<F>,
     window_size: WindowSize,
 }
-impl<A: Algorithm> FilterBase<A> {
+impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
     /// Initializes a filter using the provided algorithm configuration and window size.
     /// The weights are intialized to zero.
     ///
@@ -49,7 +48,7 @@ impl<A: Algorithm> FilterBase<A> {
     /// # Errors
     ///
     /// Returns an error if `weights.is_empty()`.
-    pub fn from_weights(algorithm: A, weights: Vec<f64>) -> Result<Self> {
+    pub fn from_weights(algorithm: A, weights: Vec<F>) -> Result<Self> {
         let weights = FilterWeights::try_from(weights)?;
         let window_size = weights.window_size();
 
@@ -68,17 +67,17 @@ impl<A: Algorithm> FilterBase<A> {
     }
 
     /// Returns a reference to the filter's weights.
-    pub fn weights(&self) -> &[f64] {
+    pub fn weights(&self) -> &[F] {
         // Returning a slice so that FilterWeights doesn't have to part of the public API
         &self.weights
     }
 
     fn process_sample(
         &self,
-        noise_ref_buffer: &mut NoiseBuffer,
-        input_sample: InputSample,
-        noise_sample: NoiseSample,
-    ) -> OutputSample {
+        noise_ref_buffer: &mut NoiseBuffer<F>,
+        input_sample: InputSample<F>,
+        noise_sample: NoiseSample<F>,
+    ) -> OutputSample<F> {
         noise_ref_buffer.push(*noise_sample);
 
         let noise_estimate = estimate_noise(&self.weights, noise_ref_buffer);
@@ -87,7 +86,7 @@ impl<A: Algorithm> FilterBase<A> {
     }
 }
 
-impl<A: Algorithm> AdaptiveFilter for FilterBase<A> {
+impl<F: Float, A: Algorithm<F>> AdaptiveFilter<F> for FilterBase<F, A> {
     /// Iteratively adapts the filter to the input signal and noise reference
     /// using the chosen algorithm, and returns the denoised signal.
     ///
@@ -101,9 +100,9 @@ impl<A: Algorithm> AdaptiveFilter for FilterBase<A> {
     /// Returns an error if `input_signal.len() > noise_ref.len()`.
     fn adapt(
         &mut self,
-        input_signal: &InputSignal,
-        noise_ref: &NoiseReference,
-    ) -> Result<Vec<f64>> {
+        input_signal: &InputSignal<F>,
+        noise_ref: &NoiseReference<F>,
+    ) -> Result<Vec<F>> {
         check_signal_lengths(input_signal, noise_ref)?;
 
         let mut noise_ref_buffer = NoiseBuffer::new(&self.weights);
@@ -134,7 +133,11 @@ impl<A: Algorithm> AdaptiveFilter for FilterBase<A> {
     /// # Errors
     ///
     /// Returns an error if `input_signal.len() > noise_ref.len()`.
-    fn filter(&self, input_signal: &InputSignal, noise_ref: &NoiseReference) -> Result<Vec<f64>> {
+    fn filter(
+        &self,
+        input_signal: &InputSignal<F>,
+        noise_ref: &NoiseReference<F>,
+    ) -> Result<Vec<F>> {
         check_signal_lengths(input_signal, noise_ref)?;
 
         let mut noise_ref_buffer = NoiseBuffer::new(&self.weights);
@@ -164,13 +167,14 @@ mod tests {
 
     use crate::algorithms::Lms;
     use crate::error::Error;
+    use crate::filters::LMSFilter;
     use crate::test_utils::all_approx_equal;
 
-    fn testing_filter() -> FilterBase<Lms> {
+    fn testing_filter() -> LMSFilter<f64> {
         let window_size = 3;
         let weights = [1.0, -2.0, 0.5];
 
-        let mut filter = FilterBase::<Lms>::new(Lms::new(1.0).unwrap(), window_size).unwrap();
+        let mut filter = FilterBase::new(Lms::new(1.0).unwrap(), window_size).unwrap();
         for (i, val) in weights.iter().enumerate() {
             filter.weights[i] = *val;
         }
@@ -180,7 +184,7 @@ mod tests {
     #[test]
     fn new_works() {
         let window_size = 3;
-        let filter = FilterBase::<Lms>::new(Lms::new(1.0).unwrap(), window_size).unwrap();
+        let filter = FilterBase::new(Lms::new(1.0).unwrap(), window_size).unwrap();
 
         assert_eq!(filter.window_size, WindowSize::new(window_size).unwrap());
         assert_eq!(filter.algorithm, Lms::new(1.0).unwrap());
@@ -208,8 +212,7 @@ mod tests {
     fn from_weights_works() {
         let weights = vec![1.0, 2.0, 3.0];
 
-        let filter =
-            FilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), weights.clone()).unwrap();
+        let filter = FilterBase::from_weights(Lms::new(1.0).unwrap(), weights.clone()).unwrap();
 
         assert!(all_approx_equal(weights.iter(), filter.weights().iter()));
     }
@@ -219,7 +222,7 @@ mod tests {
         let empty_vec = vec![];
 
         assert!(matches!(
-            FilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), empty_vec),
+            FilterBase::from_weights(Lms::new(1.0).unwrap(), empty_vec),
             Err(Error::EmptyInputArr)
         ));
     }

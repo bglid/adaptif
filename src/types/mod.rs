@@ -4,9 +4,20 @@ pub use filter_weights::FilterWeights;
 pub mod buffers;
 pub mod signals;
 
-use std::{num::NonZero, ops::Deref};
+use std::{
+    iter::Sum,
+    num::NonZero,
+    ops::{AddAssign, Deref, DivAssign, MulAssign, SubAssign},
+};
 
 use crate::error::{Error, Result};
+
+// The Float trait from num_traits doesn't require the traits below, which means generic
+// Float types don't permit certain operations (e.g. `a += b`, `x.iter().sum()`).
+// To keep declaring generics terse, we export this wrapper trait instead.
+pub trait Float: num_traits::Float + Sum + AddAssign + SubAssign + MulAssign + DivAssign {}
+impl Float for f32 {}
+impl Float for f64 {}
 
 // TODO: use pub(crate) to limit public exports to only the types needed for the public API
 
@@ -65,9 +76,9 @@ impl From<BlockSize> for NonZero<usize> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct NoiseEstimate(pub f64);
-impl Deref for NoiseEstimate {
-    type Target = f64;
+pub struct NoiseEstimate<F: Float>(pub F);
+impl<F: Float> Deref for NoiseEstimate<F> {
+    type Target = F;
     fn deref(&self) -> &Self::Target {
         &self.0
     }

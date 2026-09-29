@@ -2,27 +2,27 @@ use std::ops::{Deref, DerefMut};
 
 use crate::types::buffers::NoiseBuffer;
 use crate::types::signals::OutputSample;
-use crate::types::{FilterWeights, WindowSize};
+use crate::types::{FilterWeights, Float, WindowSize};
 use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
 
 #[derive(Debug, Clone, PartialEq)]
 /// M-dimensional vector of Kalman gains, where M is the filter's window size.
-pub struct KalmanGain(Box<[f64]>);
-impl KalmanGain {
+pub struct KalmanGain<F: Float>(Box<[F]>);
+impl<F: Float> KalmanGain<F> {
     pub fn new(window_size: WindowSize) -> Self {
-        KalmanGain(vec![0.0; *window_size].into_boxed_slice())
+        KalmanGain(vec![F::zero(); *window_size].into_boxed_slice())
     }
 }
-impl Deref for KalmanGain {
-    type Target = [f64];
+impl<F: Float> Deref for KalmanGain<F> {
+    type Target = [F];
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl DerefMut for KalmanGain {
+impl<F: Float> DerefMut for KalmanGain<F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -30,15 +30,15 @@ impl DerefMut for KalmanGain {
 
 #[derive(Debug, Clone, PartialEq)]
 /// Inverse Correlation Matrix with shape M * M, where M is the filter's window size.
-pub struct InverseCorrMatrix(Box<[f64]>);
-impl InverseCorrMatrix {
+pub struct InverseCorrMatrix<F: Float>(Box<[F]>);
+impl<F: Float> InverseCorrMatrix<F> {
     /// Creates an M x M-dimensional Identity matrix multiplied by a positive scalar `p_init_scale`.
     /// I.e. `p_init_scale` is the resulting value along main diagonal and all other values are initialized
     /// to zero.
     ///
     /// Serves as inverse correlation matrix in RLS algorithm, where M is the filter's window size.
-    pub fn new(window_size: WindowSize, p_init_scale: f64) -> Self {
-        let mut p = vec![0.0; (*window_size) * (*window_size)].into_boxed_slice();
+    pub fn new(window_size: WindowSize, p_init_scale: F) -> Self {
+        let mut p = vec![F::zero(); (*window_size) * (*window_size)].into_boxed_slice();
 
         for i in 0..(*window_size) {
             if let Some(elem) = p.get_mut(i * (*window_size) + i) {
@@ -48,14 +48,14 @@ impl InverseCorrMatrix {
         InverseCorrMatrix(p)
     }
 }
-impl Deref for InverseCorrMatrix {
-    type Target = [f64];
+impl<F: Float> Deref for InverseCorrMatrix<F> {
+    type Target = [F];
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl DerefMut for InverseCorrMatrix {
+impl<F: Float> DerefMut for InverseCorrMatrix<F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -63,31 +63,31 @@ impl DerefMut for InverseCorrMatrix {
 
 #[derive(Debug, Clone, PartialEq)]
 /// Recursive least squares algorithm.
-pub struct Rls {
+pub struct Rls<F: Float> {
     /// Forgetting factor, often referred to as `lambda`, used for weight updates.
-    forgetting_factor: f64,
+    forgetting_factor: F,
     /// Positive scalar value, often referred to as `delta`, used for initalizing the inverse correlation `p_matrix`.
-    p_init_scale: f64,
+    p_init_scale: F,
     /// Inverse correlation matrix, referred to as P[n], for RLS updates. Size is determined by the filter's
     /// window size. The matrix size is M x M, where M corresponds to the filter's window size.
-    inverse_corr_matrix: InverseCorrMatrix,
+    inverse_corr_matrix: InverseCorrMatrix<F>,
     /// Kalman Gain vector used in updating filter coefficients
     /// Initialized as none because past history is unnecessary. Size is determined by the filter's
     /// window size.
-    kalman_gain: KalmanGain,
+    kalman_gain: KalmanGain<F>,
 }
 
-impl Rls {
+impl<F: Float> Rls<F> {
     /// # Errors
     ///
     /// Returns an error if forgetting factor <= 0.0 or > 1.0.
     /// Returns an error if init scale <= 0.0.
-    pub fn new(forgetting_factor: f64, p_init_scale: f64) -> Result<Self> {
-        if forgetting_factor <= 0.0 || forgetting_factor > 1.0 {
+    pub fn new(forgetting_factor: F, p_init_scale: F) -> Result<Self> {
+        if forgetting_factor <= F::zero() || forgetting_factor > F::one() {
             return Err(Error::InvalidForgettingFactorRange);
         }
 
-        if p_init_scale <= 0.0 {
+        if p_init_scale <= F::zero() {
             return Err(Error::NonPositivePInitScale);
         }
         Ok(Rls {
@@ -107,7 +107,7 @@ impl Rls {
     ///
     /// Existing Kalman gain buffer gets reused to store the numerator
     /// value in update calculation to avoid reallocating a new vector.
-    fn update_kalman_gain(&mut self, noise_ref: &NoiseBuffer) {
+    fn update_kalman_gain(&mut self, noise_ref: &NoiseBuffer<F>) {
         // reusing kalman buffer for getting numerator to avoid clone of numerator
         for (k_i, row) in self
             .kalman_gain
@@ -116,17 +116,19 @@ impl Rls {
         {
             *k_i = row
                 .iter()
-                .zip(noise_ref.iter())
+                .copied()
+                .zip(noise_ref.iter().copied())
                 .map(|(px, x)| px * x)
-                .sum::<f64>();
+                .sum::<F>();
         }
 
         let denominator = self.forgetting_factor
             + noise_ref
                 .iter()
-                .zip(self.kalman_gain.iter())
+                .copied()
+                .zip(self.kalman_gain.iter().copied())
                 .map(|(noise, num)| noise * num)
-                .sum::<f64>();
+                .sum::<F>();
 
         for k_i in self.kalman_gain.iter_mut() {
             *k_i /= denominator;
@@ -142,19 +144,25 @@ impl Rls {
     /// \left(P_{n-1} - ``k_n`` ``x_n^T`` P_{n-1}\right)$.
     ///
     /// The matrix is stored as a flat buffer and updated in place.
-    fn update_p_matrix(&mut self, noise_ref: &NoiseBuffer) {
+    fn update_p_matrix(&mut self, noise_ref: &NoiseBuffer<F>) {
         // We calculate [x^T_n p_{n-1}] by computing the dot product of
         // ``noise_ref`` with each columnn in ``inverse_corr_matrix``
         for col in 0..noise_ref.len() {
             let p_col = self
                 .inverse_corr_matrix
                 .iter()
+                .copied()
                 .skip(col)
                 .step_by(noise_ref.len());
-            let xt_p_col = noise_ref.iter().zip(p_col).map(|(x, p)| x * p).sum::<f64>();
+            let xt_p_col = noise_ref
+                .iter()
+                .copied()
+                .zip(p_col)
+                .map(|(x, p)| x * p)
+                .sum::<F>();
 
             // takes result^ and computes lambda^-1 * [p_{n-1} - k(xt_p column)]
-            for (row, k_i) in self.kalman_gain.iter().enumerate() {
+            for (row, k_i) in self.kalman_gain.iter().copied().enumerate() {
                 // index is into a flat buffer, so row * n gives us the start of each row
                 let index = row * noise_ref.len() + col;
 
@@ -172,7 +180,7 @@ impl Rls {
     }
 }
 
-impl Algorithm for Rls {
+impl<F: Float> Algorithm<F> for Rls<F> {
     /// Updates the filter weights using the following algorithm.
     ///
     /// The Kalman gain vector, ``k_n`` is calculated as:
@@ -194,9 +202,9 @@ impl Algorithm for Rls {
     /// most recent noise reference samples.
     fn update_step(
         &mut self,
-        weights: &mut FilterWeights,
-        error: OutputSample,
-        noise_ref: &NoiseBuffer,
+        weights: &mut FilterWeights<F>,
+        error: OutputSample<F>,
+        noise_ref: &NoiseBuffer<F>,
     ) {
         // Updates p_matrix on first iteration once n is known
         // No scenario where one is initialized and the other isn't
@@ -209,8 +217,8 @@ impl Algorithm for Rls {
 
         self.update_kalman_gain(noise_ref);
 
-        for (w, k) in weights.iter_mut().zip(self.kalman_gain.iter()) {
-            *w += (*k) * (*error);
+        for (w, k) in weights.iter_mut().zip(self.kalman_gain.iter().copied()) {
+            *w += k * (*error);
         }
 
         self.update_p_matrix(noise_ref);

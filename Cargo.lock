@@ -6,6 +6,7 @@ version = 4
 name = "adaptif"
 version = "0.2.0"
 dependencies = [
+ "num-traits",
  "numpy",
  "pyo3",
 ]

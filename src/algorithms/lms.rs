@@ -1,29 +1,29 @@
-use crate::types::FilterWeights;
-use crate::types::buffers::{BlockNoiseBuffer, ErrorBuffer, NoiseBuffer};
+use crate::types::buffers::{BlockError, BlockNoiseBuffer, NoiseBuffer};
 use crate::types::signals::OutputSample;
+use crate::types::{FilterWeights, Float};
 use crate::{Error, Result};
 
 use crate::algorithms::{Algorithm, BlockAlgorithm};
 
 #[derive(Debug, Clone, PartialEq)]
 /// Least mean squares algorithm.
-pub struct Lms {
+pub struct Lms<F: Float> {
     /// Step size for weight updates.
-    mu: f64,
+    mu: F,
 }
-impl Lms {
+impl<F: Float> Lms<F> {
     /// # Errors
     ///
     /// Returns an error if mu <= 0.0.
-    pub fn new(mu: f64) -> Result<Self> {
-        if mu > 0.0 {
+    pub fn new(mu: F) -> Result<Self> {
+        if mu > F::zero() {
             Ok(Lms { mu })
         } else {
             Err(Error::NonPositiveStepSize)
         }
     }
 }
-impl Algorithm for Lms {
+impl<F: Float> Algorithm<F> for Lms<F> {
     /// Updates the filter weights using the following equation:
     ///
     /// $w_{n+1} = \mu ``e_n`` ``x_n``$
@@ -32,16 +32,16 @@ impl Algorithm for Lms {
     /// most recent noise reference samples.
     fn update_step(
         &mut self,
-        weights: &mut FilterWeights,
-        error: OutputSample,
-        noise_ref: &NoiseBuffer,
+        weights: &mut FilterWeights<F>,
+        error: OutputSample<F>,
+        noise_ref: &NoiseBuffer<F>,
     ) {
-        for (w, x) in weights.iter_mut().zip(noise_ref.iter()) {
+        for (w, x) in weights.iter_mut().zip(noise_ref.iter().copied()) {
             *w += self.mu * (*error) * x;
         }
     }
 }
-impl BlockAlgorithm for Lms {
+impl<F: Float> BlockAlgorithm<F> for Lms<F> {
     /// Updates the filter weights using the following equation:
     ///
     /// $w_{n+1} = \mu ``X_n``^T ``e_n``$
@@ -49,12 +49,12 @@ impl BlockAlgorithm for Lms {
     /// and $``e_n``$ is a vector of length `block_size`.
     fn update_block(
         &self,
-        weights: &mut FilterWeights,
-        error: &ErrorBuffer,
-        noise_ref: &BlockNoiseBuffer,
+        weights: &mut FilterWeights<F>,
+        error: &BlockError<F>,
+        noise_ref: &BlockNoiseBuffer<F>,
     ) {
         for (n, w) in weights.iter_mut().enumerate() {
-            let mut acc = 0_f64;
+            let mut acc = F::zero();
 
             #[allow(
                 clippy::unwrap_used,
@@ -63,7 +63,7 @@ impl BlockAlgorithm for Lms {
                 The max values for `n` and `b` are `window_size - 1` and `block_size - 1` respectively.
                 `(window_size - 1) + (block_size - 1) == window_size + block_size - 2`"
             )]
-            for (b, e) in error.iter().enumerate() {
+            for (b, e) in error.iter().copied().enumerate() {
                 // This is equivalent to a matrix multiplication.
                 // Since the noise references for the samples in the block overlap,
                 // we can save space by keeping them in a linear array of length
@@ -72,7 +72,7 @@ impl BlockAlgorithm for Lms {
                 // a (row-ordered) matrix, we use `n + b` to get the noise sample
                 // for block index `b` in window `n`.
 
-                acc += self.mu * e * noise_ref.get(n + b).unwrap();
+                acc += self.mu * e * (*noise_ref.get(n + b).unwrap());
             }
             *w += acc;
         }

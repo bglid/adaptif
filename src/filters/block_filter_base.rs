@@ -5,17 +5,17 @@ use crate::algorithms::BlockAlgorithm;
 use crate::error::Result;
 use crate::filters::AdaptiveFilter;
 use crate::filters::common::{check_signal_lengths, compute_error};
-use crate::types::buffers::{BlockNoiseBuffer, ErrorBuffer};
+use crate::types::buffers::{BlockError, BlockNoiseBuffer};
 use crate::types::signals::{InputSignal, NoiseReference, OutputSignal};
-use crate::types::{BlockSize, FilterWeights, NoiseEstimate, WindowSize};
+use crate::types::{BlockSize, FilterWeights, Float, NoiseEstimate, WindowSize};
 
-pub struct BlockFilterBase<B: BlockAlgorithm> {
+pub struct BlockFilterBase<F: Float, B: BlockAlgorithm<F>> {
     algorithm: B,
-    weights: FilterWeights,
+    weights: FilterWeights<F>,
     window_size: WindowSize,
     block_size: BlockSize,
 }
-impl<B: BlockAlgorithm> BlockFilterBase<B> {
+impl<F: Float, B: BlockAlgorithm<F>> BlockFilterBase<F, B> {
     /// Initializes a filter using the provided algorithm configuration, window size,
     /// and block size.
     /// The weights are intialized to zero.
@@ -46,7 +46,7 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
     /// # Errors
     ///
     /// Returns an error if `weights.is_empty()`.
-    pub fn from_weights(algorithm: B, weights: Vec<f64>, block_size: usize) -> Result<Self> {
+    pub fn from_weights(algorithm: B, weights: Vec<F>, block_size: usize) -> Result<Self> {
         let weights = FilterWeights::try_from(weights)?;
         let window_size = weights.window_size();
         let block_size = BlockSize::new(block_size)?;
@@ -70,7 +70,7 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
     }
 
     /// Returns a reference to the filter's weights.
-    pub fn weights(&self) -> &[f64] {
+    pub fn weights(&self) -> &[F] {
         // Returning a slice so that FilterWeights doesn't have to part of the public API
         &self.weights
     }
@@ -82,11 +82,11 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
     fn process_block(
         &self,
         range: Range<usize>,
-        input_signal: &InputSignal,
-        noise_ref: &NoiseReference,
-        noise_ref_buffer: &mut BlockNoiseBuffer,
-        block_error: &mut ErrorBuffer,
-        cleaned_signal: &mut OutputSignal,
+        input_signal: &InputSignal<F>,
+        noise_ref: &NoiseReference<F>,
+        noise_ref_buffer: &mut BlockNoiseBuffer<F>,
+        block_error: &mut BlockError<F>,
+        cleaned_signal: &mut OutputSignal<F>,
     ) {
         for n in range {
             #[allow(
@@ -102,10 +102,11 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
 
             noise_ref_buffer.push(*noise_sample);
 
-            let current_window = noise_ref_buffer.iter().take(*self.window_size);
+            let current_window = noise_ref_buffer.iter().copied().take(*self.window_size);
             let noise_estimate = NoiseEstimate(
                 self.weights
                     .iter()
+                    .copied()
                     .zip(current_window)
                     .map(|(w, x)| w * x)
                     .sum(),
@@ -118,19 +119,19 @@ impl<B: BlockAlgorithm> BlockFilterBase<B> {
     }
 }
 
-impl<B: BlockAlgorithm> AdaptiveFilter for BlockFilterBase<B> {
+impl<F: Float, B: BlockAlgorithm<F>> AdaptiveFilter<F> for BlockFilterBase<F, B> {
     /// # Errors
     ///
     /// Returns an error if `input_signal.len() > noise_ref.len()`.
     fn adapt(
         &mut self,
-        input_signal: &InputSignal,
-        noise_ref: &NoiseReference,
-    ) -> Result<Vec<f64>> {
+        input_signal: &InputSignal<F>,
+        noise_ref: &NoiseReference<F>,
+    ) -> Result<Vec<F>> {
         check_signal_lengths(input_signal, noise_ref)?;
 
         let mut noise_ref_buffer = BlockNoiseBuffer::new(&self.weights, self.block_size);
-        let mut block_error = ErrorBuffer::new(self.block_size);
+        let mut block_error = BlockError::new(self.block_size);
         let mut cleaned_signal = OutputSignal::new(input_signal);
 
         let n_samples = input_signal.len();
@@ -185,11 +186,15 @@ impl<B: BlockAlgorithm> AdaptiveFilter for BlockFilterBase<B> {
     /// # Errors
     ///
     /// Returns an error if `input_signal.len() > noise_ref.len()`.
-    fn filter(&self, input_signal: &InputSignal, noise_ref: &NoiseReference) -> Result<Vec<f64>> {
+    fn filter(
+        &self,
+        input_signal: &InputSignal<F>,
+        noise_ref: &NoiseReference<F>,
+    ) -> Result<Vec<F>> {
         check_signal_lengths(input_signal, noise_ref)?;
 
         let mut noise_ref_buffer = BlockNoiseBuffer::new(&self.weights, self.block_size);
-        let mut block_error = ErrorBuffer::new(self.block_size);
+        let mut block_error = BlockError::new(self.block_size);
         let mut cleaned_signal = OutputSignal::new(input_signal);
 
         let n_samples = input_signal.len();
@@ -219,6 +224,7 @@ mod tests {
     use super::*;
     use crate::algorithms::Lms;
     use crate::error::Error;
+    use crate::filters::BlockLMSFilter;
     use crate::test_utils::all_approx_equal;
 
     struct UpdateCallCounter {
@@ -235,24 +241,24 @@ mod tests {
             *self.call_count.borrow()
         }
     }
-    impl BlockAlgorithm for UpdateCallCounter {
+    impl<F: Float> BlockAlgorithm<F> for UpdateCallCounter {
         fn update_block(
             &self,
-            _weights: &mut FilterWeights,
-            _error: &ErrorBuffer,
-            _noise_ref: &BlockNoiseBuffer,
+            _weights: &mut FilterWeights<F>,
+            _error: &BlockError<F>,
+            _noise_ref: &BlockNoiseBuffer<F>,
         ) {
             *self.call_count.borrow_mut() += 1;
         }
     }
 
-    fn testing_filter() -> BlockFilterBase<Lms> {
+    fn testing_filter() -> BlockLMSFilter<f64> {
         let window_size = 3;
         let block_size = 2;
         let weights = [1.0, -2.0, 0.5];
 
         let mut filter =
-            BlockFilterBase::<Lms>::new(Lms::new(1.0).unwrap(), window_size, block_size).unwrap();
+            BlockFilterBase::new(Lms::new(1.0).unwrap(), window_size, block_size).unwrap();
 
         for (i, val) in weights.iter().enumerate() {
             filter.weights[i] = *val;
@@ -265,8 +271,7 @@ mod tests {
     fn new_works() {
         let window_size = 3;
         let block_size = 4;
-        let filter =
-            BlockFilterBase::<Lms>::new(Lms::new(1.0).unwrap(), window_size, block_size).unwrap();
+        let filter = BlockFilterBase::new(Lms::new(1.0).unwrap(), window_size, block_size).unwrap();
 
         assert_eq!(filter.window_size, WindowSize::new(window_size).unwrap());
         assert_eq!(filter.block_size, BlockSize::new(block_size).unwrap());
@@ -303,8 +308,7 @@ mod tests {
         let weights = vec![1.0, 2.0, 3.0];
 
         let filter =
-            BlockFilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), weights.clone(), 1024)
-                .unwrap();
+            BlockFilterBase::from_weights(Lms::new(1.0).unwrap(), weights.clone(), 1024).unwrap();
 
         assert!(all_approx_equal(weights.iter(), filter.weights().iter()));
     }
@@ -314,7 +318,7 @@ mod tests {
         let empty_vec = vec![];
 
         assert!(matches!(
-            BlockFilterBase::<Lms>::from_weights(Lms::new(1.0).unwrap(), empty_vec, 1024),
+            BlockFilterBase::from_weights(Lms::new(1.0).unwrap(), empty_vec, 1024),
             Err(Error::EmptyInputArr)
         ));
     }
@@ -408,9 +412,7 @@ mod tests {
     /// the final sample, the update step is still called.
     fn n_samples_multiple_of_block_size() {
         let block_size = 2;
-        let mut filter =
-            BlockFilterBase::<UpdateCallCounter>::new(UpdateCallCounter::new(), 3, block_size)
-                .unwrap();
+        let mut filter = BlockFilterBase::new(UpdateCallCounter::new(), 3, block_size).unwrap();
 
         let input = InputSignal::new(vec![1.0, 2.0, 3.0, 4.0]).unwrap();
         let noise = NoiseReference::new(vec![4.0, 5.0, 6.0, 7.0]).unwrap();
@@ -426,9 +428,7 @@ mod tests {
     /// with the final sample, the update step is NOT called.
     fn n_samples_not_multiple_of_block_size() {
         let block_size = 2;
-        let mut filter =
-            BlockFilterBase::<UpdateCallCounter>::new(UpdateCallCounter::new(), 3, block_size)
-                .unwrap();
+        let mut filter = BlockFilterBase::new(UpdateCallCounter::new(), 3, block_size).unwrap();
 
         let input = InputSignal::new(vec![1.0, 2.0, 3.0, 4.0, 5.0]).unwrap();
         let noise = NoiseReference::new(vec![4.0, 5.0, 6.0, 7.0, 8.0]).unwrap();

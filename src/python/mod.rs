@@ -9,15 +9,18 @@
 mod macros;
 use macros::generate_filter_bindings;
 
-use pyo3::prelude::*;
-
 use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
 
 use numpy::{PyArray1, PyReadonlyArray1};
 
 use crate::Error;
 use crate::algorithms::{Lms, Nlms, Rls};
-use crate::filters::{AdaptiveFilter, BlockFilterBase, FilterBase};
+use crate::filters::AdaptiveFilter;
+use crate::filters::{
+    BlockLMSFilter as RustBlockLMSFilter, LMSFilter as RustLMSFilter, NLMSFilter as RustNLMSFilter,
+    RLSFilter as RustRLSFilter,
+};
 use crate::types::signals::{InputSignal, NoiseReference};
 
 impl Error {
@@ -35,8 +38,9 @@ impl Error {
     }
 }
 
-impl InputSignal {
-    fn from_pyarray(input_signal: &PyReadonlyArray1<f64>) -> PyResult<InputSignal> {
+// Python floats are double precision, so we use f64 instead of a generic
+impl InputSignal<f64> {
+    fn from_pyarray(input_signal: &PyReadonlyArray1<f64>) -> PyResult<InputSignal<f64>> {
         // TODO: if we split off a no_std core module, decide whether we want to copy
         // the input or use references (if we copy the input can be non-contiguous,
         // but it's more costly)
@@ -63,8 +67,8 @@ impl InputSignal {
         Ok(input_signal)
     }
 }
-impl NoiseReference {
-    fn from_pyarray(noise_ref: &PyReadonlyArray1<f64>) -> PyResult<NoiseReference> {
+impl NoiseReference<f64> {
+    fn from_pyarray(noise_ref: &PyReadonlyArray1<f64>) -> PyResult<NoiseReference<f64>> {
         // let noise_ref = noise_ref.as_slice().map_err(|_e| {
         //     PyValueError::new_err(
         //         "noise_ref must be a contiguous NumPy array; use numpy.ascontiguousarray().",
@@ -93,7 +97,7 @@ fn adapt_filter_impl<'py, F>(
     op: FilterOperation,
 ) -> PyResult<Bound<'py, PyArray1<f64>>>
 where
-    F: AdaptiveFilter,
+    F: AdaptiveFilter<f64>,
 {
     let input_signal = InputSignal::from_pyarray(&input_signal)?;
     let noise_ref = NoiseReference::from_pyarray(&noise_ref)?;
@@ -114,13 +118,13 @@ mod adaptif {
 }
 
 #[pyclass]
-pub struct LMSFilter(FilterBase<Lms>);
+pub struct LMSFilter(RustLMSFilter<f64>);
 #[pymethods]
 impl LMSFilter {
     #[new]
     fn new(mu: f64, window_size: usize) -> PyResult<Self> {
         let lms = Lms::new(mu).map_err(|e| e.to_pyerr())?;
-        let filter = FilterBase::<Lms>::new(lms, window_size).map_err(|e| e.to_pyerr())?;
+        let filter = RustLMSFilter::new(lms, window_size).map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
@@ -132,7 +136,7 @@ impl LMSFilter {
 
         let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
 
-        let filter = FilterBase::<Lms>::from_weights(lms, weights).map_err(|e| e.to_pyerr())?;
+        let filter = RustLMSFilter::from_weights(lms, weights).map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
@@ -141,13 +145,13 @@ impl LMSFilter {
 generate_filter_bindings!(LMSFilter);
 
 #[pyclass]
-pub struct NLMSFilter(FilterBase<Nlms>);
+pub struct NLMSFilter(RustNLMSFilter<f64>);
 #[pymethods]
 impl NLMSFilter {
     #[new]
     fn new(mu: f64, eps: f64, window_size: usize) -> PyResult<Self> {
         let nlms = Nlms::new(mu, eps).map_err(|e| e.to_pyerr())?;
-        let filter = FilterBase::<Nlms>::new(nlms, window_size).map_err(|e| e.to_pyerr())?;
+        let filter = RustNLMSFilter::new(nlms, window_size).map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
@@ -158,7 +162,7 @@ impl NLMSFilter {
 
         let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
 
-        let filter = FilterBase::<Nlms>::from_weights(nlms, weights).map_err(|e| e.to_pyerr())?;
+        let filter = RustNLMSFilter::from_weights(nlms, weights).map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
@@ -167,13 +171,13 @@ impl NLMSFilter {
 generate_filter_bindings!(NLMSFilter);
 
 #[pyclass]
-pub struct RLSFilter(FilterBase<Rls>);
+pub struct RLSFilter(RustRLSFilter<f64>);
 #[pymethods]
 impl RLSFilter {
     #[new]
     fn new(forgetting_factor: f64, p_init_scale: f64, window_size: usize) -> PyResult<Self> {
         let rls = Rls::new(forgetting_factor, p_init_scale).map_err(|e| e.to_pyerr())?;
-        let filter = FilterBase::<Rls>::new(rls, window_size).map_err(|e| e.to_pyerr())?;
+        let filter = RustRLSFilter::new(rls, window_size).map_err(|e| e.to_pyerr())?;
         Ok(Self(filter))
     }
     #[staticmethod]
@@ -186,7 +190,7 @@ impl RLSFilter {
 
         let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
 
-        let filter = FilterBase::<Rls>::from_weights(rls, weights).map_err(|e| e.to_pyerr())?;
+        let filter = RustRLSFilter::from_weights(rls, weights).map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
@@ -195,14 +199,14 @@ impl RLSFilter {
 generate_filter_bindings!(RLSFilter);
 
 #[pyclass]
-pub struct BlockLMSFilter(BlockFilterBase<Lms>);
+pub struct BlockLMSFilter(RustBlockLMSFilter<f64>);
 #[pymethods]
 impl BlockLMSFilter {
     #[new]
     fn new(mu: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
         let lms = Lms::new(mu).map_err(|e| e.to_pyerr())?;
         let filter =
-            BlockFilterBase::<Lms>::new(lms, window_size, block_size).map_err(|e| e.to_pyerr())?;
+            RustBlockLMSFilter::new(lms, window_size, block_size).map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
@@ -213,8 +217,8 @@ impl BlockLMSFilter {
 
         let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
 
-        let filter = BlockFilterBase::<Lms>::from_weights(lms, weights, block_size)
-            .map_err(|e| e.to_pyerr())?;
+        let filter =
+            RustBlockLMSFilter::from_weights(lms, weights, block_size).map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
