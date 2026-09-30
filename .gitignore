@@ -11,8 +11,13 @@
 !python/adaptif/*.pyi
 
 !tests/
-!tests/**/
 !tests/**/*.py
+
+# integration tests specifics
+!tests/integration_tests/python/
+!tests/integration_tests/python/**/*.py
+!tests/integration_tests/rust/
+!tests/integration_tests/rust/**/*.rs
 
 !examples/
 !examples/**/
@@ -39,5 +44,6 @@
 !.github/**/*.md
 !.pre-commit-config.yaml
 
-# explitic excludes
+# explicit excludes
 **/__pycache__/
+**/data
