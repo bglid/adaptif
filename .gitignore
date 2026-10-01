@@ -15,6 +15,7 @@
 !python/tests/**/*.py
 
 # integration tests specifics
+!tests/*.py
 !tests/python/
 !tests/python/**/*.py
 !tests/rust/
