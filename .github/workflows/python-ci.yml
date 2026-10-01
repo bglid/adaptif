@@ -47,9 +47,13 @@ jobs:
       - name: Run type checks
         run: uv run ty check
 
-      - name: Run tests
+      - name: Run unit tests
         run: |
-          uv run pytest
+          make test-py-unit
+
+      - name: Run integration tests
+        run: |
+          make test-py-integration
 
       - name: Run safety checks
         run: uv audit
