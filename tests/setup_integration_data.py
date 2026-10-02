@@ -33,12 +33,6 @@ def clone_dataset() -> None:
     # fixes MS bug
     synthesizer = MS_SNSD / "noisyspeech_synthesizer.py"
     text = synthesizer.read_text()
-    # text = text.replace(
-    #     'snr_lower = float(cfg["snr_lower"])', 'snr_lower = int(cfg["snr_lower"])'
-    # )
-    # text = text.replace(
-    #     'snr_upper = float(cfg["snr_upper"])', 'snr_upper = int(cfg["snr_upper"])'
-    # )
     text = text.replace(
         'total_snrlevels = float(cfg["total_snrlevels"])',
         'total_snrlevels = int(cfg["total_snrlevels"])',
