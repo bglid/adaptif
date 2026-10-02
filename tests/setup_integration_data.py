@@ -26,6 +26,25 @@ def clone_dataset() -> None:
         check=True,
     )
 
+    # NOTE: Microsoft has a bug in their repo. See: https://github.com/microsoft/MS-SNSD/issues/16
+    # The fix is essentially to fix the '*_snrlevels' typecast as int
+    # See: https://github.com/microsoft/MS-SNSD/pull/11
+
+    # fixes MS bug
+    synthesizer = MS_SNSD / "noisyspeech_synthesizer.py"
+    text = synthesizer.read_text()
+    # text = text.replace(
+    #     'snr_lower = float(cfg["snr_lower"])', 'snr_lower = int(cfg["snr_lower"])'
+    # )
+    # text = text.replace(
+    #     'snr_upper = float(cfg["snr_upper"])', 'snr_upper = int(cfg["snr_upper"])'
+    # )
+    text = text.replace(
+        'total_snrlevels = float(cfg["total_snrlevels"])',
+        'total_snrlevels = int(cfg["total_snrlevels"])',
+    )
+    synthesizer.write_text(text)
+
 
 def configure_dataset() -> None:
     """Configure the settings of the dataset generator."""
@@ -49,7 +68,20 @@ def configure_dataset() -> None:
 
 def generate_dataset() -> None:
     """Generate the MS-SNSD dataset given the configured params in `configure_dataset()`"""
-    subprocess.run(["uv", "run", "noisyspeech_synthesizer.py"], cwd=MS_SNSD, check=True)
+    subprocess.run(
+        [
+            "uv",
+            "run",
+            "--no-project",
+            "--python",
+            "3.9",
+            "--with-requirements",
+            "requirements.txt",
+            "noisyspeech_synthesizer.py",
+        ],
+        cwd=MS_SNSD,
+        check=True,
+    )
 
 
 def main() -> None:
