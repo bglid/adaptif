@@ -9,6 +9,7 @@ on:
       - "uv.lock"
       - ".github/workflows/python-ci.yml"
       - ".github/workflows/integration-ci.yml"
+      - "tests/setup_integration_data.py"
   pull_request:
     paths:
       - "python/**"
@@ -17,6 +18,7 @@ on:
       - "uv.lock"
       - ".github/workflows/python-ci.yml"
       - ".github/workflows/integration-ci.yml"
+      - "tests/setup_integration_data.py"
 
 jobs:
   prepare-data:
