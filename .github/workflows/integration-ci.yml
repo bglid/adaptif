@@ -2,14 +2,12 @@ name: Integration CI
 
 on:
   workflow_call:
-  push:
-    paths:
-      - "tests/setup_integration_data.py"
-      - ".github/workflows/integration-ci.yml"
-  pull_request:
-    paths:
-      - "tests/setup_integration_data.py"
-      - ".github/workflows/integration-ci.yml"
+  # push:
+  #   paths:
+  #     - "tests/setup_integration_data.py"
+  # pull_request:
+  #   paths:
+  #     - "tests/setup_integration_data.py"
 
 jobs:
   prepare-data:
@@ -30,4 +28,6 @@ jobs:
 
       - name: Generate data
         if: steps.cache-data.outputs.cache-hit != 'true'
-        run: uv run tests/setup_integration_data.py
+        run: |
+          sudo apt-get update && sudo apt-get install -y libsndfile1
+          uv run tests/setup_integration_data.py

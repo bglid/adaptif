@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - "python/**"
-      - "tests/**"
+      - "tests/python/**"
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/python-ci.yml"
@@ -12,7 +12,7 @@ on:
   pull_request:
     paths:
       - "python/**"
-      - "tests/**"
+      - "tests/python/**"
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/python-ci.yml"
@@ -51,8 +51,7 @@ jobs:
         run: uv run ty check
 
       - name: Run unit tests
-        run: |
-          make test-py-unit
+        run: make test-py-unit
 
       - name: Restore integration data
         uses: actions/cache@v4
@@ -61,8 +60,7 @@ jobs:
           key: integration-data-v1-${{ hashFiles('tests/setup_integration_data.py') }}
 
       - name: Run integration tests
-        run: |
-          make test-py-integration
+        run: make test-py-integration
 
       - name: Run safety checks
         run: uv audit
