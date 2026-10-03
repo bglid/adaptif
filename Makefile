@@ -23,9 +23,10 @@ check-installs: check-rust-install check-uv-install
 # Install/update tooling and dependencies
 .PHONY: install-rust install-uv setup-rust setup-uv setup
 install-rust:
-	@command rustup --version >/dev/null 2>&1 && \
-		rustup update || \
+	@command rustup --version >/dev/null 2>&1 || \
 		{ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh; }
+	rustup toolchain install 1.99.0
+	rustup default 1.99.0
 install-uv:
 	@command uv --version >/dev/null 2>&1 && \
 		uv self update || \

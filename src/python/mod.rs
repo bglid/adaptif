@@ -23,6 +23,10 @@ use crate::filters::{
 };
 use crate::types::signals::{InputSignal, NoiseReference};
 
+#[allow(
+    clippy::rest_pattern_accessible_field,
+    reason = "Fields are not used in pyerr. Rest pattern is fine here."
+)]
 impl Error {
     fn to_pyerr(&self) -> PyErr {
         match *self {
