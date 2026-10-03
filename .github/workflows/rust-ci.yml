@@ -20,8 +20,12 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  prepare-data:
+    uses: ./.github/workflows/integration-ci.yml
+
   build:
     name: Rust - latest
+    needs: prepare-data
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -56,6 +60,12 @@ jobs:
       - name: Run unit tests
         run: cargo test --lib --verbose
 
+      - name: Restore integration data
+        uses: actions/cache@v4
+        with:
+          path: tests/data
+          key: integration-data-v1-${{ hashFiles('tests/setup_integration_data.py') }}
+
       - name: Run integration tests
         run: make test-rs-integration
 
@@ -65,6 +75,7 @@ jobs:
   coverage:
     if: github.event_name == 'pull_request'
     name: Rust coverage
+    needs: prepare-data
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -80,6 +91,12 @@ jobs:
 
       - name: rust-cache
         uses: Swatinem/rust-cache@v2
+
+      - name: Restore integration data
+        uses: actions/cache@v4
+        with:
+          path: tests/data
+          key: integration-data-v1-${{ hashFiles('tests/setup_integration_data.py') }}
 
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@main
