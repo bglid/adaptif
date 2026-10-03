@@ -1,85 +1,19 @@
 mod filter_weights;
 pub use filter_weights::FilterWeights;
 
+mod window_size;
+pub use window_size::WindowSize;
+
+mod block_size;
+pub use block_size::BlockSize;
+
+mod noise_estimate;
+pub use noise_estimate::NoiseEstimate;
+
+mod float;
+pub use float::Float;
+
 pub mod buffers;
 pub mod signals;
 
-use std::{
-    iter::Sum,
-    num::NonZero,
-    ops::{AddAssign, Deref, DivAssign, MulAssign, SubAssign},
-};
-
-use crate::error::{Error, Result};
-
-// The Float trait from num_traits doesn't require the traits below, which means generic
-// Float types don't permit certain operations (e.g. `a += b`, `x.iter().sum()`).
-// To keep declaring generics terse, we export this wrapper trait instead.
-pub trait Float: num_traits::Float + Sum + AddAssign + SubAssign + MulAssign + DivAssign {}
-impl Float for f32 {}
-impl Float for f64 {}
-
 // TODO: use pub(crate) to limit public exports to only the types needed for the public API
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct WindowSize(usize);
-impl WindowSize {
-    /// # Errors
-    ///
-    /// Returns an error if `window_size == 0`.
-    pub fn new(window_size: usize) -> Result<Self> {
-        if window_size == 0 {
-            Err(Error::WindowSizeZero)
-        } else {
-            Ok(WindowSize(window_size))
-        }
-    }
-}
-impl Deref for WindowSize {
-    type Target = usize;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl From<WindowSize> for NonZero<usize> {
-    fn from(value: WindowSize) -> Self {
-        #[allow(clippy::unwrap_used, reason = "WindowSize is guaranteed non-zero.")]
-        NonZero::new(*value).unwrap()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BlockSize(usize);
-impl BlockSize {
-    /// # Errors
-    ///
-    /// Returns an error if `block_size == 0`.
-    pub fn new(block_size: usize) -> Result<Self> {
-        if block_size == 0 {
-            Err(Error::BlockSizeZero)
-        } else {
-            Ok(BlockSize(block_size))
-        }
-    }
-}
-impl Deref for BlockSize {
-    type Target = usize;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl From<BlockSize> for NonZero<usize> {
-    fn from(value: BlockSize) -> Self {
-        #[allow(clippy::unwrap_used, reason = "BlockSize is guaranteed non-zero.")]
-        NonZero::new(*value).unwrap()
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct NoiseEstimate<F: Float>(pub F);
-impl<F: Float> Deref for NoiseEstimate<F> {
-    type Target = F;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
