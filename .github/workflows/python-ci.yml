@@ -19,6 +19,9 @@ on:
       - ".github/workflows/integration-ci.yml"
 
 jobs:
+  prepare-data:
+    uses: ./.github/workflows/integration-ci.yml
+
   build:
     runs-on: ubuntu-latest
     needs: prepare-data

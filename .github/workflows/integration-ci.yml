@@ -2,12 +2,6 @@ name: Integration CI
 
 on:
   workflow_call:
-  # push:
-  #   paths:
-  #     - "tests/setup_integration_data.py"
-  # pull_request:
-  #   paths:
-  #     - "tests/setup_integration_data.py"
 
 jobs:
   prepare-data:
