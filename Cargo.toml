@@ -53,7 +53,6 @@ rest_pattern_accessible_field = "allow" # conflicts with unneeded_field_pattern
 
 # maybe
 missing_docs_in_private_items = "allow"
-definition_in_module_root = "allow"  # TODO: allowing on this branch, but working on removing.
 
 # Requires short functions to be explicitly inlined, because automatic inlining can't be done across crates w/o LTO. 
 # This may be worth considering for the pure Rust API, but for PyO3 it's irrelevant.
