@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from adaptif import LMSFilter, NLMSFilter, RLSFilter
+from adaptif import BlockLMSFilter, LMSFilter, NLMSFilter, RLSFilter
 
 from .utils import load_test_signals, mse, snr
 
@@ -14,12 +14,9 @@ from .utils import load_test_signals, mse, snr
             RLSFilter,
             {"forgetting_factor": 0.999, "p_init_scale": 0.001, "window_size": 16},
         ),
+        (BlockLMSFilter, {"mu": 1e-10, "window_size": 8, "block_size": 16}),
     ],
-    ids=[
-        "lms",
-        "nlms",
-        "rls",
-    ],
+    ids=["lms", "nlms", "rls", "block-lms"],
 )
 def filter(request):
     filter_class, kwargs = request.param

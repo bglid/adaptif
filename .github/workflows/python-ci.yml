@@ -56,7 +56,7 @@ jobs:
         run: uv run ty check
 
       - name: Run unit tests
-        run: make test-py-unit
+        run: uv run pytest python/tests
 
       - name: Restore integration data
         uses: actions/cache@v4
@@ -65,7 +65,7 @@ jobs:
           key: integration-data-v1-${{ hashFiles('tests/setup_integration_data.py') }}
 
       - name: Run integration tests
-        run: make test-py-integration
+        run: uv run pytest tests/python
 
       - name: Run safety checks
         run: uv audit

@@ -74,7 +74,7 @@ jobs:
           key: integration-data-v1-${{ hashFiles('tests/setup_integration_data.py') }}
 
       - name: Run integration tests
-        run: make test-rs-integration
+        run: cargo test --test rust --frozen
 
       - name: Audit dependencies
         run: cargo audit
