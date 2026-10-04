@@ -1,9 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::types::Float;
+use crate::types::buffers::SampleBuffer;
 use crate::types::signals::OutputSample;
-
-use super::{BlockSize, SampleBuffer};
+use crate::types::{BlockSize, Float};
 
 pub struct BlockError<F: Float>(SampleBuffer<F>);
 impl<F: Float> BlockError<F> {
