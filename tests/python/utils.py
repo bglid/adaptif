@@ -59,6 +59,6 @@ def snr(
         np.float64: SNR in dB
     """
     signal_power = np.sum(desired_signal**2)
-    noise_power = np.sum((desired_signal - noisy_signal) ** 2) + 1e-12
+    noise_power = np.sum((desired_signal - noisy_signal) ** 2) + 1e-8
     snr = signal_power / noise_power
     return 10 * np.log10(snr + 1e-12)

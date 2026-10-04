@@ -51,7 +51,7 @@ def configure_dataset() -> None:
 
     # editing the params of the dataset
     dataset["audio_length"] = "5"
-    dataset["total_hours"] = "0.0015"  # roughly 5 seconds of audio
+    dataset["total_hours"] = "0.003"  # roughly 10 seconds of audio
     dataset["snr_lower"] = "0"
     dataset["snr_upper"] = "20"
     dataset["total_snrlevels"] = "3"
