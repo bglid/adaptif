@@ -23,19 +23,13 @@ def filter(request):
     return filter_class(**kwargs)
 
 
-def test_filter_process_audio(filter) -> None:
-    _, noisy_signal, noise_reference = load_test_signals()
+def test_filter_adapts_signal(filter) -> None:
+    original_signal, noisy_signal, noise_reference = load_test_signals()
 
     cleaned_signal = filter.adapt(input_signal=noisy_signal, noise_ref=noise_reference)
 
     assert cleaned_signal.shape == noisy_signal.shape
     assert np.all(np.isfinite(cleaned_signal))
-
-
-def test_filter_adapts_signal(filter) -> None:
-    original_signal, noisy_signal, noise_reference = load_test_signals()
-
-    cleaned_signal = filter.adapt(input_signal=noisy_signal, noise_ref=noise_reference)
 
     before_snr = snr(original_signal=original_signal, noisy_signal=noisy_signal)
     after_snr = snr(original_signal=original_signal, noisy_signal=cleaned_signal)

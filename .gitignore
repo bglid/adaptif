@@ -19,7 +19,7 @@
 !tests/**/
 !tests/**/*.rs
 !tests/**/*.py
-!tests/**/.wav
+!tests/**/*.wav
 
 !examples/
 !examples/**/
