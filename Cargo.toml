@@ -2,6 +2,7 @@
 name = "adaptif"
 version = "0.2.0"
 edition = "2024"
+rust-version = "1.99.0"
 
 [dependencies]
 num-traits = "0.2.19" # TODO: use "libm" feature for no_std

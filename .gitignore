@@ -16,13 +16,9 @@
 
 # integration tests specifics
 !tests/
-!tests/*.py
-
-!tests/python/
-!tests/python/**/*.py
-
-!tests/rust/
-!tests/rust/**/*.rs
+!tests/**/
+!tests/**/*.rs
+!tests/**/*.py
 
 !examples/
 !examples/**/
@@ -30,6 +26,7 @@
 
 !Cargo.toml
 !Cargo.lock
+!rust-toolchain.toml
 
 # uv
 !pyproject.toml

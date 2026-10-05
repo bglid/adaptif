@@ -9,6 +9,7 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - ".github/workflows/integration-ci.yml"
+      - "rust-toolchain.toml"
       - "tests/setup_integration_data.py"
   pull_request:
     paths:
@@ -18,6 +19,7 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - ".github/workflows/integration-ci.yml"
+      - "rust-toolchain.toml"
       - "tests/setup_integration_data.py"
 
 env:
@@ -31,20 +33,15 @@ jobs:
     name: Rust - latest
     needs: prepare-data
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        toolchain:
-          - "1.99.0"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Install Rust 1.99
+      - name: Install Rust
         run: |
-          rustup toolchain install ${{ matrix.toolchain }} 
-          rustup component add rustfmt clippy --toolchain ${{ matrix.toolchain }}
-          rustup default ${{ matrix.toolchain }}
+          rustup toolchain install 
+          rustup component add rustfmt clippy
 
       - name: rust-cache
         uses: Swatinem/rust-cache@v2
@@ -84,17 +81,13 @@ jobs:
     name: Rust coverage
     needs: prepare-data
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        toolchain:
-          - "1.99.0"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
       - name: Install latest Rust version
-        run: rustup toolchain install ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+        run: rustup toolchain install
 
       - name: rust-cache
         uses: Swatinem/rust-cache@v2

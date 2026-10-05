@@ -25,8 +25,8 @@ check-installs: check-rust-install check-uv-install
 install-rust:
 	@command rustup --version >/dev/null 2>&1 || \
 		{ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh; }
-	rustup toolchain install 1.99.0
-	rustup default 1.99.0
+	rustup toolchain install 
+	rustup component add rustfmt clippy
 install-uv:
 	@command uv --version >/dev/null 2>&1 && \
 		uv self update || \

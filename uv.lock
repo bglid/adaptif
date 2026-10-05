@@ -12,7 +12,6 @@ version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "numpy" },
-    { name = "soundfile" },
 ]
 
 [package.dev-dependencies]
@@ -21,14 +20,12 @@ dev = [
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "ruff" },
+    { name = "soundfile" },
     { name = "ty" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "numpy", specifier = ">=1.21.0,<2.0.0" },
-    { name = "soundfile", specifier = ">=0.14.0" },
-]
+requires-dist = [{ name = "numpy", specifier = ">=1.21.0,<2.0.0" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -36,6 +33,7 @@ dev = [
     { name = "pre-commit", specifier = ">=4.0.1,<5.0.0" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "ruff", specifier = ">=0.16.4" },
+    { name = "soundfile", specifier = ">=0.14.0" },
     { name = "ty", specifier = ">=0.0.75" },
 ]
 
