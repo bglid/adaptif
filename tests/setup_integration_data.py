@@ -81,6 +81,10 @@ def generate_dataset() -> None:
 def main() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
+    # early return if already setup
+    if MS_SNSD.exists():
+        return
+
     clone_dataset()
     configure_dataset()
     generate_dataset()
