@@ -32,33 +32,33 @@ def load_test_signals() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
 
 def mse(
-    desired_signal: NDArray[np.float64], input_signal: NDArray[np.float64]
+    original_signal: NDArray[np.float64], input_signal: NDArray[np.float64]
 ) -> np.float64:
     """Calculates the Mean Squared Error = 1/n * sum(y - y_hat)**2
 
     Args:
-        desired_signal (NDArray[np.float64]): Observed or desired value
-        input_signal (NDArray[np.float64]): Prediction of value
+        original_signal (NDArray[np.float64]): Original signal/value
+        input_signal (NDArray[np.float64]): Prediction of signal/value
 
     Returns:
         np.float64: Mean squared error
     """
-    return np.mean((desired_signal - input_signal) ** 2)
+    return np.mean((original_signal - input_signal) ** 2)
 
 
 def snr(
-    desired_signal: NDArray[np.float64], noisy_signal: NDArray[np.float64]
+    original_signal: NDArray[np.float64], noisy_signal: NDArray[np.float64]
 ) -> np.float64:
     """Calculates the Signal to Noise Ratio in dB: SNR = (Power of Signal)/(Power of Noise).
 
     Args:
-        desired_signal (NDArray[np.float64]): Input signal
+        original_signal (NDArray[np.float64]): Original clean signal
         noisy_signal (NDArray[np.float64]): Input Noisy signal
 
     Returns:
         np.float64: SNR in dB
     """
-    signal_power = np.sum(desired_signal**2)
-    noise_power = np.sum((desired_signal - noisy_signal) ** 2) + 1e-8
+    signal_power = np.sum(original_signal**2)
+    noise_power = np.sum((original_signal - noisy_signal) ** 2) + 1e-8
     snr = signal_power / noise_power
-    return 10 * np.log10(snr + 1e-12)
+    return 10 * np.log10(snr)

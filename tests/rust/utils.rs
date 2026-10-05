@@ -32,20 +32,20 @@ pub fn test_signals() -> (Vec<f64>, Vec<f64>, Vec<f64>) {
 }
 
 #[allow(clippy::unwrap_used, clippy::indexing_slicing, reason = "Tests")]
-pub fn mse(desired: &[f64], input: &[f64]) -> f64 {
-    desired
+pub fn mse(original_signal: &[f64], input_signal: &[f64]) -> f64 {
+    original_signal
         .iter()
-        .zip(input)
+        .zip(input_signal)
         .map(|(d, i)| (d - i).powi(2))
         .sum::<f64>()
-        / desired.len().to_f64().unwrap()
+        / original_signal.len().to_f64().unwrap()
 }
 
-pub fn snr(desired: &[f64], input: &[f64]) -> f64 {
-    let signal_power = desired.iter().map(|d| d.powi(2)).sum::<f64>();
-    let noise_power = desired
+pub fn snr(original_signal: &[f64], input_signal: &[f64]) -> f64 {
+    let signal_power = original_signal.iter().map(|d| d.powi(2)).sum::<f64>();
+    let noise_power = original_signal
         .iter()
-        .zip(input)
+        .zip(input_signal)
         .map(|(d, i)| (d - i).powi(2))
         .sum::<f64>()
         + 1e-8;

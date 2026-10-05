@@ -7,7 +7,7 @@ use adaptif::algorithms::Lms;
 use adaptif::filters::{AdaptiveFilter as _, FilterBase};
 use adaptif::types::signals::{InputSignal, NoiseReference};
 
-use crate::utils::{mse, snr, test_signals};
+use crate::rust::utils::{mse, snr, test_signals};
 
 #[test]
 #[allow(clippy::unwrap_used, reason = "Integration test")]

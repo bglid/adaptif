@@ -33,15 +33,15 @@ def test_filter_process_audio(filter) -> None:
 
 
 def test_filter_adapts_signal(filter) -> None:
-    desired_signal, noisy_signal, noise_reference = load_test_signals()
+    original_signal, noisy_signal, noise_reference = load_test_signals()
 
     cleaned_signal = filter.adapt(input_signal=noisy_signal, noise_ref=noise_reference)
 
-    before_snr = snr(desired_signal=desired_signal, noisy_signal=noisy_signal)
-    after_snr = snr(desired_signal=desired_signal, noisy_signal=cleaned_signal)
+    before_snr = snr(original_signal=original_signal, noisy_signal=noisy_signal)
+    after_snr = snr(original_signal=original_signal, noisy_signal=cleaned_signal)
     assert after_snr > before_snr
 
     # NOTE: point of this is that it doesn't only remove noise, but recovers the signal
-    before_mse = mse(desired_signal=desired_signal, input_signal=noisy_signal)
-    after_mse = mse(desired_signal=desired_signal, input_signal=cleaned_signal)
+    before_mse = mse(original_signal=original_signal, input_signal=noisy_signal)
+    after_mse = mse(original_signal=original_signal, input_signal=cleaned_signal)
     assert after_mse < before_mse
