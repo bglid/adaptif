@@ -4,31 +4,44 @@ import numpy as np
 import soundfile as sf
 from numpy.typing import NDArray
 
-DATA = Path(__file__).parents[1] / "data" / "MS-SNSD"
+DATA = Path(__file__).parents[1] / "fixtures"
+CLEAN = DATA / "CleanSpeech"
+NOISY = DATA / "NoisySpeech"
 
 
-def load_test_signals() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def load_test_signals() -> list[tuple[str, np.ndarray, np.ndarray, np.ndarray]]:
     """Loads the test data for integration tests.
 
     Returns:
-        tuple(np.ndarray, np.ndarray, np.ndarray): Tuple of the clean signal, noisy signal, and noise.
+        list(tuple(np.ndarray, np.ndarray, np.ndarray)): Tuple of the clean signal, noisy signal, and noise.
 
     """
-    clean_path = next((DATA / "CleanSpeech_training").glob("*.wav"))
-    noisy_path = next((DATA / "NoisySpeech_training").glob("*.wav"))
+    clean_paths = sorted((CLEAN).glob("*.wav"))
+    noisy_paths = sorted((NOISY).glob("*.wav"))
 
-    clean_signal, clean_sr = sf.read(clean_path)
-    noisy_signal, noisy_sr = sf.read(noisy_path)
+    print("CLEAN WAVS", "\n")
+    print(clean_paths)
 
-    assert clean_sr == noisy_sr
+    print("NOISY WAVS", "\n")
+    print(clean_paths)
 
-    n = min(len(clean_signal), len(noisy_signal))
-    clean_signal = clean_signal[:n]
-    noisy_signal = noisy_signal[:n]
+    signals = []
 
-    noise_reference = noisy_signal - clean_signal
+    for clean_path, noisy_path in zip(clean_paths, noisy_paths, strict=True):
+        file_name = noisy_path.name
+        clean_signal, clean_sr = sf.read(clean_path)
+        noisy_signal, noisy_sr = sf.read(noisy_path)
+        assert clean_sr == noisy_sr
 
-    return clean_signal, noisy_signal, noise_reference
+        n = min(len(clean_signal), len(noisy_signal))
+        clean_signal = clean_signal[:n]
+        noisy_signal = noisy_signal[:n]
+
+        noise_reference = noisy_signal - clean_signal
+
+        signals.append((file_name, clean_signal, noisy_signal, noise_reference))
+
+    return signals
 
 
 def mse(

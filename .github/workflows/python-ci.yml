@@ -20,13 +20,8 @@ on:
       - ".github/workflows/integration-ci.yml"
       - "tests/setup_integration_data.py"
 
-jobs:
-  prepare-data:
-    uses: ./.github/workflows/integration-ci.yml
-
   build:
     runs-on: ubuntu-latest
-    needs: prepare-data
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]

@@ -67,20 +67,17 @@ check-all: check-rs check-py
 # TESTS
 ##################################################
 
-.PHONY: setup-data test-rs test-py test-all
-
-setup-data:
-	uv run tests/setup_integration_data.py  # going to switch to .sh
+.PHONY: test-rs test-py test-all
 
 # Rust
-test-rs: check-rust-install setup-data
+test-rs: check-rust-install 
 	# NOTE: `--all-features` currently produces a linker error, smth to do with PyO3.
 	# Since we don't have any tests in the Python features, leaving it out for now.
 	cargo tarpaulin --lib --frozen --skip-clean
 	cargo test --test rust --frozen
 
 # Python 
-test-py: $(PY_BINDINGS) setup-data
+test-py: $(PY_BINDINGS) 
 	uv run pytest python/tests
 	uv run pytest tests/python  
 

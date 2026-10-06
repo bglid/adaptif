@@ -26,12 +26,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  prepare-data:
-    uses: ./.github/workflows/integration-ci.yml
-
   build:
     name: Rust - latest
-    needs: prepare-data
     runs-on: ubuntu-latest
 
     steps:
@@ -79,7 +75,6 @@ jobs:
   coverage:
     if: github.event_name == 'pull_request'
     name: Rust coverage
-    needs: prepare-data
     runs-on: ubuntu-latest
 
     steps:

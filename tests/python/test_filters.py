@@ -14,7 +14,7 @@ from .utils import load_test_signals, mse, snr
             RLSFilter,
             {"forgetting_factor": 0.999, "p_init_scale": 0.001, "window_size": 16},
         ),
-        (BlockLMSFilter, {"mu": 1e-4, "window_size": 32, "block_size": 32}),
+        (BlockLMSFilter, {"mu": 1e-6, "window_size": 16, "block_size": 16}),
     ],
     ids=["lms", "nlms", "rls", "block-lms"],
 )
@@ -23,8 +23,14 @@ def filter(request):
     return filter_class(**kwargs)
 
 
-def test_filter_adapts_signal(filter) -> None:
-    original_signal, noisy_signal, noise_reference = load_test_signals()
+@pytest.fixture(params=load_test_signals(), ids=lambda signal: signal[0])
+def signals(request):
+    _, clean, noisy, noise = request.param
+    return clean, noisy, noise
+
+
+def test_filter_adapts_signal(filter, signals) -> None:
+    original_signal, noisy_signal, noise_reference = signals
 
     cleaned_signal = filter.adapt(input_signal=noisy_signal, noise_ref=noise_reference)
 
