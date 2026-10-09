@@ -6,38 +6,50 @@ from numpy.typing import NDArray
 
 DATA = Path(__file__).parents[1] / "fixtures"
 CLEAN = DATA / "CleanSpeech"
-NOISY = DATA / "NoisySpeech"
+
+
+def add_white_noise(
+    clean: np.ndarray, seed: int, snr_db: float = 0.0
+) -> tuple[np.ndarray, np.ndarray]:
+    """Adds white noise to a clean signal and returns noisy signal & noise. Based on seed and snr_db.
+
+    Args:
+        clean (np.ndarray): Clean signal.
+        seed (int): Random seed for distribution.
+        snr_db (float): Target SNR level for noisy signal.
+
+    Returns:
+        (tuple(np.ndarray, np.ndarray)): Tuple of noisy signal + white noise, at target SNR in DB.
+    """
+    rng = np.random.default_rng(seed)
+    noise = rng.standard_normal(clean.shape)
+
+    signal_power = np.mean(clean**2)
+    noise_power = np.mean(noise**2)
+
+    target_noise_power = signal_power / (10 ** (snr_db / 10))
+    noise *= np.sqrt(target_noise_power / noise_power)
+    noisy = clean + noise
+    return noisy, noise
 
 
 def load_test_signals() -> list[tuple[str, np.ndarray, np.ndarray, np.ndarray]]:
     """Loads the test data for integration tests.
 
     Returns:
-        list(tuple(np.ndarray, np.ndarray, np.ndarray)): Tuple of the clean signal, noisy signal, and noise.
+        list(tuple(str, np.ndarray, np.ndarray, np.ndarray)): Tuple of the clean signal, noisy signal, and noise.
 
     """
     clean_paths = sorted((CLEAN).glob("*.wav"))
-    noisy_paths = sorted((NOISY).glob("*.wav"))
-
-    print("CLEAN WAVS", "\n")
-    print(clean_paths)
-
-    print("NOISY WAVS", "\n")
-    print(clean_paths)
-
     signals = []
+    seeds = [42, 154]
 
-    for clean_path, noisy_path in zip(clean_paths, noisy_paths, strict=True):
-        file_name = noisy_path.name
-        clean_signal, clean_sr = sf.read(clean_path)
-        noisy_signal, noisy_sr = sf.read(noisy_path)
-        assert clean_sr == noisy_sr
-
-        n = min(len(clean_signal), len(noisy_signal))
-        clean_signal = clean_signal[:n]
-        noisy_signal = noisy_signal[:n]
-
-        noise_reference = noisy_signal - clean_signal
+    for clean_path, seed in zip(clean_paths, seeds, strict=True):
+        file_name = clean_path.name
+        clean_signal, _ = sf.read(clean_path, dtype="float64")
+        noisy_signal, noise_reference = add_white_noise(
+            clean=clean_signal, seed=seed, snr_db=0.0
+        )
 
         signals.append((file_name, clean_signal, noisy_signal, noise_reference))
 

@@ -20,6 +20,7 @@ on:
       - ".github/workflows/integration-ci.yml"
       - "tests/setup_integration_data.py"
 
+jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
