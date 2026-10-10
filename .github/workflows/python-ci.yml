@@ -8,8 +8,6 @@ on:
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/python-ci.yml"
-      - ".github/workflows/integration-ci.yml"
-      - "tests/setup_integration_data.py"
   pull_request:
     paths:
       - "python/**"
@@ -17,8 +15,6 @@ on:
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/python-ci.yml"
-      - ".github/workflows/integration-ci.yml"
-      - "tests/setup_integration_data.py"
 
 jobs:
   build:
@@ -53,12 +49,6 @@ jobs:
 
       - name: Run unit tests
         run: uv run pytest python/tests
-
-      - name: Restore integration data
-        uses: actions/cache@v4
-        with:
-          path: tests/data
-          key: integration-data-v1-${{ hashFiles('tests/setup_integration_data.py') }}
 
       - name: Run integration tests
         run: uv run pytest tests/python

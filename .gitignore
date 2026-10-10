@@ -49,4 +49,3 @@
 
 # explicit excludes
 **/__pycache__/
-**/data

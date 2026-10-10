@@ -8,9 +8,7 @@ on:
       - ".github/workflows/rust-ci.yml"
       - "Cargo.toml"
       - "Cargo.lock"
-      - ".github/workflows/integration-ci.yml"
       - "rust-toolchain.toml"
-      - "tests/setup_integration_data.py"
   pull_request:
     paths:
       - "src/**"
@@ -18,9 +16,7 @@ on:
       - ".github/workflows/rust-ci.yml"
       - "Cargo.toml"
       - "Cargo.lock"
-      - ".github/workflows/integration-ci.yml"
       - "rust-toolchain.toml"
-      - "tests/setup_integration_data.py"
 
 env:
   CARGO_TERM_COLOR: always
@@ -60,12 +56,6 @@ jobs:
       - name: Run unit tests
         run: cargo test --lib --verbose
 
-      - name: Restore integration data
-        uses: actions/cache@v4
-        with:
-          path: tests/data
-          key: integration-data-v1-${{ hashFiles('tests/setup_integration_data.py') }}
-
       - name: Run integration tests
         run: cargo test --test rust --frozen
 
@@ -86,12 +76,6 @@ jobs:
 
       - name: rust-cache
         uses: Swatinem/rust-cache@v2
-
-      - name: Restore integration data
-        uses: actions/cache@v4
-        with:
-          path: tests/data
-          key: integration-data-v1-${{ hashFiles('tests/setup_integration_data.py') }}
 
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@main
