@@ -23,9 +23,10 @@ check-installs: check-rust-install check-uv-install
 # Install/update tooling and dependencies
 .PHONY: install-rust install-uv setup-rust setup-uv setup
 install-rust:
-	@command rustup --version >/dev/null 2>&1 && \
-		rustup update || \
+	@command rustup --version >/dev/null 2>&1 || \
 		{ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh; }
+	rustup toolchain install 
+	rustup component add rustfmt clippy
 install-uv:
 	@command uv --version >/dev/null 2>&1 && \
 		uv self update || \
@@ -62,17 +63,26 @@ check-py: $(PY_BINDINGS)
 	uv run ty check
 check-all: check-rs check-py
 
+##################################################
+# TESTS
+##################################################
 
-# Run tests
 .PHONY: test-rs test-py test-all
-test-rs: check-rust-install
+
+# Rust
+test-rs: check-rust-install 
 	# NOTE: `--all-features` currently produces a linker error, smth to do with PyO3.
 	# Since we don't have any tests in the Python features, leaving it out for now.
-	cargo tarpaulin --frozen --skip-clean
-test-py: $(PY_BINDINGS)
-	uv run pytest
-test-all: test-rs test-py
+	cargo tarpaulin --lib --frozen --skip-clean
+	cargo test --test rust --frozen
 
+# Python 
+test-py: $(PY_BINDINGS) 
+	uv run pytest python/tests
+	uv run pytest tests/python  
+
+# Test type grouping
+test-all: test-rs test-py
 
 # Audit dependencies
 .PHONY: audit

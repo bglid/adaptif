@@ -4,14 +4,14 @@ on:
   push:
     paths:
       - "python/**"
-      - "tests/**"
+      - "tests/python/**"
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/python-ci.yml"
   pull_request:
     paths:
       - "python/**"
-      - "tests/**"
+      - "tests/python/**"
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/python-ci.yml"
@@ -47,9 +47,11 @@ jobs:
       - name: Run type checks
         run: uv run ty check
 
-      - name: Run tests
-        run: |
-          uv run pytest
+      - name: Run unit tests
+        run: uv run pytest python/tests
+
+      - name: Run integration tests
+        run: uv run pytest tests/python
 
       - name: Run safety checks
         run: uv audit
