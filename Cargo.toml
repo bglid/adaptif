@@ -66,4 +66,6 @@ inline_modules = "allow"
 
 [dev-dependencies]
 hound = "3.5.1"
+rand = "0.10.3"
+rand_distr = "0.6.0"
 
