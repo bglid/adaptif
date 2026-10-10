@@ -1,7 +1,9 @@
 /// Declarative macro for parameterizing filter algorithms for integration tests.
 macro_rules! generate_integration_filter_tests {
-    ($filter: ident, $original_signal: expr, $noisy_signal: expr, $noise_reference: expr) => {
-        let cleaned_signal = $filter.adapt(&$noisy_signal, &$noise_reference).unwrap();
+    ($filter_config: ident, $original_signal: expr, $noisy_signal: expr, $noise_reference: expr) => {
+        let window_size = 16;
+        let mut filter = FilterBase::new($filter_config, window_size).unwrap();
+        let cleaned_signal = filter.adapt(&$noisy_signal, &$noise_reference).unwrap();
 
         assert_eq!(cleaned_signal.len(), $noisy_signal.len());
         assert!(cleaned_signal.iter().all(|sample| sample.is_finite()));
