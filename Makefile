@@ -79,7 +79,7 @@ test-rs: check-rust-install
 # Python 
 test-py: $(PY_BINDINGS) 
 	uv run pytest python/tests
-	uv run pytest tests/python  
+	uv run pytest integration/python  
 
 # Test type grouping
 test-all: test-rs test-py

@@ -4,8 +4,7 @@ import numpy as np
 import soundfile as sf
 from numpy.typing import NDArray
 
-DATA = Path(__file__).parents[1] / "fixtures"
-CLEAN = DATA / "CleanSpeech"
+CLEAN = Path(__file__).parents[1] / "fixtures"
 
 
 def add_white_noise(
@@ -22,15 +21,15 @@ def add_white_noise(
         (tuple(np.ndarray, np.ndarray)): Tuple of noisy signal + white noise, at target SNR in DB.
     """
     rng = np.random.default_rng(seed)
-    noise = rng.standard_normal(clean.shape)
+    raw_noise = rng.standard_normal(clean.shape)
 
     signal_power = np.mean(clean**2)
-    noise_power = np.mean(noise**2)
+    noise_power = np.mean(raw_noise**2)
 
     target_noise_power = signal_power / (10 ** (snr_db / 10))
-    noise *= np.sqrt(target_noise_power / noise_power)
-    noisy = clean + noise
-    return noisy, noise
+    raw_noise *= np.sqrt(target_noise_power / noise_power)
+    noisy_signal = clean + raw_noise
+    return noisy_signal, raw_noise
 
 
 def load_test_signals() -> list[tuple[str, np.ndarray, np.ndarray, np.ndarray]]:
@@ -42,13 +41,12 @@ def load_test_signals() -> list[tuple[str, np.ndarray, np.ndarray, np.ndarray]]:
     """
     clean_paths = sorted((CLEAN).glob("*.wav"))
     signals = []
-    seeds = [42, 154]
 
-    for clean_path, seed in zip(clean_paths, seeds, strict=True):
+    for i, clean_path in enumerate(clean_paths):
         file_name = clean_path.name
         clean_signal, _ = sf.read(clean_path, dtype="float64")
         noisy_signal, noise_reference = add_white_noise(
-            clean=clean_signal, seed=seed, snr_db=0.0
+            clean=clean_signal, seed=(42 + i), snr_db=0.0
         )
 
         signals.append((file_name, clean_signal, noisy_signal, noise_reference))
@@ -84,6 +82,6 @@ def snr(
         np.float64: SNR in dB
     """
     signal_power = np.sum(original_signal**2)
-    noise_power = np.sum((original_signal - noisy_signal) ** 2) + 1e-8
-    snr = signal_power / noise_power
+    noise_power = np.sum((original_signal - noisy_signal) ** 2)
+    snr = signal_power / (noise_power + 1e-8)
     return 10 * np.log10(snr)

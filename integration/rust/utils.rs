@@ -14,18 +14,22 @@ fn add_white_noise(clean_signal: &[f64], seed: u64, snr_db: f64) -> (Vec<f64>, V
         .collect();
 
     // For getting the scale of the noise correct in dB
-    let signal_power =
-        clean_signal.iter().map(|c| c.powi(2)).sum::<f64>() / clean_signal.len().to_f64().unwrap();
-    let noise_power = noise.iter().map(|n| n.powi(2)).sum::<f64>() / noise.len().to_f64().unwrap();
+    let power = |signal: &mut dyn Iterator<Item = f64>| signal.map(|x| x.powi(2)).sum::<f64>();
+
+    // Getting noise scale to update noise vec
+    let signal_power = power(&mut clean_signal.iter().copied());
+    let noise_power = power(&mut noise.iter().copied());
     let target_noise_power = signal_power / (10.0_f64.powf(snr_db / 10.0_f64));
+    let scale = (target_noise_power / noise_power).sqrt();
+
     for sample in &mut noise {
-        *sample *= (target_noise_power / noise_power).sqrt();
+        *sample *= scale;
     }
 
     let noisy_signal = clean_signal
         .iter()
         .zip(&noise)
-        .map(|(clean, noise)| clean + noise)
+        .map(|(c, n)| c + n)
         .collect();
 
     (noisy_signal, noise)
@@ -34,9 +38,8 @@ fn add_white_noise(clean_signal: &[f64], seed: u64, snr_db: f64) -> (Vec<f64>, V
 pub fn test_signals() -> Vec<(Vec<f64>, Vec<f64>, Vec<f64>)> {
     // Doing this in this fashion so it can be run from anywhere
     let clean_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join("fixtures")
-        .join("CleanSpeech");
+        .join("integration")
+        .join("fixtures");
 
     let clean_paths: Vec<PathBuf> = std::fs::read_dir(clean_dir)
         .unwrap()
@@ -52,11 +55,8 @@ pub fn test_signals() -> Vec<(Vec<f64>, Vec<f64>, Vec<f64>)> {
             .map(|s| f64::from(s.unwrap()) / f64::from(i16::MAX))
             .collect();
 
-        #[allow(
-            clippy::as_conversions,
-            reason = "Test generating new seed. Precision isn't needed"
-        )]
-        let (noisy_signal, noise) = add_white_noise(&clean_samples, 42 + i as u64, 0.0);
+        let (noisy_signal, noise) =
+            add_white_noise(&clean_samples, u64::try_from(42 + i).unwrap(), 0.0);
         signals.push((clean_samples, noisy_signal, noise));
     }
     signals
@@ -77,8 +77,7 @@ pub fn snr(original_signal: &[f64], input_signal: &[f64]) -> f64 {
         .iter()
         .zip(input_signal)
         .map(|(d, i)| (d - i).powi(2))
-        .sum::<f64>()
-        + 1e-8;
+        .sum::<f64>();
 
-    10.0 * (signal_power / noise_power).log10()
+    10.0 * (signal_power / (noise_power + 1e-8)).log10()
 }

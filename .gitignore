@@ -15,11 +15,13 @@
 !python/tests/**/*.py
 
 # integration tests specifics
-!tests/
-!tests/**/
-!tests/**/*.rs
-!tests/**/*.py
-!tests/**/*.wav
+!integration/
+!integration/**/
+!integration/**/*.rs
+!integration/**/*.py
+# wav files by name
+!integration/**/clean_speech_1.wav
+!integration/**/clean_speech_2.wav
 
 !examples/
 !examples/**/

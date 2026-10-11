@@ -80,7 +80,7 @@ norecursedirs =["hooks", "*.egg", ".eggs", "dist", "build", "docs", ".tox", ".gi
 doctest_optionflags = ["NUMBER", "NORMALIZE_WHITESPACE", "IGNORE_EXCEPTION_DETAIL"]
 testpaths = [
     "python/tests",
-    "tests/python",
+    "integration/python",
 ]
 pythonpath = ["python"]
 
