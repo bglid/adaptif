@@ -16,11 +16,13 @@ crate-type = ["cdylib", "rlib"]
 default = []
 python = ["dep:pyo3", "dep:numpy"]
 
+
 [lints.clippy]
 pedantic = {level = "warn", priority = -1}
 restriction = {level = "warn", priority = -1}
 blanket_clippy_restriction_lints = "allow"
 allow_attributes = "allow"
+
 
 # no-brainers
 arithmetic_side_effects = "allow" # otherwise we get warnings about potential overflows on _every_ arithmetic op
@@ -61,4 +63,13 @@ missing_inline_in_public_items = "allow"
 
 # This one is supposed to skip test modules (#[cfg(test)]), but as of 1.98.0 it only works on nightly.
 inline_modules = "allow"
+
+[[test]]
+name = "rust"
+path = "integration/rust.rs"
+
+[dev-dependencies]
+hound = "3.5.1"
+rand = "0.10.3"
+rand_distr = "0.6.0"
 
