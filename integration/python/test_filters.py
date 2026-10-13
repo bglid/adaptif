@@ -14,7 +14,7 @@ from .utils import load_test_signals, mse, snr
         (NLMSFilter, {"mu": 0.01, "eps": 1e-6, "window_size": 16}),
         (
             RLSFilter,
-            {"forgetting_factor": 0.999, "p_init_scale": 0.001, "window_size": 16},
+            {"forgetting_factor": 0.999, "p_init_scale": 0.001, "window_size": 8},
         ),
     ],
     ids=[

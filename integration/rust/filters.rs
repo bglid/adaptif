@@ -40,7 +40,7 @@ fn rls_adapts_signal() {
             forgetting_factor: 0.999,
             p_init_scale: 0.001,
         },
-        WindowSize::new(16).unwrap(),
+        WindowSize::new(8).unwrap(),
     )
     .unwrap();
     generate_integration_filter_tests!(filter, test_signals());
