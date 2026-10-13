@@ -10,9 +10,18 @@
 !python/adaptif/*.py
 !python/adaptif/*.pyi
 
-!tests/
-!tests/**/
-!tests/**/*.py
+# python unit tests
+!python/tests/
+!python/tests/**/*.py
+
+# integration tests specifics
+!integration/
+!integration/**/
+!integration/**/*.rs
+!integration/**/*.py
+# wav files by name
+!integration/**/clean_speech_1.wav
+!integration/**/clean_speech_2.wav
 
 !examples/
 !examples/**/
@@ -20,6 +29,7 @@
 
 !Cargo.toml
 !Cargo.lock
+!rust-toolchain.toml
 
 # uv
 !pyproject.toml
@@ -39,5 +49,5 @@
 !.github/**/*.md
 !.pre-commit-config.yaml
 
-# explitic excludes
+# explicit excludes
 **/__pycache__/
