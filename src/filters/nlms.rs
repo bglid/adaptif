@@ -13,43 +13,6 @@ pub struct NlmsOptions<F: Float> {
     pub eps: F,
 }
 
-// #[derive(Debug, Clone)]
-// pub struct NlmsFilter<F: Float> {
-//     inner: SampleFilterBase<F, Nlms<F>>,
-// }
-// impl<F: Float> NlmsFilter<F> {
-//     /// # Errors
-//     ///
-//     /// Returns an error if mu or eps <= 0.0.
-//     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
-//     pub fn new(options: NlmsOptions<F>, window_size: WindowSize) -> Result<Self> {
-//         let nlms = Nlms::new(options.mu, options.eps)?;
-//         let filter = SampleFilterBase::new(nlms, *window_size)?;
-//         Ok(Self { inner: filter })
-//     }
-//
-//     /// # Errors
-//     ///
-//     /// Returns an error if `weights.is_empty()`.
-//     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
-//     pub fn from_weights(options: NlmsOptions<F>, weights: Vec<F>) -> Result<Self> {
-//         let nlms = Nlms::new(options.mu, options.eps)?;
-//         let filter = SampleFilterBase::from_weights(nlms, weights)?;
-//         Ok(Self { inner: filter })
-//     }
-// }
-// impl<F: Float> Deref for NlmsFilter<F> {
-//     type Target = SampleFilterBase<F, Nlms<F>>;
-//
-//     fn deref(&self) -> &Self::Target {
-//         &self.inner
-//     }
-// }
-// impl<F: Float> DerefMut for NlmsFilter<F> {
-//     fn deref_mut(&mut self) -> &mut Self::Target {
-//         &mut self.inner
-//     }
-// }
 #[derive(Debug, Clone)]
 pub struct NlmsFilter<F: Float> {
     inner: FilterBase<F, Nlms<F>>,

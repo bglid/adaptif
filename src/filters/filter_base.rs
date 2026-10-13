@@ -2,11 +2,9 @@ use std::ops::Range;
 
 use crate::algorithms::Algorithm;
 
-use crate::error::Result;
-use crate::filters::AdaptiveFilter;
-use crate::filters::common::{check_signal_lengths, compute_error};
+use crate::error::{Error, Result};
 use crate::types::buffers::{BlockError, BlockNoiseBuffer};
-use crate::types::signals::{InputSignal, NoiseReference, OutputSignal};
+use crate::types::signals::{InputSample, InputSignal, NoiseReference, OutputSample, OutputSignal};
 use crate::types::{BlockSize, FilterWeights, Float, NoiseEstimate, WindowSize};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -29,6 +27,7 @@ impl ProcessingMode {
     }
 }
 
+/// Underlying, algorithm-agnostic filter implementation.
 #[derive(Debug, Clone, PartialEq)]
 pub struct FilterBase<F: Float, A: Algorithm<F>> {
     algorithm: A,
@@ -93,13 +92,19 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
         // Returning a slice so that FilterWeights doesn't have to part of the public API
         &self.weights
     }
-}
 
-impl<F: Float, A: Algorithm<F>> AdaptiveFilter<F> for FilterBase<F, A> {
+    /// Iteratively adapts the filter to the input signal and noise reference
+    /// using the chosen algorithm, and returns the denoised signal.
+    ///
+    /// Since adaptation is performed "on-the-fly", the output signal will start noisy
+    /// and become less so over time. In order to fully denoise a signal, call `adapt()`
+    /// to adapt the filter offline, then call `filter()` to denoise the signal with fixed
+    /// weights.
+    ///
     /// # Errors
     ///
     /// Returns an error if `input_signal.len() > noise_ref.len()`.
-    fn adapt(
+    pub fn adapt(
         &mut self,
         input_signal: &InputSignal<F>,
         noise_ref: &NoiseReference<F>,
@@ -162,10 +167,13 @@ impl<F: Float, A: Algorithm<F>> AdaptiveFilter<F> for FilterBase<F, A> {
         Ok(cleaned_signal.into_inner())
     }
 
+    /// Applies the filter to the input signal without updating the filter coefficients.
+    /// This method should be called after adapting the filter to the inputs using `adapt()`.
+    ///
     /// # Errors
     ///
     /// Returns an error if `input_signal.len() > noise_ref.len()`.
-    fn filter(
+    pub fn filter(
         &self,
         input_signal: &InputSignal<F>,
         noise_ref: &NoiseReference<F>,
@@ -268,6 +276,39 @@ fn process_block<F>(
     }
 }
 
+pub fn compute_error<F>(
+    input_sample: InputSample<F>,
+    noise_estimate: NoiseEstimate<F>,
+) -> OutputSample<F>
+where
+    F: Float,
+{
+    OutputSample(*input_sample - *noise_estimate)
+}
+
+/// Compares the lengths of the input signal and the noise reference to ensure
+/// that the latter is at least as long as the prior.
+///
+/// # Errors
+///
+/// Returns an error if `input_signal.len() > noise_ref.len()`.
+pub fn check_signal_lengths<F>(
+    input_signal: &InputSignal<F>,
+    noise_ref: &NoiseReference<F>,
+) -> Result<()>
+where
+    F: Float,
+{
+    if noise_ref.len() < input_signal.len() {
+        Err(Error::NoiseRefTooShort {
+            input_len: input_signal.len(),
+            noise_len: noise_ref.len(),
+        })
+    } else {
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::indexing_slicing, reason = "Tests")]
 mod tests {
@@ -276,9 +317,9 @@ mod tests {
     use super::*;
     use crate::algorithms::Lms;
     use crate::error::Error;
-    use crate::test_utils::all_approx_equal;
+    use crate::test_utils::{all_approx_equal, approx_equal};
     use crate::types::buffers::NoiseWindow;
-    use crate::types::signals::OutputSample;
+    use crate::types::signals::{InputSample, OutputSample};
 
     struct UpdateCallCounter {
         call_count: RefCell<usize>,
@@ -384,6 +425,15 @@ mod tests {
         assert!(matches!(
             FilterBase::from_weights(Lms::new(1.0).unwrap(), empty_vec, mode),
             Err(Error::EmptyInputArr)
+        ));
+    }
+
+    #[test]
+    fn compute_error_works() {
+        assert!(approx_equal(
+            *compute_error(InputSample(5.0), NoiseEstimate(3.5)),
+            1.5,
+            1e-6
         ));
     }
 

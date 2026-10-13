@@ -1,4 +1,4 @@
-use crate::types::buffers::{BlockError, BlockNoiseBuffer, NoiseBuffer, NoiseWindow};
+use crate::types::buffers::{BlockError, BlockNoiseBuffer, NoiseWindow};
 use crate::types::signals::OutputSample;
 use crate::types::{FilterWeights, Float};
 
@@ -35,21 +35,4 @@ pub trait Algorithm<F: Float> {
             self.update_step(weights, OutputSample(window_error), current_window);
         }
     }
-}
-
-/// Trait used for implementing algorithms with sample-based processing used in conjuction with
-/// `SampleFilter`.
-// TODO: remove one algorithms have been moved to block processing
-pub trait SampleAlgorithm<F: Float> {
-    /// Updates the weights for the next time step based on the algorithm's update rules.
-    /// This function is called every processing iteration by the filter during adapation.
-    /// `error` is the cleaned sample from the current time step.
-    /// `noise_ref` is the noise reference signal within the current processing window (the $k$ most recent samples).
-    ///
-    fn update_sample(
-        &mut self,
-        weights: &mut FilterWeights<F>,
-        error: OutputSample<F>,
-        noise_ref: &NoiseBuffer<F>,
-    );
 }

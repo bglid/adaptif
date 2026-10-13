@@ -14,8 +14,8 @@ use numpy::{PyArray1, PyReadonlyArray1};
 use super::macros::generate_filter_bindings;
 
 use crate::Error;
-use crate::algorithms::{Lms, Nlms, Rls};
-use crate::filters::{AdaptiveFilter, FilterBase, ProcessingMode};
+use crate::algorithms::{Algorithm, Lms, Nlms, Rls};
+use crate::filters::{FilterBase, ProcessingMode};
 use crate::types::BlockSize;
 use crate::types::signals::{InputSignal, NoiseReference};
 
@@ -85,15 +85,15 @@ enum FilterOperation {
 
 // Because the wrappers for adapt() and filter() would only differ in one line,
 // we use this underlying implementation.
-fn adapt_filter_impl<'py, F>(
-    filter: &mut F,
+fn adapt_filter_impl<'py, A>(
+    filter: &mut FilterBase<f64, A>,
     py: Python<'py>,
     input_signal: PyReadonlyArray1<f64>,
     noise_ref: PyReadonlyArray1<f64>,
     op: FilterOperation,
 ) -> PyResult<Bound<'py, PyArray1<f64>>>
 where
-    F: AdaptiveFilter<f64>,
+    A: Algorithm<f64>,
 {
     let input_signal = InputSignal::from_pyarray(&input_signal)?;
     let noise_ref = NoiseReference::from_pyarray(&noise_ref)?;

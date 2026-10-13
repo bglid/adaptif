@@ -4,9 +4,7 @@
 )]
 #![allow(clippy::unwrap_used, reason = "Integration test")]
 
-use adaptif::filters::{
-    AdaptiveFilter as _, LmsFilter, LmsOptions, NlmsFilter, NlmsOptions, RlsFilter, RlsOptions,
-};
+use adaptif::filters::{LmsFilter, LmsOptions, NlmsFilter, NlmsOptions, RlsFilter, RlsOptions};
 use adaptif::types::WindowSize;
 use adaptif::types::signals::{InputSignal, NoiseReference};
 

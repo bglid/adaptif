@@ -53,7 +53,6 @@ impl<F: Float> Rls<F> {
     ///
     /// Existing Kalman gain buffer gets reused to store the numerator
     /// value in update calculation to avoid reallocating a new vector.
-    // fn update_kalman_gain(&mut self, noise_ref: &NoiseBuffer<F>) {
     fn update_kalman_gain(&mut self, noise_ref: &NoiseWindow<F>) {
         // reusing kalman buffer for getting numerator to avoid clone of numerator
         for (k_i, row) in self
@@ -90,7 +89,6 @@ impl<F: Float> Rls<F> {
     /// \left(P_{n-1} - ``k_n`` ``x_n^T`` P_{n-1}\right)$.
     ///
     /// The matrix is stored as a flat buffer and updated in place.
-    // fn update_p_matrix(&mut self, noise_ref: &NoiseBuffer<F>) {
     fn update_p_matrix(&mut self, noise_ref: &NoiseWindow<F>) {
         // We calculate [x^T_n p_{n-1}] by computing the dot product of
         // ``noise_ref`` with each columnn in ``inverse_corr_matrix``
@@ -121,51 +119,6 @@ impl<F: Float> Rls<F> {
         }
     }
 }
-//
-// impl<F: Float> SampleAlgorithm<F> for Rls<F> {
-//     /// Updates the filter weights using the following algorithm.
-//     ///
-//     /// The Kalman gain vector, ``k_n`` is calculated as:
-//     ///
-//     /// $``k_n`` = \frac{P_{n-1} ``x_n``}
-//     /// {\lambda + ``x_n^T`` P_{n-1} ``x_n``}$.
-//     ///
-//     /// The filter weights are updated as:
-//     ///
-//     /// $``w_n`` = w_{n-1} + ``k_n`` ``e_n``$.
-//     ///
-//     /// The inverse correlation matrix is updated as:
-//     ///
-//     /// $``P_n`` = \frac{1}{\lambda}
-//     /// \left(P_{n-1} - ``k_n`` ``x_n^T`` P_{n-1}\right)$.
-//     ///
-//     /// where `e_n` is the scalar error for the current sample,
-//     /// and $``x_n``$ is a vector of length `window_size` of the
-//     /// most recent noise reference samples.
-//     fn update_sample(
-//         &mut self,
-//         weights: &mut FilterWeights<F>,
-//         error: OutputSample<F>,
-//         noise_ref: &NoiseBuffer<F>,
-//     ) {
-//         // Updates p_matrix on first iteration once n is known
-//         // No scenario where one is initialized and the other isn't
-//         // TODO: remove once proper init is implemented
-//         if self.inverse_corr_matrix.is_empty() {
-//             self.inverse_corr_matrix =
-//                 InverseCorrMatrix::new(weights.window_size(), self.p_init_scale);
-//             self.kalman_gain = KalmanGain::new(weights.window_size());
-//         }
-//
-//         self.update_kalman_gain(noise_ref);
-//
-//         for (w, k) in weights.iter_mut().zip(self.kalman_gain.iter().copied()) {
-//             *w += k * (*error);
-//         }
-//
-//         self.update_p_matrix(noise_ref);
-//     }
-// }
 impl<F: Float> Algorithm<F> for Rls<F> {
     fn update_step(
         &mut self,

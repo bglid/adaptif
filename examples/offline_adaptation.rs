@@ -3,7 +3,7 @@
 use std::error::Error;
 
 use adaptif::algorithms::Lms;
-use adaptif::filters::{AdaptiveFilter as _, FilterBase, ProcessingMode};
+use adaptif::filters::{FilterBase, ProcessingMode};
 use adaptif::types::signals::{InputSignal, NoiseReference};
 
 fn main() -> Result<(), Box<dyn Error>> {

@@ -1,8 +1,8 @@
 use std::error::Error;
 
-use adaptif::algorithms::SampleAlgorithm;
-use adaptif::filters::{AdaptiveFilter as _, SampleFilterBase};
-use adaptif::types::buffers::NoiseBuffer;
+use adaptif::algorithms::Algorithm;
+use adaptif::filters::{FilterBase, ProcessingMode};
+use adaptif::types::buffers::NoiseWindow;
 use adaptif::types::signals::{InputSignal, NoiseReference, OutputSample};
 use adaptif::types::{FilterWeights, Float};
 
@@ -11,15 +11,15 @@ pub struct MyAlgorithm<F: Float> {
     pub alpha: F,
 }
 // Implement the Algorithm trait so the algorithm can be used with SampleFilterBase
-impl<F: Float> SampleAlgorithm<F> for MyAlgorithm<F> {
+impl<F: Float> Algorithm<F> for MyAlgorithm<F> {
     // This function is called every iteration during adaptation to update the weights
-    fn update_sample(
+    fn update_step(
         &mut self,
         weights: &mut FilterWeights<F>,
         error: OutputSample<F>,
-        noise_ref: &NoiseBuffer<F>,
+        noise_window: NoiseWindow<F>,
     ) {
-        for (w, x) in weights.iter_mut().zip(noise_ref.iter().copied()) {
+        for (w, x) in weights.iter_mut().zip(noise_window.iter()) {
             *w += self.alpha * (*error) * x;
         }
     }
@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let window_size = 1024;
 
     // Instantiate the filter using SampleFilterBase and our custom algorithm
-    let mut filter = SampleFilterBase::new(algorithm_cfg, window_size)?;
+    let mut filter = FilterBase::new(algorithm_cfg, window_size, ProcessingMode::Sample)?;
 
     // Adapt the filter using our algorithm's update rules
     let _output = filter.adapt(&input_signal, &noise_ref)?;
