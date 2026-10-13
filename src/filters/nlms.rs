@@ -1,9 +1,10 @@
 use std::ops::{Deref, DerefMut};
 
-use super::SampleFilterBase;
+use super::FilterBase;
 
 use crate::Result;
 use crate::algorithms::Nlms;
+use crate::filters::ProcessingMode;
 use crate::types::{Float, WindowSize};
 
 #[derive(Debug, Clone)]
@@ -12,9 +13,46 @@ pub struct NlmsOptions<F: Float> {
     pub eps: F,
 }
 
+// #[derive(Debug, Clone)]
+// pub struct NlmsFilter<F: Float> {
+//     inner: SampleFilterBase<F, Nlms<F>>,
+// }
+// impl<F: Float> NlmsFilter<F> {
+//     /// # Errors
+//     ///
+//     /// Returns an error if mu or eps <= 0.0.
+//     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
+//     pub fn new(options: NlmsOptions<F>, window_size: WindowSize) -> Result<Self> {
+//         let nlms = Nlms::new(options.mu, options.eps)?;
+//         let filter = SampleFilterBase::new(nlms, *window_size)?;
+//         Ok(Self { inner: filter })
+//     }
+//
+//     /// # Errors
+//     ///
+//     /// Returns an error if `weights.is_empty()`.
+//     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
+//     pub fn from_weights(options: NlmsOptions<F>, weights: Vec<F>) -> Result<Self> {
+//         let nlms = Nlms::new(options.mu, options.eps)?;
+//         let filter = SampleFilterBase::from_weights(nlms, weights)?;
+//         Ok(Self { inner: filter })
+//     }
+// }
+// impl<F: Float> Deref for NlmsFilter<F> {
+//     type Target = SampleFilterBase<F, Nlms<F>>;
+//
+//     fn deref(&self) -> &Self::Target {
+//         &self.inner
+//     }
+// }
+// impl<F: Float> DerefMut for NlmsFilter<F> {
+//     fn deref_mut(&mut self) -> &mut Self::Target {
+//         &mut self.inner
+//     }
+// }
 #[derive(Debug, Clone)]
 pub struct NlmsFilter<F: Float> {
-    inner: SampleFilterBase<F, Nlms<F>>,
+    inner: FilterBase<F, Nlms<F>>,
 }
 impl<F: Float> NlmsFilter<F> {
     /// # Errors
@@ -23,7 +61,7 @@ impl<F: Float> NlmsFilter<F> {
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn new(options: NlmsOptions<F>, window_size: WindowSize) -> Result<Self> {
         let nlms = Nlms::new(options.mu, options.eps)?;
-        let filter = SampleFilterBase::new(nlms, *window_size)?;
+        let filter = FilterBase::new(nlms, *window_size, ProcessingMode::Sample)?;
         Ok(Self { inner: filter })
     }
 
@@ -33,12 +71,12 @@ impl<F: Float> NlmsFilter<F> {
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn from_weights(options: NlmsOptions<F>, weights: Vec<F>) -> Result<Self> {
         let nlms = Nlms::new(options.mu, options.eps)?;
-        let filter = SampleFilterBase::from_weights(nlms, weights)?;
+        let filter = FilterBase::from_weights(nlms, weights, ProcessingMode::Sample)?;
         Ok(Self { inner: filter })
     }
 }
 impl<F: Float> Deref for NlmsFilter<F> {
-    type Target = SampleFilterBase<F, Nlms<F>>;
+    type Target = FilterBase<F, Nlms<F>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
@@ -66,8 +104,12 @@ mod tests {
             WindowSize::new(window_size).unwrap(),
         )
         .unwrap();
-        let expected_inner =
-            SampleFilterBase::new(Nlms::new(mu, eps).unwrap(), window_size).unwrap();
+        let expected_inner = FilterBase::new(
+            Nlms::new(mu, eps).unwrap(),
+            window_size,
+            ProcessingMode::Sample,
+        )
+        .unwrap();
 
         assert_eq!(filter.inner, expected_inner);
         assert_eq!(filter.window_size(), window_size);
@@ -80,8 +122,12 @@ mod tests {
         let weights = vec![1.0, 2.0, 3.0];
 
         let filter = NlmsFilter::from_weights(NlmsOptions { mu, eps }, weights.clone()).unwrap();
-        let expected_inner =
-            SampleFilterBase::from_weights(Nlms::new(mu, eps).unwrap(), weights.clone()).unwrap();
+        let expected_inner = FilterBase::from_weights(
+            Nlms::new(mu, eps).unwrap(),
+            weights.clone(),
+            ProcessingMode::Sample,
+        )
+        .unwrap();
 
         assert_eq!(filter.inner, expected_inner);
         assert_eq!(filter.window_size(), weights.len());

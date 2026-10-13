@@ -15,7 +15,7 @@ use super::macros::generate_filter_bindings;
 
 use crate::Error;
 use crate::algorithms::{Lms, Nlms, Rls};
-use crate::filters::{AdaptiveFilter, FilterBase, ProcessingMode, SampleFilterBase};
+use crate::filters::{AdaptiveFilter, FilterBase, ProcessingMode};
 use crate::types::BlockSize;
 use crate::types::signals::{InputSignal, NoiseReference};
 
@@ -143,13 +143,14 @@ impl LMSFilter {
 generate_filter_bindings!(LMSFilter);
 
 #[pyclass]
-pub struct NLMSFilter(SampleFilterBase<f64, Nlms<f64>>);
+pub struct NLMSFilter(FilterBase<f64, Nlms<f64>>);
 #[pymethods]
 impl NLMSFilter {
     #[new]
     fn new(mu: f64, eps: f64, window_size: usize) -> PyResult<Self> {
         let nlms = Nlms::new(mu, eps).map_err(|e| e.to_pyerr())?;
-        let filter = SampleFilterBase::new(nlms, window_size).map_err(|e| e.to_pyerr())?;
+        let filter =
+            FilterBase::new(nlms, window_size, ProcessingMode::Sample).map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
@@ -160,7 +161,8 @@ impl NLMSFilter {
 
         let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
 
-        let filter = SampleFilterBase::from_weights(nlms, weights).map_err(|e| e.to_pyerr())?;
+        let filter = FilterBase::from_weights(nlms, weights, ProcessingMode::Sample)
+            .map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
@@ -169,13 +171,14 @@ impl NLMSFilter {
 generate_filter_bindings!(NLMSFilter);
 
 #[pyclass]
-pub struct RLSFilter(SampleFilterBase<f64, Rls<f64>>);
+pub struct RLSFilter(FilterBase<f64, Rls<f64>>);
 #[pymethods]
 impl RLSFilter {
     #[new]
     fn new(forgetting_factor: f64, p_init_scale: f64, window_size: usize) -> PyResult<Self> {
         let rls = Rls::new(forgetting_factor, p_init_scale).map_err(|e| e.to_pyerr())?;
-        let filter = SampleFilterBase::new(rls, window_size).map_err(|e| e.to_pyerr())?;
+        let filter =
+            FilterBase::new(rls, window_size, ProcessingMode::Sample).map_err(|e| e.to_pyerr())?;
         Ok(Self(filter))
     }
     #[staticmethod]
@@ -188,7 +191,8 @@ impl RLSFilter {
 
         let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
 
-        let filter = SampleFilterBase::from_weights(rls, weights).map_err(|e| e.to_pyerr())?;
+        let filter = FilterBase::from_weights(rls, weights, ProcessingMode::Sample)
+            .map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }

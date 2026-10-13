@@ -1,9 +1,9 @@
-use crate::types::buffers::NoiseBuffer;
+use crate::types::buffers::{NoiseBuffer, NoiseWindow};
 use crate::types::signals::OutputSample;
 use crate::types::{FilterWeights, Float};
 use crate::{Error, Result};
 
-use crate::algorithms::SampleAlgorithm;
+use crate::algorithms::{Algorithm, SampleAlgorithm};
 
 #[derive(Debug, Clone, PartialEq)]
 /// Normalized least mean squares algorithm.
@@ -47,6 +47,21 @@ impl<F: Float> SampleAlgorithm<F> for Nlms<F> {
         let mu_normalized = self.mu / (self.eps + norm_squared);
 
         for (w, x) in weights.iter_mut().zip(noise_ref.iter().copied()) {
+            *w += mu_normalized * (*error) * x;
+        }
+    }
+}
+impl<F: Float> Algorithm<F> for Nlms<F> {
+    fn update_step(
+        &mut self,
+        weights: &mut FilterWeights<F>,
+        error: OutputSample<F>,
+        noise_window: NoiseWindow<F>,
+    ) {
+        let norm_squared = noise_window.iter().map(|x| x * x).sum();
+        let mu_normalized = self.mu / (self.eps + norm_squared);
+
+        for (w, x) in weights.iter_mut().zip(noise_window.iter()) {
             *w += mu_normalized * (*error) * x;
         }
     }

@@ -1,9 +1,10 @@
 use std::ops::{Deref, DerefMut};
 
-use super::SampleFilterBase;
+use super::FilterBase;
 
 use crate::Result;
 use crate::algorithms::Rls;
+use crate::filters::ProcessingMode;
 use crate::types::{Float, WindowSize};
 
 #[derive(Debug, Clone)]
@@ -14,7 +15,7 @@ pub struct RlsOptions<F: Float> {
 
 #[derive(Debug, Clone)]
 pub struct RlsFilter<F: Float> {
-    inner: SampleFilterBase<F, Rls<F>>,
+    inner: FilterBase<F, Rls<F>>,
 }
 impl<F: Float> RlsFilter<F> {
     /// # Errors
@@ -23,7 +24,7 @@ impl<F: Float> RlsFilter<F> {
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn new(options: RlsOptions<F>, window_size: WindowSize) -> Result<Self> {
         let rls = Rls::new(options.forgetting_factor, options.p_init_scale)?;
-        let filter = SampleFilterBase::new(rls, *window_size)?;
+        let filter = FilterBase::new(rls, *window_size, ProcessingMode::Sample)?;
         Ok(Self { inner: filter })
     }
 
@@ -33,12 +34,12 @@ impl<F: Float> RlsFilter<F> {
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn from_weights(options: RlsOptions<F>, weights: Vec<F>) -> Result<Self> {
         let rls = Rls::new(options.forgetting_factor, options.p_init_scale)?;
-        let filter = SampleFilterBase::from_weights(rls, weights)?;
+        let filter = FilterBase::from_weights(rls, weights, ProcessingMode::Sample)?;
         Ok(Self { inner: filter })
     }
 }
 impl<F: Float> Deref for RlsFilter<F> {
-    type Target = SampleFilterBase<F, Rls<F>>;
+    type Target = FilterBase<F, Rls<F>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
@@ -69,9 +70,10 @@ mod tests {
             WindowSize::new(window_size).unwrap(),
         )
         .unwrap();
-        let expected_inner = SampleFilterBase::new(
+        let expected_inner = FilterBase::new(
             Rls::new(forgetting_factor, p_init_scale).unwrap(),
             window_size,
+            ProcessingMode::Sample,
         )
         .unwrap();
 
@@ -93,9 +95,10 @@ mod tests {
             weights.clone(),
         )
         .unwrap();
-        let expected_inner = SampleFilterBase::from_weights(
+        let expected_inner = FilterBase::from_weights(
             Rls::new(forgetting_factor, p_init_scale).unwrap(),
             weights.clone(),
+            ProcessingMode::Sample,
         )
         .unwrap();
 
