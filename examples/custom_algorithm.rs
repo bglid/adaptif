@@ -4,7 +4,7 @@ use adaptif::algorithms::Algorithm;
 use adaptif::filters::{FilterBase, ProcessingMode};
 use adaptif::types::buffers::NoiseWindow;
 use adaptif::types::signals::{InputSignal, NoiseReference, OutputSample};
-use adaptif::types::{FilterWeights, Float};
+use adaptif::types::{FilterWeights, Float, WindowSize};
 
 // Create a struct to hold any required parameters or state
 pub struct MyAlgorithm<F: Float> {
@@ -32,7 +32,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Define the algorithm parameters
     let algorithm_cfg = MyAlgorithm { alpha: 1.0 };
-    let window_size = 1024;
+    let window_size = WindowSize::new(16)?;
 
     // Instantiate the filter using SampleFilterBase and our custom algorithm
     let mut filter = FilterBase::new(algorithm_cfg, window_size, ProcessingMode::Sample)?;

@@ -16,8 +16,8 @@ use super::macros::generate_filter_bindings;
 use crate::Error;
 use crate::algorithms::{Algorithm, Lms, Nlms, Rls};
 use crate::filters::{FilterBase, ProcessingMode};
-use crate::types::BlockSize;
 use crate::types::signals::{InputSignal, NoiseReference};
+use crate::types::{BlockSize, WindowSize};
 
 impl Error {
     fn to_pyerr(&self) -> PyErr {
@@ -120,6 +120,7 @@ impl LMSFilter {
     #[new]
     fn new(mu: f64, window_size: usize) -> PyResult<Self> {
         let lms = Lms::new(mu).map_err(|e| e.to_pyerr())?;
+        let window_size = WindowSize::new(window_size).map_err(|e| e.to_pyerr())?;
         let filter =
             FilterBase::new(lms, window_size, ProcessingMode::Sample).map_err(|e| e.to_pyerr())?;
 
@@ -149,6 +150,7 @@ impl NLMSFilter {
     #[new]
     fn new(mu: f64, eps: f64, window_size: usize) -> PyResult<Self> {
         let nlms = Nlms::new(mu, eps).map_err(|e| e.to_pyerr())?;
+        let window_size = WindowSize::new(window_size).map_err(|e| e.to_pyerr())?;
         let filter =
             FilterBase::new(nlms, window_size, ProcessingMode::Sample).map_err(|e| e.to_pyerr())?;
 
@@ -177,6 +179,7 @@ impl RLSFilter {
     #[new]
     fn new(forgetting_factor: f64, p_init_scale: f64, window_size: usize) -> PyResult<Self> {
         let rls = Rls::new(forgetting_factor, p_init_scale).map_err(|e| e.to_pyerr())?;
+        let window_size = WindowSize::new(window_size).map_err(|e| e.to_pyerr())?;
         let filter =
             FilterBase::new(rls, window_size, ProcessingMode::Sample).map_err(|e| e.to_pyerr())?;
         Ok(Self(filter))
@@ -208,6 +211,7 @@ impl BlockLMSFilter {
     fn new(mu: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
         let lms = Lms::new(mu).map_err(|e| e.to_pyerr())?;
 
+        let window_size = WindowSize::new(window_size).map_err(|e| e.to_pyerr())?;
         let block_size = BlockSize::new(block_size).map_err(|e| e.to_pyerr())?;
 
         let filter = FilterBase::new(lms, window_size, ProcessingMode::Block(block_size))

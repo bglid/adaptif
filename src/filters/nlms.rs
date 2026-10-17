@@ -11,6 +11,7 @@ use crate::types::{Float, WindowSize};
 pub struct NlmsOptions<F: Float> {
     pub mu: F,
     pub eps: F,
+    pub window_size: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -22,9 +23,10 @@ impl<F: Float> NlmsFilter<F> {
     ///
     /// Returns an error if mu or eps <= 0.0.
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
-    pub fn new(options: NlmsOptions<F>, window_size: WindowSize) -> Result<Self> {
+    pub fn new(options: NlmsOptions<F>) -> Result<Self> {
         let nlms = Nlms::new(options.mu, options.eps)?;
-        let filter = FilterBase::new(nlms, *window_size, ProcessingMode::Sample)?;
+        let window_size = WindowSize::new(options.window_size)?;
+        let filter = FilterBase::new(nlms, window_size, ProcessingMode::Sample)?;
         Ok(Self { inner: filter })
     }
 
@@ -34,6 +36,11 @@ impl<F: Float> NlmsFilter<F> {
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn from_weights(options: NlmsOptions<F>, weights: Vec<F>) -> Result<Self> {
         let nlms = Nlms::new(options.mu, options.eps)?;
+
+        if options.window_size != weights.len() {
+            // TODO
+        }
+
         let filter = FilterBase::from_weights(nlms, weights, ProcessingMode::Sample)?;
         Ok(Self { inner: filter })
     }
@@ -62,14 +69,15 @@ mod tests {
         let eps = 1e-8;
         let window_size = 16;
 
-        let filter = NlmsFilter::new(
-            NlmsOptions { mu, eps },
-            WindowSize::new(window_size).unwrap(),
-        )
+        let filter = NlmsFilter::new(NlmsOptions {
+            mu,
+            eps,
+            window_size,
+        })
         .unwrap();
         let expected_inner = FilterBase::new(
             Nlms::new(mu, eps).unwrap(),
-            window_size,
+            WindowSize::new(window_size).unwrap(),
             ProcessingMode::Sample,
         )
         .unwrap();
@@ -84,7 +92,15 @@ mod tests {
         let eps = 1e-8;
         let weights = vec![1.0, 2.0, 3.0];
 
-        let filter = NlmsFilter::from_weights(NlmsOptions { mu, eps }, weights.clone()).unwrap();
+        let filter = NlmsFilter::from_weights(
+            NlmsOptions {
+                mu,
+                eps,
+                window_size: weights.len(),
+            },
+            weights.clone(),
+        )
+        .unwrap();
         let expected_inner = FilterBase::from_weights(
             Nlms::new(mu, eps).unwrap(),
             weights.clone(),

@@ -43,8 +43,8 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
     /// # Errors
     ///
     /// Returns an error if `window_size == 0` or `block_size == 0`.
-    pub fn new(algorithm: A, window_size: usize, mode: ProcessingMode) -> Result<Self> {
-        let window_size = WindowSize::new(window_size)?;
+    pub fn new(algorithm: A, window_size: WindowSize, mode: ProcessingMode) -> Result<Self> {
+        // let window_size = WindowSize::new(window_size)?;
         let weights = FilterWeights::new(window_size);
 
         Ok(FilterBase {
@@ -347,7 +347,7 @@ mod tests {
     }
 
     fn testing_filter() -> FilterBase<f64, Lms<f64>> {
-        let window_size = 3;
+        let window_size = WindowSize::new(3).unwrap();
         let block_size = BlockSize::new(2).unwrap();
         let weights = [1.0, -2.0, 0.5];
 
@@ -367,7 +367,7 @@ mod tests {
 
     #[test]
     fn new_works() {
-        let window_size = 3;
+        let window_size = WindowSize::new(3).unwrap();
         let block_size = BlockSize::new(4).unwrap();
         let filter = FilterBase::new(
             Lms::new(1.0).unwrap(),
@@ -376,7 +376,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(filter.window_size, WindowSize::new(window_size).unwrap());
+        assert_eq!(filter.window_size, window_size);
         assert_eq!(filter.block_size, block_size);
         assert_eq!(filter.algorithm, Lms::new(1.0).unwrap());
         assert!(all_approx_equal(filter.weights.iter(), [0.0; 3].iter()));
@@ -525,10 +525,11 @@ mod tests {
     /// checks that if the end of the final block falls on
     /// the final sample, the update step is still called.
     fn n_samples_multiple_of_block_size() {
+        let window_size = WindowSize::new(3).unwrap();
         let block_size = BlockSize::new(2).unwrap();
         let mut filter = FilterBase::new(
             UpdateCallCounter::new(),
-            3,
+            window_size,
             ProcessingMode::Block(block_size),
         )
         .unwrap();
@@ -546,10 +547,11 @@ mod tests {
     /// checks that if the end of the final block doesn't align
     /// with the final sample, the update step is NOT called.
     fn n_samples_not_multiple_of_block_size() {
+        let window_size = WindowSize::new(3).unwrap();
         let block_size = BlockSize::new(2).unwrap();
         let mut filter = FilterBase::new(
             UpdateCallCounter::new(),
-            3,
+            window_size,
             ProcessingMode::Block(block_size),
         )
         .unwrap();
