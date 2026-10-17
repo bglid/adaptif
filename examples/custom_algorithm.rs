@@ -1,10 +1,10 @@
 use std::error::Error;
 
 use adaptif::algorithms::Algorithm;
-use adaptif::filters::{FilterBase, ProcessingMode};
+use adaptif::filters::FilterBase;
 use adaptif::types::buffers::NoiseWindow;
 use adaptif::types::signals::{InputSignal, NoiseReference, OutputSample};
-use adaptif::types::{FilterWeights, Float, WindowSize};
+use adaptif::types::{BlockSize, FilterWeights, Float, WindowSize};
 
 // Create a struct to hold any required parameters or state
 pub struct MyAlgorithm<F: Float> {
@@ -33,9 +33,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Define the algorithm parameters
     let algorithm_cfg = MyAlgorithm { alpha: 1.0 };
     let window_size = WindowSize::new(16)?;
+    let block_size = BlockSize::new(1)?;
 
     // Instantiate the filter using SampleFilterBase and our custom algorithm
-    let mut filter = FilterBase::new(algorithm_cfg, window_size, ProcessingMode::Sample)?;
+    let mut filter = FilterBase::new(algorithm_cfg, window_size, block_size);
 
     // Adapt the filter using our algorithm's update rules
     let _output = filter.adapt(&input_signal, &noise_ref)?;

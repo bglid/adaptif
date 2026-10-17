@@ -14,10 +14,10 @@ use numpy::{PyArray1, PyReadonlyArray1};
 use super::macros::generate_filter_bindings;
 
 use crate::Error;
-use crate::algorithms::{Algorithm, Lms, Nlms, Rls};
+use crate::algorithms::Algorithm;
 use crate::filters::{FilterBase, ProcessingMode};
+use crate::filters::{LmsFilter, LmsOptions, NlmsFilter, NlmsOptions, RlsFilter, RlsOptions};
 use crate::types::signals::{InputSignal, NoiseReference};
-use crate::types::{BlockSize, WindowSize};
 
 impl Error {
     fn to_pyerr(&self) -> PyErr {
@@ -113,16 +113,16 @@ mod adaptif {
     use super::{BlockLMSFilter, LMSFilter, NLMSFilter, RLSFilter};
 }
 
+// TODO: remove BlockLMSFilter
+
 #[pyclass]
-pub struct LMSFilter(FilterBase<f64, Lms<f64>>);
+pub struct LMSFilter(LmsFilter<f64>);
 #[pymethods]
 impl LMSFilter {
     #[new]
     fn new(mu: f64, window_size: usize) -> PyResult<Self> {
-        let lms = Lms::new(mu).map_err(|e| e.to_pyerr())?;
-        let window_size = WindowSize::new(window_size).map_err(|e| e.to_pyerr())?;
-        let filter =
-            FilterBase::new(lms, window_size, ProcessingMode::Sample).map_err(|e| e.to_pyerr())?;
+        let filter = LmsFilter::new(LmsOptions { mu, window_size }, ProcessingMode::Sample)
+            .map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
@@ -130,12 +130,16 @@ impl LMSFilter {
     #[staticmethod]
     fn from_weights(mu: f64, weights: PyReadonlyArray1<f64>) -> PyResult<Self> {
         // TODO: like with signals, decide whether weights should be copied or referenced
-        let lms = Lms::new(mu).map_err(|e| e.to_pyerr())?;
-
         let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
-
-        let filter = FilterBase::from_weights(lms, weights, ProcessingMode::Sample)
-            .map_err(|e| e.to_pyerr())?;
+        let filter = LmsFilter::from_weights(
+            LmsOptions {
+                mu,
+                window_size: weights.len(),
+            },
+            weights,
+            ProcessingMode::Sample,
+        )
+        .map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
@@ -144,27 +148,37 @@ impl LMSFilter {
 generate_filter_bindings!(LMSFilter);
 
 #[pyclass]
-pub struct NLMSFilter(FilterBase<f64, Nlms<f64>>);
+pub struct NLMSFilter(NlmsFilter<f64>);
 #[pymethods]
 impl NLMSFilter {
     #[new]
     fn new(mu: f64, eps: f64, window_size: usize) -> PyResult<Self> {
-        let nlms = Nlms::new(mu, eps).map_err(|e| e.to_pyerr())?;
-        let window_size = WindowSize::new(window_size).map_err(|e| e.to_pyerr())?;
-        let filter =
-            FilterBase::new(nlms, window_size, ProcessingMode::Sample).map_err(|e| e.to_pyerr())?;
+        let filter = NlmsFilter::new(
+            NlmsOptions {
+                mu,
+                eps,
+                window_size,
+            },
+            ProcessingMode::Sample,
+        )
+        .map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
 
     #[staticmethod]
     fn from_weights(mu: f64, eps: f64, weights: PyReadonlyArray1<f64>) -> PyResult<Self> {
-        let nlms = Nlms::new(mu, eps).map_err(|e| e.to_pyerr())?;
-
         let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
-
-        let filter = FilterBase::from_weights(nlms, weights, ProcessingMode::Sample)
-            .map_err(|e| e.to_pyerr())?;
+        let filter = NlmsFilter::from_weights(
+            NlmsOptions {
+                mu,
+                eps,
+                window_size: weights.len(),
+            },
+            weights,
+            ProcessingMode::Sample,
+        )
+        .map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
@@ -173,15 +187,21 @@ impl NLMSFilter {
 generate_filter_bindings!(NLMSFilter);
 
 #[pyclass]
-pub struct RLSFilter(FilterBase<f64, Rls<f64>>);
+pub struct RLSFilter(RlsFilter<f64>);
 #[pymethods]
 impl RLSFilter {
     #[new]
     fn new(forgetting_factor: f64, p_init_scale: f64, window_size: usize) -> PyResult<Self> {
-        let rls = Rls::new(forgetting_factor, p_init_scale).map_err(|e| e.to_pyerr())?;
-        let window_size = WindowSize::new(window_size).map_err(|e| e.to_pyerr())?;
-        let filter =
-            FilterBase::new(rls, window_size, ProcessingMode::Sample).map_err(|e| e.to_pyerr())?;
+        let filter = RlsFilter::new(
+            RlsOptions {
+                forgetting_factor,
+                p_init_scale,
+                window_size,
+            },
+            ProcessingMode::Sample,
+        )
+        .map_err(|e| e.to_pyerr())?;
+
         Ok(Self(filter))
     }
     #[staticmethod]
@@ -190,12 +210,17 @@ impl RLSFilter {
         p_init_scale: f64,
         weights: PyReadonlyArray1<f64>,
     ) -> PyResult<Self> {
-        let rls = Rls::new(forgetting_factor, p_init_scale).map_err(|e| e.to_pyerr())?;
-
         let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
-
-        let filter = FilterBase::from_weights(rls, weights, ProcessingMode::Sample)
-            .map_err(|e| e.to_pyerr())?;
+        let filter = RlsFilter::from_weights(
+            RlsOptions {
+                forgetting_factor,
+                p_init_scale,
+                window_size: weights.len(),
+            },
+            weights,
+            ProcessingMode::Sample,
+        )
+        .map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
@@ -204,32 +229,32 @@ impl RLSFilter {
 generate_filter_bindings!(RLSFilter);
 
 #[pyclass]
-pub struct BlockLMSFilter(FilterBase<f64, Lms<f64>>);
+pub struct BlockLMSFilter(LmsFilter<f64>);
 #[pymethods]
 impl BlockLMSFilter {
     #[new]
     fn new(mu: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
-        let lms = Lms::new(mu).map_err(|e| e.to_pyerr())?;
-
-        let window_size = WindowSize::new(window_size).map_err(|e| e.to_pyerr())?;
-        let block_size = BlockSize::new(block_size).map_err(|e| e.to_pyerr())?;
-
-        let filter = FilterBase::new(lms, window_size, ProcessingMode::Block(block_size))
-            .map_err(|e| e.to_pyerr())?;
+        let filter = LmsFilter::new(
+            LmsOptions { mu, window_size },
+            ProcessingMode::Block { block_size },
+        )
+        .map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }
 
     #[staticmethod]
     fn from_weights(mu: f64, weights: PyReadonlyArray1<f64>, block_size: usize) -> PyResult<Self> {
-        let lms = Lms::new(mu).map_err(|e| e.to_pyerr())?;
-
-        let block_size = BlockSize::new(block_size).map_err(|e| e.to_pyerr())?;
-
         let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
-
-        let filter = FilterBase::from_weights(lms, weights, ProcessingMode::Block(block_size))
-            .map_err(|e| e.to_pyerr())?;
+        let filter = LmsFilter::from_weights(
+            LmsOptions {
+                mu,
+                window_size: weights.len(),
+            },
+            weights,
+            ProcessingMode::Block { block_size },
+        )
+        .map_err(|e| e.to_pyerr())?;
 
         Ok(Self(filter))
     }

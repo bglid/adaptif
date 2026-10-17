@@ -23,10 +23,11 @@ impl<F: Float> NlmsFilter<F> {
     ///
     /// Returns an error if mu or eps <= 0.0.
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
-    pub fn new(options: NlmsOptions<F>) -> Result<Self> {
+    pub fn new(options: NlmsOptions<F>, mode: ProcessingMode) -> Result<Self> {
         let nlms = Nlms::new(options.mu, options.eps)?;
         let window_size = WindowSize::new(options.window_size)?;
-        let filter = FilterBase::new(nlms, window_size, ProcessingMode::Sample)?;
+        let block_size = mode.block_size()?;
+        let filter = FilterBase::new(nlms, window_size, block_size);
         Ok(Self { inner: filter })
     }
 
@@ -34,14 +35,18 @@ impl<F: Float> NlmsFilter<F> {
     ///
     /// Returns an error if `weights.is_empty()`.
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
-    pub fn from_weights(options: NlmsOptions<F>, weights: Vec<F>) -> Result<Self> {
+    pub fn from_weights(
+        options: NlmsOptions<F>,
+        weights: Vec<F>,
+        mode: ProcessingMode,
+    ) -> Result<Self> {
         let nlms = Nlms::new(options.mu, options.eps)?;
 
         if options.window_size != weights.len() {
             // TODO
         }
 
-        let filter = FilterBase::from_weights(nlms, weights, ProcessingMode::Sample)?;
+        let filter = FilterBase::from_weights(nlms, weights, mode.block_size()?)?;
         Ok(Self { inner: filter })
     }
 }
@@ -61,6 +66,8 @@ impl<F: Float> DerefMut for NlmsFilter<F> {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::indexing_slicing, reason = "Tests")]
 mod tests {
+    use crate::types::BlockSize;
+
     use super::*;
 
     #[test]
@@ -69,18 +76,20 @@ mod tests {
         let eps = 1e-8;
         let window_size = 16;
 
-        let filter = NlmsFilter::new(NlmsOptions {
-            mu,
-            eps,
-            window_size,
-        })
+        let filter = NlmsFilter::new(
+            NlmsOptions {
+                mu,
+                eps,
+                window_size,
+            },
+            ProcessingMode::Sample,
+        )
         .unwrap();
         let expected_inner = FilterBase::new(
             Nlms::new(mu, eps).unwrap(),
             WindowSize::new(window_size).unwrap(),
-            ProcessingMode::Sample,
-        )
-        .unwrap();
+            BlockSize::new(1).unwrap(),
+        );
 
         assert_eq!(filter.inner, expected_inner);
         assert_eq!(filter.window_size(), window_size);
@@ -99,12 +108,13 @@ mod tests {
                 window_size: weights.len(),
             },
             weights.clone(),
+            ProcessingMode::Sample,
         )
         .unwrap();
         let expected_inner = FilterBase::from_weights(
             Nlms::new(mu, eps).unwrap(),
             weights.clone(),
-            ProcessingMode::Sample,
+            BlockSize::new(1).unwrap(),
         )
         .unwrap();
 

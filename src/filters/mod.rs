@@ -2,7 +2,7 @@ mod filter_base;
 pub use filter_base::{FilterBase, ProcessingMode};
 
 mod lms;
-pub use lms::{BlockLmsFilter, LmsFilter, LmsOptions};
+pub use lms::{LmsFilter, LmsOptions};
 
 mod nlms;
 pub use nlms::{NlmsFilter, NlmsOptions};

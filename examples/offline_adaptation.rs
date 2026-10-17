@@ -2,7 +2,7 @@
 
 use std::error::Error;
 
-use adaptif::filters::{LmsFilter, LmsOptions};
+use adaptif::filters::{LmsFilter, LmsOptions, ProcessingMode};
 use adaptif::types::signals::{InputSignal, NoiseReference};
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -11,10 +11,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let noise_ref = NoiseReference::new(vec![2.0, -1.2, -3.8])?;
 
     // Initialize the filter
-    let mut lms = LmsFilter::new(LmsOptions {
-        mu: 0.1,         // The filter's step size
-        window_size: 16, // How many samples we process at a time
-    })?;
+    let mut lms = LmsFilter::new(
+        LmsOptions {
+            mu: 0.1,         // The filter's step size
+            window_size: 16, // How many samples we process at a time
+        },
+        ProcessingMode::Sample,
+    )?;
 
     // Adapt the filter to the inputs -- because we call `filter()` later, we can discard the output signal.
     let _ = lms.adapt(&input_signal, &noise_ref)?;
@@ -24,10 +27,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // `filter()` doesn't require the filter to be mutable, so we can also do this:
     let lms_adapted = {
-        let mut lms = LmsFilter::new(LmsOptions {
-            mu: 0.1,
-            window_size: 16,
-        })?;
+        let mut lms = LmsFilter::new(
+            LmsOptions {
+                mu: 0.1,
+                window_size: 16,
+            },
+            ProcessingMode::Sample,
+        )?;
         lms.adapt(&input_signal, &noise_ref)?;
         lms
     };

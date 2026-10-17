@@ -23,10 +23,11 @@ impl<F: Float> RlsFilter<F> {
     ///
     /// Returns an error if forgetting factor <= 0.0 or > 1.0, if init scale <= 0.0.
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
-    pub fn new(options: RlsOptions<F>) -> Result<Self> {
+    pub fn new(options: RlsOptions<F>, mode: ProcessingMode) -> Result<Self> {
         let rls = Rls::new(options.forgetting_factor, options.p_init_scale)?;
         let window_size = WindowSize::new(options.window_size)?;
-        let filter = FilterBase::new(rls, window_size, ProcessingMode::Sample)?;
+        let block_size = mode.block_size()?;
+        let filter = FilterBase::new(rls, window_size, block_size);
         Ok(Self { inner: filter })
     }
 
@@ -34,14 +35,18 @@ impl<F: Float> RlsFilter<F> {
     ///
     /// Returns an error if `weights.is_empty()`.
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
-    pub fn from_weights(options: RlsOptions<F>, weights: Vec<F>) -> Result<Self> {
+    pub fn from_weights(
+        options: RlsOptions<F>,
+        weights: Vec<F>,
+        mode: ProcessingMode,
+    ) -> Result<Self> {
         let rls = Rls::new(options.forgetting_factor, options.p_init_scale)?;
 
         if options.window_size != weights.len() {
             // TODO
         }
 
-        let filter = FilterBase::from_weights(rls, weights, ProcessingMode::Sample)?;
+        let filter = FilterBase::from_weights(rls, weights, mode.block_size()?)?;
         Ok(Self { inner: filter })
     }
 }
@@ -62,6 +67,7 @@ impl<F: Float> DerefMut for RlsFilter<F> {
 #[allow(clippy::unwrap_used, clippy::indexing_slicing, reason = "Tests")]
 mod tests {
     use super::*;
+    use crate::types::BlockSize;
 
     #[test]
     fn new_works() {
@@ -69,18 +75,20 @@ mod tests {
         let p_init_scale = 1e-4;
         let window_size = 16;
 
-        let filter = RlsFilter::new(RlsOptions {
-            forgetting_factor,
-            p_init_scale,
-            window_size,
-        })
+        let filter = RlsFilter::new(
+            RlsOptions {
+                forgetting_factor,
+                p_init_scale,
+                window_size,
+            },
+            ProcessingMode::Sample,
+        )
         .unwrap();
         let expected_inner = FilterBase::new(
             Rls::new(forgetting_factor, p_init_scale).unwrap(),
             WindowSize::new(window_size).unwrap(),
-            ProcessingMode::Sample,
-        )
-        .unwrap();
+            BlockSize::new(1).unwrap(),
+        );
 
         assert_eq!(filter.inner, expected_inner);
         assert_eq!(filter.window_size(), window_size);
@@ -99,12 +107,13 @@ mod tests {
                 window_size: weights.len(),
             },
             weights.clone(),
+            ProcessingMode::Sample,
         )
         .unwrap();
         let expected_inner = FilterBase::from_weights(
             Rls::new(forgetting_factor, p_init_scale).unwrap(),
             weights.clone(),
-            ProcessingMode::Sample,
+            BlockSize::new(1).unwrap(),
         )
         .unwrap();
 
