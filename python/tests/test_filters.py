@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from adaptif import BlockLMSFilter, LMSFilter, NLMSFilter, RLSFilter
+from adaptif import LMSFilter, NLMSFilter, RLSFilter
 
 
 @pytest.fixture(
@@ -11,7 +11,6 @@ from adaptif import BlockLMSFilter, LMSFilter, NLMSFilter, RLSFilter
             RLSFilter,
             {"forgetting_factor": 0.999, "p_init_scale": 0.01, "window_size": 8},
         ),
-        (BlockLMSFilter, {"mu": 1.0, "window_size": 1024, "block_size": 1024}),
     ]
 )
 def filter(request):
@@ -25,10 +24,11 @@ def filter(request):
         (LMSFilter, {"mu": 0.1}),
         (NLMSFilter, {"mu": 0.01, "eps": 1e-8}),
         (RLSFilter, {"forgetting_factor": 0.999, "p_init_scale": 0.01}),
-        (BlockLMSFilter, {"mu": 1.0, "block_size": 1024}),
     ],
 )
-def test_window_size(filter_class, kwargs):
+@pytest.mark.parametrize("block_size", [1, 4])
+def test_window_size(filter_class, kwargs, block_size):
+    kwargs["block_size"] = block_size
     kwargs["window_size"] = 1
     filter = filter_class(**kwargs)
     assert filter.window_size == 1
@@ -42,15 +42,32 @@ def test_window_size(filter_class, kwargs):
         filter_class(**kwargs)
 
 
-@pytest.mark.parametrize("filter_class", [BlockLMSFilter])
-def test_block_size(filter_class):
-    filter = filter_class(mu=0.1, window_size=16, block_size=1)
+@pytest.mark.parametrize(
+    ["filter_class", "kwargs"],
+    [
+        (LMSFilter, {"mu": 0.1}),
+        (NLMSFilter, {"mu": 0.01, "eps": 1e-8}),
+        (RLSFilter, {"forgetting_factor": 0.999, "p_init_scale": 0.01}),
+    ],
+)
+def test_block_size(filter_class, kwargs):
+    kwargs["window_size"] = 16
+
+    kwargs["block_size"] = 1
+    filter = filter_class(**kwargs)
     assert filter.block_size == 1
 
+    kwargs["block_size"] = 2
+    filter = filter_class(**kwargs)
+    assert filter.block_size == 2
+
+    kwargs["block_size"] = -1
     with pytest.raises(OverflowError):
-        filter_class(mu=0.1, window_size=16, block_size=-1)
+        filter_class(**kwargs)
+
+    kwargs["block_size"] = 0
     with pytest.raises(ValueError):
-        filter_class(mu=0.1, window_size=16, block_size=0)
+        filter_class(**kwargs)
 
 
 def test_weights(filter):
@@ -64,24 +81,18 @@ def test_load_weights(filter):
     assert filter.window_size == len(weights)
     assert np.allclose(filter.weights, weights)
 
-    with pytest.raises(ValueError):
-        filter.load_weights(np.array([]))
-
-    with pytest.raises(ValueError):
-        filter.load_weights(np.ones([filter.window_size - 1]))
-
-    with pytest.raises(ValueError):
-        filter.load_weights(np.ones([filter.window_size + 1]))
+    for w in [
+        np.array([]),
+        np.ones(filter.window_size - 1),
+        np.ones(filter.window_size + 1),
+    ]:
+        with pytest.raises(ValueError):
+            filter.load_weights(w)
 
 
 def test_adapt(filter):
-    if isinstance(filter, BlockLMSFilter):
-        # Block LMS doesn't update on the final block (see Rust code for reason)
-        # Since the test signals fit within one block we need a filter with a smaller
-        # block size to test if the weights update.
-        filter = BlockLMSFilter(mu=0.1, window_size=1, block_size=1)
-    input_signal = np.linspace(1, 5, 5)
-    noise_ref = np.linspace(0.5, 2.5, 5)
+    input_signal = np.linspace(1, 5, 32)
+    noise_ref = np.linspace(0.5, 2.5, 32)
 
     output = filter.adapt(input_signal, noise_ref)
 
@@ -91,8 +102,8 @@ def test_adapt(filter):
 
 
 def test_filter(filter):
-    input_signal = np.linspace(1, 5, 5)
-    noise_ref = np.linspace(0.5, 2.5, 5)
+    input_signal = np.linspace(1, 5, 32)
+    noise_ref = np.linspace(0.5, 2.5, 32)
 
     output = filter.filter(input_signal, noise_ref)
 

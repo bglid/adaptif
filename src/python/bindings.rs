@@ -111,89 +111,82 @@ where
 #[pymodule]
 mod adaptif {
     #[pymodule_export]
-    use super::{BlockLMSFilter, LMSFilter, NLMSFilter, RLSFilter};
+    use super::{LMSFilter, NLMSFilter, RLSFilter};
 }
 
-// TODO: remove BlockLMSFilter
-
 #[pyclass]
-pub struct LMSFilter(LmsFilter<f64>);
+pub struct LMSFilter {
+    inner: LmsFilter<f64>,
+}
 #[pymethods]
 impl LMSFilter {
     #[new]
-    fn new(mu: f64, window_size: usize) -> PyResult<Self> {
-        let filter = LmsFilter::new(LmsOptions { mu, window_size }, ProcessingMode::Sample)
-            .map_err(|e| e.to_pyerr())?;
+    #[pyo3(signature = (mu, window_size, block_size=1))]
+    fn new(mu: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
+        let filter = LmsFilter::new(
+            LmsOptions { mu, window_size },
+            ProcessingMode::Block { block_size }, // Note that block_size: 1 is functionally
+                                                  // equivalent to ProcessingMode::Sample
+        )
+        .map_err(|e| e.to_pyerr())?;
 
-        Ok(Self(filter))
+        Ok(Self { inner: filter })
     }
 }
 
 generate_filter_bindings!(LMSFilter);
 
 #[pyclass]
-pub struct NLMSFilter(NlmsFilter<f64>);
+pub struct NLMSFilter {
+    inner: NlmsFilter<f64>,
+}
 #[pymethods]
 impl NLMSFilter {
     #[new]
-    fn new(mu: f64, eps: f64, window_size: usize) -> PyResult<Self> {
+    #[pyo3(signature = (mu, eps, window_size, block_size=1))]
+    fn new(mu: f64, eps: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
         let filter = NlmsFilter::new(
             NlmsOptions {
                 mu,
                 eps,
                 window_size,
             },
-            ProcessingMode::Sample,
+            ProcessingMode::Block { block_size },
         )
         .map_err(|e| e.to_pyerr())?;
 
-        Ok(Self(filter))
+        Ok(Self { inner: filter })
     }
 }
 
 generate_filter_bindings!(NLMSFilter);
 
 #[pyclass]
-pub struct RLSFilter(RlsFilter<f64>);
+pub struct RLSFilter {
+    inner: RlsFilter<f64>,
+}
 #[pymethods]
 impl RLSFilter {
     #[new]
-    fn new(forgetting_factor: f64, p_init_scale: f64, window_size: usize) -> PyResult<Self> {
+    #[pyo3(signature = (forgetting_factor, p_init_scale, window_size, block_size=1))]
+    fn new(
+        forgetting_factor: f64,
+        p_init_scale: f64,
+        window_size: usize,
+        block_size: usize,
+    ) -> PyResult<Self> {
         let filter = RlsFilter::new(
             RlsOptions {
                 forgetting_factor,
                 p_init_scale,
                 window_size,
             },
-            ProcessingMode::Sample,
-        )
-        .map_err(|e| e.to_pyerr())?;
-
-        Ok(Self(filter))
-    }
-}
-
-generate_filter_bindings!(RLSFilter);
-
-#[pyclass]
-pub struct BlockLMSFilter(LmsFilter<f64>);
-#[pymethods]
-impl BlockLMSFilter {
-    #[new]
-    fn new(mu: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
-        let filter = LmsFilter::new(
-            LmsOptions { mu, window_size },
             ProcessingMode::Block { block_size },
         )
         .map_err(|e| e.to_pyerr())?;
 
-        Ok(Self(filter))
-    }
-
-    #[getter]
-    fn block_size(&self) -> usize {
-        self.0.block_size()
+        Ok(Self { inner: filter })
     }
 }
 
-generate_filter_bindings!(BlockLMSFilter);
+generate_filter_bindings!(RLSFilter);
