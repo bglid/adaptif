@@ -10,11 +10,18 @@ pub enum Error {
     EmptyInputArr,
     WindowSizeZero,
     BlockSizeZero,
-    NoiseRefTooShort { input_len: usize, noise_len: usize },
+    NoiseRefTooShort {
+        input_len: usize,
+        noise_len: usize,
+    },
     NonPositiveStepSize,
     NonPositiveEpsilon,
     InvalidForgettingFactorRange,
     NonPositivePInitScale,
+    WeightsDontMatchWindowSize {
+        n_weights: usize,
+        window_size: usize,
+    },
 }
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -37,6 +44,13 @@ impl Display for Error {
             Self::NonPositivePInitScale => write!(
                 f,
                 "scalar value (delta) used in initializing the inverse correlation matrix must be greater than 0.0"
+            ),
+            Self::WeightsDontMatchWindowSize {
+                n_weights,
+                window_size,
+            } => write!(
+                f,
+                "number of weights ({n_weights}) must match the window size ({window_size})"
             ),
         }
     }

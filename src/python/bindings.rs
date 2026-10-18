@@ -29,7 +29,8 @@ impl Error {
             | Self::NonPositiveStepSize
             | Self::InvalidForgettingFactorRange
             | Self::NonPositivePInitScale
-            | Self::NonPositiveEpsilon => PyValueError::new_err(self.to_string()),
+            | Self::NonPositiveEpsilon
+            | Self::WeightsDontMatchWindowSize { .. } => PyValueError::new_err(self.to_string()),
         }
     }
 }
@@ -126,23 +127,6 @@ impl LMSFilter {
 
         Ok(Self(filter))
     }
-
-    #[staticmethod]
-    fn from_weights(mu: f64, weights: PyReadonlyArray1<f64>) -> PyResult<Self> {
-        // TODO: like with signals, decide whether weights should be copied or referenced
-        let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
-        let filter = LmsFilter::from_weights(
-            LmsOptions {
-                mu,
-                window_size: weights.len(),
-            },
-            weights,
-            ProcessingMode::Sample,
-        )
-        .map_err(|e| e.to_pyerr())?;
-
-        Ok(Self(filter))
-    }
 }
 
 generate_filter_bindings!(LMSFilter);
@@ -159,23 +143,6 @@ impl NLMSFilter {
                 eps,
                 window_size,
             },
-            ProcessingMode::Sample,
-        )
-        .map_err(|e| e.to_pyerr())?;
-
-        Ok(Self(filter))
-    }
-
-    #[staticmethod]
-    fn from_weights(mu: f64, eps: f64, weights: PyReadonlyArray1<f64>) -> PyResult<Self> {
-        let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
-        let filter = NlmsFilter::from_weights(
-            NlmsOptions {
-                mu,
-                eps,
-                window_size: weights.len(),
-            },
-            weights,
             ProcessingMode::Sample,
         )
         .map_err(|e| e.to_pyerr())?;
@@ -204,26 +171,6 @@ impl RLSFilter {
 
         Ok(Self(filter))
     }
-    #[staticmethod]
-    fn from_weights(
-        forgetting_factor: f64,
-        p_init_scale: f64,
-        weights: PyReadonlyArray1<f64>,
-    ) -> PyResult<Self> {
-        let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
-        let filter = RlsFilter::from_weights(
-            RlsOptions {
-                forgetting_factor,
-                p_init_scale,
-                window_size: weights.len(),
-            },
-            weights,
-            ProcessingMode::Sample,
-        )
-        .map_err(|e| e.to_pyerr())?;
-
-        Ok(Self(filter))
-    }
 }
 
 generate_filter_bindings!(RLSFilter);
@@ -236,22 +183,6 @@ impl BlockLMSFilter {
     fn new(mu: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
         let filter = LmsFilter::new(
             LmsOptions { mu, window_size },
-            ProcessingMode::Block { block_size },
-        )
-        .map_err(|e| e.to_pyerr())?;
-
-        Ok(Self(filter))
-    }
-
-    #[staticmethod]
-    fn from_weights(mu: f64, weights: PyReadonlyArray1<f64>, block_size: usize) -> PyResult<Self> {
-        let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
-        let filter = LmsFilter::from_weights(
-            LmsOptions {
-                mu,
-                window_size: weights.len(),
-            },
-            weights,
             ProcessingMode::Block { block_size },
         )
         .map_err(|e| e.to_pyerr())?;

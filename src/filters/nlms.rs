@@ -21,32 +21,13 @@ pub struct NlmsFilter<F: Float> {
 impl<F: Float> NlmsFilter<F> {
     /// # Errors
     ///
-    /// Returns an error if mu or eps <= 0.0.
+    /// Returns an error if options.mu or options.eps <= 0.0.
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn new(options: NlmsOptions<F>, mode: ProcessingMode) -> Result<Self> {
         let nlms = Nlms::new(options.mu, options.eps)?;
         let window_size = WindowSize::new(options.window_size)?;
         let block_size = mode.block_size()?;
         let filter = FilterBase::new(nlms, window_size, block_size);
-        Ok(Self { inner: filter })
-    }
-
-    /// # Errors
-    ///
-    /// Returns an error if `weights.is_empty()`.
-    #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
-    pub fn from_weights(
-        options: NlmsOptions<F>,
-        weights: Vec<F>,
-        mode: ProcessingMode,
-    ) -> Result<Self> {
-        let nlms = Nlms::new(options.mu, options.eps)?;
-
-        if options.window_size != weights.len() {
-            // TODO
-        }
-
-        let filter = FilterBase::from_weights(nlms, weights, mode.block_size()?)?;
         Ok(Self { inner: filter })
     }
 }
@@ -101,22 +82,29 @@ mod tests {
         let eps = 1e-8;
         let weights = vec![1.0, 2.0, 3.0];
 
-        let filter = NlmsFilter::from_weights(
-            NlmsOptions {
-                mu,
-                eps,
-                window_size: weights.len(),
-            },
-            weights.clone(),
-            ProcessingMode::Sample,
-        )
-        .unwrap();
-        let expected_inner = FilterBase::from_weights(
-            Nlms::new(mu, eps).unwrap(),
-            weights.clone(),
-            BlockSize::new(1).unwrap(),
-        )
-        .unwrap();
+        let filter = {
+            let mut filter = NlmsFilter::new(
+                NlmsOptions {
+                    mu,
+                    eps,
+                    window_size: weights.len(),
+                },
+                ProcessingMode::Sample,
+            )
+            .unwrap();
+            filter.load_weights(weights.clone()).unwrap();
+            filter
+        };
+
+        let expected_inner = {
+            let mut expected_inner = FilterBase::new(
+                Nlms::new(mu, eps).unwrap(),
+                WindowSize::new(weights.len()).unwrap(),
+                BlockSize::new(1).unwrap(),
+            );
+            expected_inner.load_weights(weights.clone()).unwrap();
+            expected_inner
+        };
 
         assert_eq!(filter.inner, expected_inner);
         assert_eq!(filter.window_size(), weights.len());

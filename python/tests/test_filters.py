@@ -5,11 +5,11 @@ from adaptif import BlockLMSFilter, LMSFilter, NLMSFilter, RLSFilter
 
 @pytest.fixture(
     params=[
-        (LMSFilter, {"mu": 1.0, "window_size": 1024}),
-        (NLMSFilter, {"mu": 1.0, "eps": 1e-8, "window_size": 1024}),
+        (LMSFilter, {"mu": 0.1, "window_size": 16}),
+        (NLMSFilter, {"mu": 0.01, "eps": 1e-8, "window_size": 16}),
         (
             RLSFilter,
-            {"forgetting_factor": 0.5, "p_init_scale": 1.0, "window_size": 1024},
+            {"forgetting_factor": 0.999, "p_init_scale": 0.01, "window_size": 8},
         ),
         (BlockLMSFilter, {"mu": 1.0, "window_size": 1024, "block_size": 1024}),
     ]
@@ -22,9 +22,9 @@ def filter(request):
 @pytest.mark.parametrize(
     ["filter_class", "kwargs"],
     [
-        (LMSFilter, {"mu": 1.0}),
-        (NLMSFilter, {"mu": 1.0, "eps": 1e-8}),
-        (RLSFilter, {"forgetting_factor": 0.5, "p_init_scale": 1.0}),
+        (LMSFilter, {"mu": 0.1}),
+        (NLMSFilter, {"mu": 0.01, "eps": 1e-8}),
+        (RLSFilter, {"forgetting_factor": 0.999, "p_init_scale": 0.01}),
         (BlockLMSFilter, {"mu": 1.0, "block_size": 1024}),
     ],
 )
@@ -44,28 +44,34 @@ def test_window_size(filter_class, kwargs):
 
 @pytest.mark.parametrize("filter_class", [BlockLMSFilter])
 def test_block_size(filter_class):
-    filter = filter_class(mu=0.1, window_size=1024, block_size=1)
+    filter = filter_class(mu=0.1, window_size=16, block_size=1)
     assert filter.block_size == 1
 
     with pytest.raises(OverflowError):
-        filter_class(mu=0.1, window_size=1024, block_size=-1)
+        filter_class(mu=0.1, window_size=16, block_size=-1)
     with pytest.raises(ValueError):
-        filter_class(mu=0.1, window_size=1024, block_size=0)
-
-
-def test_from_weights():
-    weights = np.array([1.0, 2.0, 3.0])
-    filter = LMSFilter.from_weights(1.0, weights)
-    assert filter.window_size == 3
-    assert np.allclose(filter.weights, weights)
-
-    with pytest.raises(ValueError):
-        LMSFilter.from_weights(1.0, np.array([]))
+        filter_class(mu=0.1, window_size=16, block_size=0)
 
 
 def test_weights(filter):
     assert isinstance(filter.weights, np.ndarray)
     assert np.allclose(filter.weights, np.zeros(filter.window_size))
+
+
+def test_load_weights(filter):
+    weights = np.ones([filter.window_size])
+    filter.load_weights(weights)
+    assert filter.window_size == len(weights)
+    assert np.allclose(filter.weights, weights)
+
+    with pytest.raises(ValueError):
+        filter.load_weights(np.array([]))
+
+    with pytest.raises(ValueError):
+        filter.load_weights(np.ones([filter.window_size - 1]))
+
+    with pytest.raises(ValueError):
+        filter.load_weights(np.ones([filter.window_size + 1]))
 
 
 def test_adapt(filter):

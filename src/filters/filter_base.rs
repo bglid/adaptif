@@ -49,26 +49,22 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
         }
     }
 
-    /// Creates a filter of the specified algorithm with set weights.
-    /// Ownership of the weights is transferred to `FilterBase`.
-    /// The filter's window size is equal to `weights.len()`.
-    ///
     /// This method is intended for loading previously adapted weights
     /// or for non-zero weight initialization, e.g. from a sampled distribution.
     ///
     /// # Errors
     ///
-    /// Returns an error if `weights.is_empty()`.
-    pub fn from_weights(algorithm: A, weights: Vec<F>, block_size: BlockSize) -> Result<Self> {
-        let weights = FilterWeights::try_from(weights)?;
-        let window_size = weights.window_size();
-
-        Ok(FilterBase {
-            algorithm,
-            weights,
-            window_size,
-            block_size,
-        })
+    /// Returns an error if `weights.len() != self.window_size`.
+    pub fn load_weights(&mut self, weights: Vec<F>) -> Result<()> {
+        if weights.len() == *self.window_size {
+            self.weights = FilterWeights::try_from(weights)?;
+            Ok(())
+        } else {
+            Err(Error::WeightsDontMatchWindowSize {
+                n_weights: weights.len(),
+                window_size: *self.window_size,
+            })
+        }
     }
 
     /// Returns the filter's window size. This number is equal to the number of weights.
@@ -391,30 +387,50 @@ mod tests {
     }
 
     #[test]
-    fn from_weights_works() {
+    fn load_weights_works() {
         let weights = vec![1.0, 2.0, 3.0];
 
-        let filter = FilterBase::from_weights(
-            Lms::new(1.0).unwrap(),
-            weights.clone(),
-            BlockSize::new(16).unwrap(),
-        )
-        .unwrap();
+        let mut filter = FilterBase::new(
+            Lms::new(0.1).unwrap(),
+            WindowSize::new(weights.len()).unwrap(),
+            BlockSize::new(2).unwrap(),
+        );
+        filter.load_weights(weights.clone()).unwrap();
 
         assert!(all_approx_equal(weights.iter(), filter.weights().iter()));
     }
 
     #[test]
-    fn from_weights_reject_empty() {
+    fn load_weights_reject_empty() {
         let empty_vec = vec![];
 
+        let mut filter = testing_filter();
+
         assert!(matches!(
-            FilterBase::from_weights(
-                Lms::new(1.0).unwrap(),
-                empty_vec,
-                BlockSize::new(16).unwrap(),
-            ),
-            Err(Error::EmptyInputArr)
+            filter.load_weights(empty_vec),
+            Err(Error::WeightsDontMatchWindowSize { .. })
+        ));
+    }
+
+    #[test]
+    fn load_weights_reject_window_size_mismatch() {
+        let vec_too_long = vec![1.0, 2.0, 3.0, 4.0];
+        let vec_too_short = vec![1.0, 2.0];
+
+        let mut filter = FilterBase::new(
+            Lms::new(0.1).unwrap(),
+            WindowSize::new(3).unwrap(),
+            BlockSize::new(1).unwrap(),
+        );
+
+        assert!(matches!(
+            filter.load_weights(vec_too_long),
+            Err(Error::WeightsDontMatchWindowSize { .. })
+        ));
+
+        assert!(matches!(
+            filter.load_weights(vec_too_short),
+            Err(Error::WeightsDontMatchWindowSize { .. })
         ));
     }
 

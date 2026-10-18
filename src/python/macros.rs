@@ -8,9 +8,20 @@ macro_rules! generate_filter_bindings {
                 self.0.window_size()
             }
 
+            // TODO: block_size getter
+
             #[getter]
             fn weights<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray1<f64>>> {
                 Ok(PyArray1::from_vec(py, Vec::from(self.0.weights())))
+            }
+
+            fn load_weights(&mut self, weights: PyReadonlyArray1<f64>) -> PyResult<()> {
+                // TODO: like with signals, decide whether weights should be copied or referenced
+                let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
+
+                self.0.load_weights(weights).map_err(|e| e.to_pyerr())?;
+
+                Ok(())
             }
 
             fn adapt<'py>(
