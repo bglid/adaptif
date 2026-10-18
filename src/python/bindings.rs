@@ -1,8 +1,4 @@
 #![allow(
-    clippy::multiple_inherent_impl,
-    reason = "Defining methods that are only needed for this module and shouldn't be compiled otherwise."
-)]
-#![allow(
     clippy::needless_pass_by_value,
     reason = "PyArrays must be passed by value"
 )]
@@ -19,25 +15,26 @@ use crate::filters::{FilterBase, ProcessingMode};
 use crate::filters::{LmsFilter, LmsOptions, NlmsFilter, NlmsOptions, RlsFilter, RlsOptions};
 use crate::types::signals::{InputSignal, NoiseReference};
 
-impl Error {
-    fn to_pyerr(&self) -> PyErr {
-        match *self {
-            Self::EmptyInputArr
-            | Self::WindowSizeZero
-            | Self::BlockSizeZero
-            | Self::NoiseRefTooShort { .. }
-            | Self::NonPositiveStepSize
-            | Self::InvalidForgettingFactorRange
-            | Self::NonPositivePInitScale
-            | Self::NonPositiveEpsilon
-            | Self::WeightsDontMatchWindowSize { .. } => PyValueError::new_err(self.to_string()),
+impl From<Error> for PyErr {
+    fn from(value: Error) -> Self {
+        match value {
+            Error::EmptyInputArr
+            | Error::WindowSizeZero
+            | Error::BlockSizeZero
+            | Error::NoiseRefTooShort { .. }
+            | Error::NonPositiveStepSize
+            | Error::InvalidForgettingFactorRange
+            | Error::NonPositivePInitScale
+            | Error::NonPositiveEpsilon
+            | Error::WeightsDontMatchWindowSize { .. } => PyValueError::new_err(value.to_string()),
         }
     }
 }
 
 // Python floats are double precision, so we use f64 instead of a generic
-impl InputSignal<f64> {
-    fn from_pyarray(input_signal: &PyReadonlyArray1<f64>) -> PyResult<InputSignal<f64>> {
+impl TryFrom<&PyReadonlyArray1<'_, f64>> for InputSignal<f64> {
+    type Error = PyErr;
+    fn try_from(value: &PyReadonlyArray1<f64>) -> Result<Self, Self::Error> {
         // TODO: if we split off a no_std core module, decide whether we want to copy
         // the input or use references (if we copy the input can be non-contiguous,
         // but it's more costly)
@@ -54,26 +51,24 @@ impl InputSignal<f64> {
         //     )
         // })?;
 
-        let input_signal = input_signal
-            .as_array()
-            .iter()
-            .copied()
-            .collect::<Vec<f64>>();
+        let input_signal = value.as_array().iter().copied().collect::<Vec<f64>>();
 
-        let input_signal = InputSignal::new(input_signal).map_err(|e| e.to_pyerr())?;
+        let input_signal = InputSignal::new(input_signal).map_err(PyErr::from)?;
         Ok(input_signal)
     }
 }
-impl NoiseReference<f64> {
-    fn from_pyarray(noise_ref: &PyReadonlyArray1<f64>) -> PyResult<NoiseReference<f64>> {
+
+impl TryFrom<&PyReadonlyArray1<'_, f64>> for NoiseReference<f64> {
+    type Error = PyErr;
+    fn try_from(value: &PyReadonlyArray1<f64>) -> Result<Self, Self::Error> {
         // let noise_ref = noise_ref.as_slice().map_err(|_e| {
         //     PyValueError::new_err(
         //         "noise_ref must be a contiguous NumPy array; use numpy.ascontiguousarray().",
         //     )
         // })?;
-        let noise_ref = noise_ref.as_array().iter().copied().collect::<Vec<f64>>();
+        let noise_ref = value.as_array().iter().copied().collect::<Vec<f64>>();
 
-        let noise_ref = NoiseReference::new(noise_ref).map_err(|e| e.to_pyerr())?;
+        let noise_ref = NoiseReference::new(noise_ref).map_err(PyErr::from)?;
         Ok(noise_ref)
     }
 }
@@ -96,14 +91,14 @@ fn adapt_filter_impl<'py, A>(
 where
     A: Algorithm<f64>,
 {
-    let input_signal = InputSignal::from_pyarray(&input_signal)?;
-    let noise_ref = NoiseReference::from_pyarray(&noise_ref)?;
+    let input_signal = InputSignal::try_from(&input_signal)?;
+    let noise_ref = NoiseReference::try_from(&noise_ref)?;
 
     let output_signal = match op {
         FilterOperation::Adapt => filter.adapt(&input_signal, &noise_ref),
         FilterOperation::Filter => filter.filter(&input_signal, &noise_ref),
     }
-    .map_err(|e| e.to_pyerr())?;
+    .map_err(PyErr::from)?;
 
     Ok(PyArray1::from_vec(py, output_signal))
 }
@@ -128,7 +123,7 @@ impl LMSFilter {
             ProcessingMode::Block { block_size }, // Note that block_size: 1 is functionally
                                                   // equivalent to ProcessingMode::Sample
         )
-        .map_err(|e| e.to_pyerr())?;
+        .map_err(PyErr::from)?;
 
         Ok(Self { inner: filter })
     }
@@ -153,7 +148,7 @@ impl NLMSFilter {
             },
             ProcessingMode::Block { block_size },
         )
-        .map_err(|e| e.to_pyerr())?;
+        .map_err(PyErr::from)?;
 
         Ok(Self { inner: filter })
     }
@@ -183,7 +178,7 @@ impl RLSFilter {
             },
             ProcessingMode::Block { block_size },
         )
-        .map_err(|e| e.to_pyerr())?;
+        .map_err(PyErr::from)?;
 
         Ok(Self { inner: filter })
     }

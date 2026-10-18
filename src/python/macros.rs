@@ -22,7 +22,7 @@ macro_rules! generate_filter_bindings {
                 // TODO: like with signals, decide whether weights should be copied or referenced
                 let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
 
-                self.inner.load_weights(weights).map_err(|e| e.to_pyerr())?;
+                self.inner.load_weights(weights).map_err(PyErr::from)?;
 
                 Ok(())
             }
