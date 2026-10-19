@@ -12,6 +12,21 @@ pub struct LmsOptions<F: Float> {
     pub mu: F,
     pub window_size: usize,
 }
+impl<F: Float> Default for LmsOptions<F> {
+    fn default() -> Self {
+        #[allow(
+            clippy::unwrap_used,
+            clippy::missing_panics_doc,
+            reason = "Trivial conversions"
+        )]
+        Self {
+            // TODO: if we define our own Float trait we can have an unchecked conversion fn
+            // for these cases since we only need to impl it for f64 and f32
+            mu: F::from(0.1).unwrap(),
+            window_size: 16,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct LmsFilter<F: Float> {
@@ -26,7 +41,9 @@ impl<F: Float> LmsFilter<F> {
         let lms = Lms::new(options.mu)?;
         let window_size = WindowSize::new(options.window_size)?;
         let block_size = mode.block_size()?;
+
         let filter = FilterBase::new(lms, window_size, block_size);
+
         Ok(Self { inner: filter })
     }
 }

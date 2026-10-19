@@ -13,6 +13,20 @@ pub struct RlsOptions<F: Float> {
     pub p_init_scale: F,
     pub window_size: usize,
 }
+impl<F: Float> Default for RlsOptions<F> {
+    fn default() -> Self {
+        #[allow(
+            clippy::unwrap_used,
+            clippy::missing_panics_doc,
+            reason = "Trivial conversions"
+        )]
+        Self {
+            forgetting_factor: F::from(0.999).unwrap(),
+            p_init_scale: F::from(0.001).unwrap(),
+            window_size: 8,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct RlsFilter<F: Float> {

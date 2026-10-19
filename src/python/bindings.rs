@@ -116,7 +116,7 @@ pub struct LMSFilter {
 #[pymethods]
 impl LMSFilter {
     #[new]
-    #[pyo3(signature = (mu, window_size, block_size=1))]
+    #[pyo3(signature = (mu=0.1, window_size=16, block_size=1))]
     fn new(mu: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
         let filter = LmsFilter::new(
             LmsOptions { mu, window_size },
@@ -138,7 +138,7 @@ pub struct NLMSFilter {
 #[pymethods]
 impl NLMSFilter {
     #[new]
-    #[pyo3(signature = (mu, eps, window_size, block_size=1))]
+    #[pyo3(signature = (mu=0.01, eps=1e-8, window_size=16, block_size=1))]
     fn new(mu: f64, eps: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
         let filter = NlmsFilter::new(
             NlmsOptions {
@@ -163,7 +163,7 @@ pub struct RLSFilter {
 #[pymethods]
 impl RLSFilter {
     #[new]
-    #[pyo3(signature = (forgetting_factor, p_init_scale, window_size, block_size=1))]
+    #[pyo3(signature = (forgetting_factor=0.999, p_init_scale=0.001, window_size=8, block_size=1))]
     fn new(
         forgetting_factor: f64,
         p_init_scale: f64,

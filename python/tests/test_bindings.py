@@ -6,15 +6,14 @@ from adaptif import LMSFilter, NLMSFilter, RLSFilter
 @pytest.mark.parametrize(
     ["filter_class", "kwargs"],
     [
-        (LMSFilter, {"mu": 0.1, "window_size": 16, "block_size": 1}),
-        (NLMSFilter, {"mu": 0.01, "eps": 1e-8, "window_size": 16, "block_size": 1}),
+        (LMSFilter, {"mu": 0.1, "window_size": 16}),
+        (NLMSFilter, {"mu": 0.01, "eps": 1e-8, "window_size": 16}),
         (
             RLSFilter,
             {
                 "forgetting_factor": 0.999,
                 "p_init_scale": 0.01,
                 "window_size": 16,
-                "block_size": 1,
             },
         ),
     ],

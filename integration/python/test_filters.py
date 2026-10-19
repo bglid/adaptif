@@ -11,7 +11,7 @@ from .utils import load_test_signals, mse, snr
 @pytest.fixture(
     params=[
         (LMSFilter, {"mu": 0.1, "window_size": 16}),
-        (NLMSFilter, {"mu": 0.01, "eps": 1e-6, "window_size": 16}),
+        (NLMSFilter, {"mu": 0.01, "eps": 1e-8, "window_size": 16}),
         (
             RLSFilter,
             {"forgetting_factor": 0.999, "p_init_scale": 0.001, "window_size": 8},

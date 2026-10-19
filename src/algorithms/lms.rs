@@ -61,7 +61,6 @@ mod tests {
         let expected = [1.0, -1.0];
         let mut weights = FilterWeights::new(WindowSize::new(2).unwrap());
 
-        // TODO: replace w/ update_step()
         lms.update_block(&mut weights, &e_n, &x_n);
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
@@ -78,7 +77,6 @@ mod tests {
         let expected = [5.0, 2.0];
         let mut weights = FilterWeights::new(window_size);
 
-        // TODO: replace w/ update_step()
         lms.update_block(&mut weights, &e_n, &x_n);
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));

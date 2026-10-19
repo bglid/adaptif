@@ -13,6 +13,20 @@ pub struct NlmsOptions<F: Float> {
     pub eps: F,
     pub window_size: usize,
 }
+impl<F: Float> Default for NlmsOptions<F> {
+    fn default() -> Self {
+        #[allow(
+            clippy::unwrap_used,
+            clippy::missing_panics_doc,
+            reason = "Trivial conversions"
+        )]
+        Self {
+            mu: F::from(0.01).unwrap(),
+            eps: F::from(1e-8).unwrap(),
+            window_size: 16,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct NlmsFilter<F: Float> {
