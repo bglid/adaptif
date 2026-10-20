@@ -31,6 +31,12 @@ impl<F: Float> Nlms<F> {
     }
 }
 impl<F: Float> Algorithm<F> for Nlms<F> {
+    /// Updates the filter weights using the following equation:
+    ///
+    /// $w_{n+1} = ``w_n`` + \frac{\mu}{\epsilon + \|``x_n``\|^2} ``e_n`` ``x_n``$
+    /// where $``e_n``$ is the scalar error for the current sample,
+    /// and $``x_n``$ is a vector of length `window_size` of the
+    /// most recent noise reference samples.
     fn update_step(
         &mut self,
         weights: &mut FilterWeights<F>,

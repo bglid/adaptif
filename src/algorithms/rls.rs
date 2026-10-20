@@ -23,6 +23,51 @@ pub struct Rls<F: Float> {
     kalman_gain: KalmanGain<F>,
 }
 
+/// Updates the filter weights using the following algorithm.
+///
+/// The Kalman gain vector, ``k_n`` is calculated as:
+///
+/// $``k_n`` = \frac{P_{n-1} ``x_n``}
+/// {\lambda + ``x_n^T`` P_{n-1} ``x_n``}$.
+///
+/// The filter weights are updated as:
+///
+/// $``w_n`` = w_{n-1} + ``k_n`` ``e_n``$.
+///
+/// The inverse correlation matrix is updated as:
+///
+/// $``P_n`` = \frac{1}{\lambda}
+/// \left(P_{n-1} - ``k_n`` ``x_n^T`` P_{n-1}\right)$.
+///
+/// where `e_n` is the scalar error for the current sample,
+/// and $``x_n``$ is a vector of length `window_size` of the
+/// most recent noise reference samples.
+impl<F: Float> Algorithm<F> for Rls<F> {
+    fn update_step(
+        &mut self,
+        weights: &mut FilterWeights<F>,
+        error: OutputSample<F>,
+        noise_window: NoiseWindow<F>,
+    ) {
+        // Updates p_matrix on first iteration once n is known
+        // No scenario where one is initialized and the other isn't
+        // TODO: remove once proper init is implemented
+        if self.inverse_corr_matrix.is_empty() {
+            self.inverse_corr_matrix =
+                InverseCorrMatrix::new(weights.window_size(), self.p_init_scale);
+            self.kalman_gain = KalmanGain::new(weights.window_size());
+        }
+
+        self.update_kalman_gain(&noise_window);
+
+        for (w, k) in weights.iter_mut().zip(self.kalman_gain.iter().copied()) {
+            *w += k * (*error);
+        }
+
+        self.update_p_matrix(&noise_window);
+    }
+}
+
 impl<F: Float> Rls<F> {
     /// # Errors
     ///
@@ -117,31 +162,6 @@ impl<F: Float> Rls<F> {
                 *p_i = (*p_i - k_i * xt_p_col) / self.forgetting_factor;
             }
         }
-    }
-}
-impl<F: Float> Algorithm<F> for Rls<F> {
-    fn update_step(
-        &mut self,
-        weights: &mut FilterWeights<F>,
-        error: OutputSample<F>,
-        noise_window: NoiseWindow<F>,
-    ) {
-        // Updates p_matrix on first iteration once n is known
-        // No scenario where one is initialized and the other isn't
-        // TODO: remove once proper init is implemented
-        if self.inverse_corr_matrix.is_empty() {
-            self.inverse_corr_matrix =
-                InverseCorrMatrix::new(weights.window_size(), self.p_init_scale);
-            self.kalman_gain = KalmanGain::new(weights.window_size());
-        }
-
-        self.update_kalman_gain(&noise_window);
-
-        for (w, k) in weights.iter_mut().zip(self.kalman_gain.iter().copied()) {
-            *w += k * (*error);
-        }
-
-        self.update_p_matrix(&noise_window);
     }
 }
 
