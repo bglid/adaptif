@@ -8,4 +8,4 @@ mod rls;
 pub use rls::Rls;
 
 mod traits;
-pub use traits::{Algorithm, BlockAlgorithm};
+pub use traits::Algorithm;

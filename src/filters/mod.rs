@@ -1,13 +1,11 @@
 mod filter_base;
-pub use filter_base::FilterBase;
+pub use filter_base::{FilterBase, ProcessingMode};
 
-mod block_filter_base;
-pub use block_filter_base::BlockFilterBase;
+mod lms;
+pub use lms::{LmsFilter, LmsOptions};
 
-mod common;
+mod nlms;
+pub use nlms::{NlmsFilter, NlmsOptions};
 
-mod aliases;
-pub use aliases::{BlockLMSFilter, LMSFilter, NLMSFilter, RLSFilter};
-
-mod traits;
-pub use traits::AdaptiveFilter;
+mod rls;
+pub use rls::{RlsFilter, RlsOptions};

@@ -54,12 +54,18 @@ where
     buffer
 }
 
-pub fn block_noise_buffer_from<F>(arr: &[F]) -> BlockNoiseBuffer<F>
+pub fn block_noise_buffer_from<F>(
+    arr: &[F],
+    window_size: WindowSize,
+    block_size: BlockSize,
+) -> BlockNoiseBuffer<F>
 where
     F: Float,
 {
-    let weights = FilterWeights::new(WindowSize::new(arr.len()).unwrap());
-    let mut buffer = BlockNoiseBuffer::new(&weights, BlockSize::new(1).unwrap());
+    assert_eq!(arr.len(), *window_size + *block_size - 1);
+
+    let weights = FilterWeights::new(window_size);
+    let mut buffer = BlockNoiseBuffer::new(&weights, block_size);
 
     for val in arr {
         buffer.push(*val);

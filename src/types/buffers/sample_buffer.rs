@@ -10,7 +10,7 @@ use crate::types::Float;
     clippy::len_without_is_empty,
     reason = "Buffer has a fixed size and can't be empty"
 )]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SampleBuffer<F: Float> {
     samples: VecDeque<F>,
     capacity: NonZeroUsize,
@@ -53,6 +53,7 @@ impl<F: Float> SampleBuffer<F> {
 impl<'a, F: Float> IntoIterator for &'a SampleBuffer<F> {
     type Item = &'a F;
     type IntoIter = SampleIter<'a, F>;
+
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
