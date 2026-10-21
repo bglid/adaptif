@@ -9,22 +9,32 @@ use adaptif::filters::{
 };
 
 use super::macros::generate_integration_filter_tests;
-use crate::rust::utils::{load_test_signals, mse, snr};
+use crate::rust::utils::{TestSignalBatch, load_test_signals, mse, snr};
+
+use std::sync::OnceLock;
+
+static TEST_SIGNALS: OnceLock<Vec<TestSignalBatch>> = OnceLock::new();
 
 #[test]
 fn lms_adapts_signal() {
     let mut filter = LmsFilter::new(LmsOptions::default(), ProcessingMode::Sample).unwrap();
-    generate_integration_filter_tests!(filter, load_test_signals());
+    let test_signals = TEST_SIGNALS.get_or_init(load_test_signals);
+
+    generate_integration_filter_tests!(filter, test_signals);
 }
 
 #[test]
 fn nlms_adapts_signal() {
     let mut filter = NlmsFilter::new(NlmsOptions::default(), ProcessingMode::Sample).unwrap();
-    generate_integration_filter_tests!(filter, load_test_signals());
+    let test_signals = TEST_SIGNALS.get_or_init(load_test_signals);
+
+    generate_integration_filter_tests!(filter, test_signals);
 }
 
 #[test]
 fn rls_adapts_signal() {
     let mut filter = RlsFilter::new(RlsOptions::default(), ProcessingMode::Sample).unwrap();
-    generate_integration_filter_tests!(filter, load_test_signals());
+    let test_signals = TEST_SIGNALS.get_or_init(load_test_signals);
+
+    generate_integration_filter_tests!(filter, test_signals);
 }

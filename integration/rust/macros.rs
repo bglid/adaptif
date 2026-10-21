@@ -2,20 +2,19 @@
 macro_rules! generate_integration_filter_tests {
     ($filter: expr, $signals: expr) => {
         for batch in $signals {
-            let (original_signal, noisy_signal, noise_reference) =
-                (batch.clean_signal, batch.noisy_signal, batch.noise_ref);
+            let cleaned_signal = $filter
+                .adapt(&batch.noisy_signal, &batch.noise_ref)
+                .unwrap();
 
-            let cleaned_signal = $filter.adapt(&noisy_signal, &noise_reference).unwrap();
-
-            assert_eq!(cleaned_signal.len(), noisy_signal.len());
+            assert_eq!(cleaned_signal.len(), batch.noisy_signal.len());
             assert!(cleaned_signal.iter().all(|sample| sample.is_finite()));
 
-            let before_mse = mse(&original_signal, &noisy_signal);
-            let after_mse = mse(&original_signal, &cleaned_signal);
+            let before_mse = mse(&batch.clean_signal, &batch.noisy_signal);
+            let after_mse = mse(&batch.clean_signal, &cleaned_signal);
             assert!(after_mse < before_mse);
 
-            let before_snr = snr(&original_signal, &noisy_signal);
-            let after_snr = snr(&original_signal, &cleaned_signal);
+            let before_snr = snr(&batch.clean_signal, &batch.noisy_signal);
+            let after_snr = snr(&batch.clean_signal, &cleaned_signal);
             assert!(after_snr > before_snr);
         }
     };
