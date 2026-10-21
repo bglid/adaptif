@@ -1,10 +1,10 @@
 /// Declarative macro for parameterizing filter algorithms for integration tests.
 macro_rules! generate_integration_filter_tests {
-    // ($filter_config: ident, $proc_mode: expr, $signals: expr) => {
     ($filter: expr, $signals: expr) => {
-        for (original_signal, noisy, noise_ref) in $signals {
-            let noisy_signal = InputSignal::new(noisy.clone()).unwrap();
-            let noise_reference = NoiseReference::new(noise_ref).unwrap();
+        for batch in $signals {
+            let (original_signal, noisy_signal, noise_reference) =
+                (batch.clean_signal, batch.noisy_signal, batch.noise_ref);
+
             let cleaned_signal = $filter.adapt(&noisy_signal, &noise_reference).unwrap();
 
             assert_eq!(cleaned_signal.len(), noisy_signal.len());

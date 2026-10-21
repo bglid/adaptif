@@ -7,25 +7,24 @@
 use adaptif::filters::{
     LmsFilter, LmsOptions, NlmsFilter, NlmsOptions, ProcessingMode, RlsFilter, RlsOptions,
 };
-use adaptif::types::signals::{InputSignal, NoiseReference};
 
 use super::macros::generate_integration_filter_tests;
-use crate::rust::utils::{mse, snr, test_signals};
+use crate::rust::utils::{load_test_signals, mse, snr};
 
 #[test]
 fn lms_adapts_signal() {
     let mut filter = LmsFilter::new(LmsOptions::default(), ProcessingMode::Sample).unwrap();
-    generate_integration_filter_tests!(filter, test_signals());
+    generate_integration_filter_tests!(filter, load_test_signals());
 }
 
 #[test]
 fn nlms_adapts_signal() {
     let mut filter = NlmsFilter::new(NlmsOptions::default(), ProcessingMode::Sample).unwrap();
-    generate_integration_filter_tests!(filter, test_signals());
+    generate_integration_filter_tests!(filter, load_test_signals());
 }
 
 #[test]
 fn rls_adapts_signal() {
     let mut filter = RlsFilter::new(RlsOptions::default(), ProcessingMode::Sample).unwrap();
-    generate_integration_filter_tests!(filter, test_signals());
+    generate_integration_filter_tests!(filter, load_test_signals());
 }
