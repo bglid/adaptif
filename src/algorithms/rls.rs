@@ -25,14 +25,14 @@ pub struct Rls<F: Float> {
 
 /// Updates the filter weights using the following algorithm.
 ///
+/// The filter weights are updated as:
+///
+/// $``w_n`` = w_{n-1} + ``k_n`` ``e_n``$.
+///
 /// The Kalman gain vector, ``k_n`` is calculated as:
 ///
 /// $``k_n`` = \frac{P_{n-1} ``x_n``}
 /// {\lambda + ``x_n^T`` P_{n-1} ``x_n``}$.
-///
-/// The filter weights are updated as:
-///
-/// $``w_n`` = w_{n-1} + ``k_n`` ``e_n``$.
 ///
 /// The inverse correlation matrix is updated as:
 ///

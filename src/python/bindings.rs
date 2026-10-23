@@ -26,6 +26,7 @@ impl From<Error> for PyErr {
             | Error::InvalidForgettingFactorRange
             | Error::NonPositivePInitScale
             | Error::NonPositiveEpsilon
+            | Error::InvalidProjectionOrder
             | Error::WeightsDontMatchWindowSize { .. } => PyValueError::new_err(value.to_string()),
         }
     }
