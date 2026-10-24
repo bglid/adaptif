@@ -16,8 +16,6 @@ pub struct SampleBuffer<F: Float> {
     capacity: NonZeroUsize,
 }
 impl<F: Float> SampleBuffer<F> {
-    // We get the capacity directly from the weights to guarantee
-    // that the buffer length and the number of weights are the same.
     pub fn new(capacity: NonZeroUsize) -> Self {
         SampleBuffer {
             samples: std::iter::repeat_n(F::zero(), capacity.into()).collect(),
@@ -25,14 +23,23 @@ impl<F: Float> SampleBuffer<F> {
         }
     }
 
+    /// Enque a sample to the front of the buffer.
+    ///
+    /// Pushing to the front and popping from the back means that samples will be
+    /// stored from most to least recent. We choose this ordering because when
+    /// we process the current window, we can simply push the new sample,
+    /// then use `buffer.iter().take(window_size)` to get the `k` most recent samples.
+    ///
+    /// This is also important to ensure the correctness of block processing, since
+    /// in that case the buffer contains samples from multiple overlapping windows.
     pub fn push(&mut self, sample: F) {
         // have to bind this because pyo3 adds extra impl of PartialEq
         let capacity: usize = self.capacity.into();
 
         if self.samples.len() == capacity {
-            self.samples.pop_front();
+            self.samples.pop_back();
         }
-        self.samples.push_back(sample);
+        self.samples.push_front(sample);
     }
 
     pub fn get(&self, index: usize) -> Option<&F> {
@@ -81,49 +88,56 @@ impl<F: Float> ExactSizeIterator for SampleIter<'_, F> {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::indexing_slicing, reason = "Tests")]
 mod tests {
-    use crate::test_utils::{all_approx_equal, noise_buffer_from};
+    use std::num::NonZero;
+
+    use super::*;
+    use crate::test_utils::all_approx_equal;
+
+    fn buffer() -> SampleBuffer<f64> {
+        SampleBuffer::new(NonZero::new(3).unwrap())
+    }
 
     #[test]
-    fn push() {
-        let mut buffer = noise_buffer_from(&[0.0; 3]);
+    fn push_works() {
+        let mut buffer = buffer();
 
         buffer.push(1.0);
         assert_eq!(buffer.len(), 3);
-        assert!(all_approx_equal(buffer.iter(), [0.0, 0.0, 1.0].iter()));
+        assert!(all_approx_equal(buffer.iter(), [1.0, 0.0, 0.0].iter()));
 
         buffer.push(2.0);
         assert_eq!(buffer.len(), 3);
-        assert!(all_approx_equal(buffer.iter(), [0.0, 1.0, 2.0].iter()));
+        assert!(all_approx_equal(buffer.iter(), [2.0, 1.0, 0.0].iter()));
     }
 
     #[test]
     fn buffer_size_invariant() {
-        let mut buffer = noise_buffer_from(&[0.0; 3]);
+        let mut buffer = buffer();
 
         buffer.push(1.0);
         buffer.push(2.0);
         buffer.push(3.0);
 
         assert_eq!(buffer.len(), 3);
-        assert!(all_approx_equal(buffer.iter(), [1.0, 2.0, 3.0].iter()));
+        assert!(all_approx_equal(buffer.iter(), [3.0, 2.0, 1.0].iter()));
 
         buffer.push(4.0);
 
         assert_eq!(buffer.len(), 3);
-        assert!(all_approx_equal(buffer.iter(), [2.0, 3.0, 4.0].iter()));
+        assert!(all_approx_equal(buffer.iter(), [4.0, 3.0, 2.0].iter()));
     }
 
     #[test]
-    fn get() {
-        let mut buffer = noise_buffer_from(&[0.0; 3]);
+    fn get_works() {
+        let mut buffer = buffer();
 
         buffer.push(1.0);
         buffer.push(2.0);
         buffer.push(3.0);
 
-        assert_eq!(buffer.get(0), Some(&1.0));
+        assert_eq!(buffer.get(0), Some(&3.0));
         assert_eq!(buffer.get(1), Some(&2.0));
-        assert_eq!(buffer.get(2), Some(&3.0));
+        assert_eq!(buffer.get(2), Some(&1.0));
         assert_eq!(buffer.get(3), None);
     }
 }
