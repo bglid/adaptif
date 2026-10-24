@@ -4,22 +4,26 @@ use std::ops::{Deref, DerefMut};
 use super::SampleBuffer;
 use crate::types::{BlockSize, FilterWeights, Float, WindowSize};
 
-pub struct NoiseBuffer<F: Float>(SampleBuffer<F>);
+pub struct NoiseBuffer<F: Float> {
+    inner: SampleBuffer<F>,
+}
 impl<F: Float> NoiseBuffer<F> {
     pub fn new(weights: &FilterWeights<F>) -> Self {
-        NoiseBuffer(SampleBuffer::new(weights.window_size().into()))
+        NoiseBuffer {
+            inner: SampleBuffer::new(weights.window_size().into()),
+        }
     }
 }
 impl<F: Float> Deref for NoiseBuffer<F> {
     type Target = SampleBuffer<F>;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.inner
     }
 }
 impl<F: Float> DerefMut for NoiseBuffer<F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        &mut self.inner
     }
 }
 

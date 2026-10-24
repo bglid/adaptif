@@ -4,7 +4,9 @@ use std::ops::Deref;
 use crate::{Error, Result};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct WindowSize(usize);
+pub struct WindowSize {
+    inner: usize,
+}
 impl WindowSize {
     /// # Errors
     ///
@@ -13,14 +15,14 @@ impl WindowSize {
         if window_size == 0 {
             Err(Error::WindowSizeZero)
         } else {
-            Ok(WindowSize(window_size))
+            Ok(WindowSize { inner: window_size })
         }
     }
 }
 impl Deref for WindowSize {
     type Target = usize;
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.inner
     }
 }
 impl From<WindowSize> for NonZero<usize> {

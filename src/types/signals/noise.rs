@@ -4,11 +4,13 @@ use crate::error::{Error, Result};
 use crate::types::Float;
 
 #[derive(Debug, Clone)]
-pub struct NoiseReference<F: Float>(Vec<F>);
+pub struct NoiseReference<F: Float> {
+    inner: Vec<F>,
+}
 impl<F: Float> Deref for NoiseReference<F> {
     type Target = [F];
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.inner
     }
 }
 impl<F: Float> NoiseReference<F> {
@@ -18,12 +20,12 @@ impl<F: Float> NoiseReference<F> {
         if noise_ref.is_empty() {
             Err(Error::EmptyInputArr)
         } else {
-            Ok(NoiseReference(noise_ref))
+            Ok(NoiseReference { inner: noise_ref })
         }
     }
 
     pub fn get_sample(&self, n: usize) -> Option<NoiseSample<F>> {
-        Some(NoiseSample(*self.get(n)?))
+        Some(NoiseSample(*self.inner.get(n)?))
     }
 }
 
