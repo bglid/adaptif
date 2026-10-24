@@ -56,3 +56,34 @@ fn rls_adapts_signal() {
 
     test_filter(&mut filter);
 }
+
+#[test]
+fn block_lms_adapts_signal() {
+    let mut filter = LmsFilter::new(
+        LmsOptions::default(),
+        ProcessingMode::Block { block_size: 4 },
+    )
+    .unwrap();
+    test_filter(&mut filter);
+}
+
+#[test]
+fn block_nlms_adapts_signal() {
+    let mut filter = NlmsFilter::new(
+        NlmsOptions::default(),
+        ProcessingMode::Block { block_size: 4 },
+    )
+    .unwrap();
+    test_filter(&mut filter);
+}
+
+#[test]
+fn block_rls_adapts_signal() {
+    let mut filter = RlsFilter::new(
+        RlsOptions::default(),
+        ProcessingMode::Block { block_size: 4 },
+    )
+    .unwrap();
+
+    test_filter(&mut filter);
+}

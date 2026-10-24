@@ -23,7 +23,7 @@ impl<F: Float> SampleBuffer<F> {
         }
     }
 
-    /// Enque a sample to the front of the buffer.
+    /// Enqueue a sample to the front of the buffer.
     ///
     /// Pushing to the front and popping from the back means that samples will be
     /// stored from most to least recent. We choose this ordering because when
