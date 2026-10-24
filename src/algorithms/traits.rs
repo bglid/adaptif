@@ -24,13 +24,11 @@ pub trait Algorithm<F: Float> {
         noise_ref: &BlockNoiseBuffer<F>,
     ) {
         for (window_start, window_error) in error.iter().copied().enumerate() {
-            #[allow(
-                clippy::unwrap_used,
-                clippy::missing_panics_doc,
-                reason = "get_window() can only fail if window_start >= noise_ref.block_size.
-                error.len() == block_size, so window_start is always < block_size"
-            )]
-            let current_window = noise_ref.get_window(window_start).unwrap();
+            #[allow(clippy::missing_panics_doc, reason = "failure independent of fn input")]
+            let current_window = noise_ref.get_window(window_start).expect(
+                "get_window() should only fail if window_start >= noise_ref.block_size.
+                error.len() == block_size, so window_start is always < block_size",
+            );
 
             self.update_step(weights, OutputSample(window_error), current_window);
         }

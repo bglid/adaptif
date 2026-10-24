@@ -4,29 +4,6 @@ from adaptif import LMSFilter, NLMSFilter, RLSFilter
 
 from .utils import load_test_signals, mse, snr
 
-# TODO: Work on adding Block Filter Tests
-
-
-# placing in realistic values that would actually be used
-@pytest.fixture(
-    params=[
-        (LMSFilter, {"mu": 0.1, "window_size": 16}),
-        (NLMSFilter, {"mu": 0.01, "eps": 1e-8, "window_size": 16}),
-        (
-            RLSFilter,
-            {"forgetting_factor": 0.999, "p_init_scale": 0.001, "window_size": 8},
-        ),
-    ],
-    ids=[
-        "lms",
-        "nlms",
-        "rls",
-    ],
-)
-def filter(request):
-    filter_class, kwargs = request.param
-    return filter_class(**kwargs)
-
 
 @pytest.fixture(params=load_test_signals(), ids=lambda signal: signal[0])
 def signals(request):
@@ -34,7 +11,13 @@ def signals(request):
     return name, clean, noisy, noise
 
 
-def test_filter_adapts_signal(filter, signals) -> None:
+@pytest.mark.parametrize(
+    "filter_class",
+    [LMSFilter, NLMSFilter, RLSFilter],
+)
+@pytest.mark.parametrize("block_size", [1, 4])
+def test_filter_adapts_signal(filter_class, block_size, signals) -> None:
+    filter = filter_class(block_size=block_size)
     _, original_signal, noisy_signal, noise_reference = signals
 
     cleaned_signal = filter.adapt(input_signal=noisy_signal, noise_ref=noise_reference)
