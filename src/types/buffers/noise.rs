@@ -38,12 +38,11 @@ impl<F: Float> BlockNoiseBuffer<F> {
     /// Creates a buffer of length `window_size` + `block_size` - 1 for block processing.
     pub fn new(weights: &FilterWeights<F>, block_size: BlockSize) -> Self {
         let window_size = weights.window_size();
-        #[allow(
-            clippy::unwrap_used,
-            clippy::missing_panics_doc,
-            reason = "FilterWeights and BlockSize types ensure that capacity > 0"
-        )]
-        let capacity = NonZero::new(*window_size + *block_size - 1).unwrap();
+
+        #[allow(clippy::missing_panics_doc, reason = "independent of fn input")]
+        let capacity = NonZero::new(*window_size + *block_size - 1)
+            .expect("FilterWeights and BlockSize types should ensure that capacity > 0");
+
         let buffer = SampleBuffer::new(capacity);
 
         BlockNoiseBuffer {

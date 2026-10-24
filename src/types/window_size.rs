@@ -27,7 +27,6 @@ impl Deref for WindowSize {
 }
 impl From<WindowSize> for NonZero<usize> {
     fn from(value: WindowSize) -> Self {
-        #[allow(clippy::unwrap_used, reason = "WindowSize is guaranteed non-zero.")]
-        NonZero::new(*value).unwrap()
+        NonZero::new(*value).expect("WindowSize should be guaranteed non-zero.")
     }
 }

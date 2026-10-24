@@ -155,14 +155,11 @@ impl<F: Float> Rls<F> {
                 // index is into a flat buffer, so row * n gives us the start of each row
                 let index = row * noise_ref.len() + col;
 
-                #[allow(
-                    clippy::expect_used,
-                    reason = "Index should always be valid based on the type invariants"
-                )]
                 let p_i = self
                     .inverse_corr_matrix
                     .get_mut(index)
-                    .expect("internal error, index should always be valid");
+                    // TODO(ben): How is this enforced?
+                    .expect("Index should always be valid based on the type invariants");
                 *p_i = (*p_i - k_i * xt_p_col) / self.forgetting_factor;
             }
         }

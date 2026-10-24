@@ -27,7 +27,6 @@ impl Deref for BlockSize {
 }
 impl From<BlockSize> for NonZero<usize> {
     fn from(value: BlockSize) -> Self {
-        #[allow(clippy::unwrap_used, reason = "BlockSize is guaranteed non-zero.")]
-        NonZero::new(*value).unwrap()
+        NonZero::new(*value).expect("BlockSize should be guaranteed non-zero")
     }
 }
