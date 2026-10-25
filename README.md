@@ -29,7 +29,7 @@ We're currently working towards a first full release, which will include the fol
 
 ## Installation
 
-The projects currently supports Rust stable and Python 3.10 - 3.14.
+The projects currently supports Rust stable and Python 3.11 - 3.15.
 
 Cloning the repo:
 

@@ -4,11 +4,13 @@ use crate::error::{Error, Result};
 use crate::types::Float;
 
 #[derive(Debug, Clone)]
-pub struct InputSignal<F: Float>(Vec<F>);
+pub struct InputSignal<F: Float> {
+    inner: Vec<F>,
+}
 impl<F: Float> Deref for InputSignal<F> {
     type Target = [F];
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.inner
     }
 }
 impl<F: Float> InputSignal<F> {
@@ -18,12 +20,14 @@ impl<F: Float> InputSignal<F> {
         if input_signal.is_empty() {
             Err(Error::EmptyInputArr)
         } else {
-            Ok(InputSignal(input_signal))
+            Ok(InputSignal {
+                inner: input_signal,
+            })
         }
     }
 
     pub fn get_sample(&self, n: usize) -> Option<InputSample<F>> {
-        Some(InputSample(*self.get(n)?))
+        Some(InputSample(*self.inner.get(n)?))
     }
 }
 

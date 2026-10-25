@@ -1,4 +1,8 @@
 #![allow(clippy::unwrap_used, reason = "tests utils")]
+use adaptif::{
+    Result,
+    types::signals::{InputSignal, NoiseReference},
+};
 use core::f64;
 use hound;
 use num_traits::cast::ToPrimitive as _;
@@ -7,14 +11,55 @@ use std::path::PathBuf;
 use rand::{self, RngExt as _, SeedableRng as _, rngs::StdRng};
 use rand_distr::StandardNormal;
 
-/// Calculates the signal power for converting to dB.
-fn get_power(signal: &[f64]) -> f64 {
-    signal.iter().map(|sample| sample.powi(2)).sum::<f64>()
+pub struct TestSignalBatch {
+    pub clean_signal: Vec<f64>,
+    pub noisy_signal: InputSignal<f64>,
+    pub noise_ref: NoiseReference<f64>,
+}
+impl TestSignalBatch {
+    pub fn new(path: PathBuf, seed: u64) -> Self {
+        let mut reader = hound::WavReader::open(path).unwrap();
+        let clean_signal: Vec<f64> = reader
+            .samples::<i16>()
+            .map(|s| f64::from(s.unwrap()) / f64::from(i16::MAX))
+            .collect();
+
+        let (noisy_signal, noise_ref) = add_white_noise(&clean_signal, seed, 0.0).unwrap();
+
+        TestSignalBatch {
+            clean_signal,
+            noisy_signal,
+            noise_ref,
+        }
+    }
+}
+
+/// Generates test signals for integration tests.
+pub fn load_test_signals() -> Vec<TestSignalBatch> {
+    // Doing this in this fashion so it can be run from anywhere
+    let clean_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("integration")
+        .join("fixtures");
+
+    std::fs::read_dir(clean_dir)
+        .unwrap()
+        .enumerate()
+        .map(|(i, path)| {
+            // 42 + i is the seed for white noise generation
+            // It ensures different noise across signals, but the same noise per-signal across tests
+            let seed = u64::try_from(42 + i).unwrap();
+            TestSignalBatch::new(path.unwrap().path(), seed)
+        })
+        .collect()
 }
 
 /// Injects white noise into a copy of the clean signal.
 /// Returns a tuple of the new noisy signal and the white noise reference.
-fn add_white_noise(clean_signal: &[f64], seed: u64, snr_db: f64) -> (Vec<f64>, Vec<f64>) {
+fn add_white_noise(
+    clean_signal: &[f64],
+    seed: u64,
+    snr_db: f64,
+) -> Result<(InputSignal<f64>, NoiseReference<f64>)> {
     let mut rng = StdRng::seed_from_u64(seed);
     let mut noise: Vec<f64> = std::iter::repeat_with(|| rng.sample(StandardNormal))
         .take(clean_signal.len())
@@ -36,37 +81,12 @@ fn add_white_noise(clean_signal: &[f64], seed: u64, snr_db: f64) -> (Vec<f64>, V
         .map(|(c, n)| c + n)
         .collect();
 
-    (noisy_signal, noise)
+    Ok((InputSignal::new(noisy_signal)?, NoiseReference::new(noise)?))
 }
 
-/// Generates test signals for integration tests.
-pub fn test_signals() -> Vec<(Vec<f64>, Vec<f64>, Vec<f64>)> {
-    // Doing this in this fashion so it can be run from anywhere
-    let clean_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("integration")
-        .join("fixtures");
-
-    let clean_paths: Vec<PathBuf> = std::fs::read_dir(clean_dir)
-        .unwrap()
-        .map(|path| path.unwrap().path())
-        .collect();
-
-    let mut signals = Vec::with_capacity(clean_paths.len());
-
-    for (i, clean_path) in clean_paths.iter().enumerate() {
-        let mut reader = hound::WavReader::open(clean_path).unwrap();
-        let clean_samples: Vec<f64> = reader
-            .samples::<i16>()
-            .map(|s| f64::from(s.unwrap()) / f64::from(i16::MAX))
-            .collect();
-
-        // 42 + i is the seed for white noise generation
-        // It ensures different noise across signals, but the same noise per-signal across tests
-        let (noisy_signal, noise) =
-            add_white_noise(&clean_samples, u64::try_from(42 + i).unwrap(), 0.0);
-        signals.push((clean_samples, noisy_signal, noise));
-    }
-    signals
+/// Calculates the signal power for converting to dB.
+fn get_power(signal: &[f64]) -> f64 {
+    signal.iter().map(|sample| sample.powi(2)).sum::<f64>()
 }
 
 /// Calculates mean square error (MSE) of original signal and newly "cleaned" signal.

@@ -4,26 +4,30 @@ use crate::types::buffers::SampleBuffer;
 use crate::types::signals::OutputSample;
 use crate::types::{BlockSize, Float};
 
-pub struct BlockError<F: Float>(SampleBuffer<F>);
+pub struct BlockError<F: Float> {
+    inner: SampleBuffer<F>,
+}
 impl<F: Float> BlockError<F> {
     pub fn new(block_size: BlockSize) -> Self {
-        BlockError(SampleBuffer::new(block_size.into()))
+        BlockError {
+            inner: SampleBuffer::new(block_size.into()),
+        }
     }
 
     pub fn push(&mut self, item: OutputSample<F>) {
-        self.0.push(*item);
+        self.inner.push(*item);
     }
 }
 impl<F: Float> Deref for BlockError<F> {
     type Target = SampleBuffer<F>;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.inner
     }
 }
 impl<F: Float> DerefMut for BlockError<F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        &mut self.inner
     }
 }
 
