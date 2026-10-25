@@ -54,10 +54,18 @@ impl<F: Float> Algorithm<F> for Apa<F> {
 
         self.update_input_history(&noise_window);
 
-        // recalculating the entire error vector with updated weights
+        // recalculating the entire error vector with prior to weight update
         self.recalculate_error_vector(weights);
 
-        // let mut inner_matrix = vec![F::zero(); self.projection_order * self.projection_order];
+        let inner_matrix = self.build_matrix_product(*weights.window_size());
+
+        //
+        let mut _inverted_matrix = gauss_jordan(&inner_matrix, self.projection_order);
+
+        // product of inverted matrix and error vec
+        // for i in 0..self.projection_order {
+        //     for j in 0..self.projection_order {}
+        // }
 
         // $w_{n+1} = ``w_n`` + \mu * X(n)(X(n)^{T}X(n) + \epsilon I)^{-1} e(n)$
         // for (w, x) in weights.iter_mut().zip() {
@@ -128,7 +136,7 @@ impl<F: Float> Apa<F> {
     }
 
     /// Rebuilds the entire ``ErrorVector`` from scratch using new weight updates.
-    pub fn recalculate_error_vector(&mut self, weights: &mut FilterWeights<F>) {
+    fn recalculate_error_vector(&mut self, weights: &FilterWeights<F>) {
         // have to get oldest first because push inserts at front
         #[allow(clippy::missing_panics_doc, reason = "failure independent of fn input")]
         for i_index in (0..self.projection_order).rev() {
@@ -157,6 +165,109 @@ impl<F: Float> Apa<F> {
             self.error_vector.push(desired_sample - predicted_sample);
         }
     }
+
+    // TODO: consider breaking this into two functions and putting it into a lingalg file
+    /// Returns the inner matrix prior to inversion.
+    ///
+    /// Calculates the Dot Product of two matricies and adds an epsilon value along the identity
+    /// matrix.
+    fn build_matrix_product(&self, n: usize) -> SampleBuffer<F> {
+        let mut matrix_product = SampleBuffer::new(
+            NonZero::new(self.projection_order * self.projection_order)
+                .expect("Project order ensures that capacity is > 0"),
+        );
+
+        // a little fp to make indexing sane to fn look at
+        let x = |i: usize, j: usize| -> F { *self.input_history.get(i * n + n - 1 - j).expect("") };
+
+        // Again, push() adds to the front so doing rev()
+        for i in (0..self.projection_order).rev() {
+            for j in (0..self.projection_order).rev() {
+                // getting dot product, where k is the index for this row by col
+                let product = (0..n).fold(F::zero(), |acc, k| acc + x(i, k) * x(j, k));
+                let regularization = if i == j { self.eps } else { F::zero() };
+                matrix_product.push(product + regularization);
+            }
+        }
+        matrix_product
+    }
+}
+
+// TODO: Yeah this should go in it's own file...
+// From what I see online, doing Xn^-1 requires a "GaussJordan" elimination (or a linalg solver)
+// this is the GaussJordan approach pulled from this: https://gist.github.com/barbarbar338/b66e2a404abb3a7f7c4d542204a3626a
+// The simplest example I could find... lol
+// Also, https://en.wikipedia.org/wiki/Gaussian_elimination
+fn gauss_jordan<F>(matrix: &SampleBuffer<F>, n: usize) -> SampleBuffer<F>
+where
+    F: Float,
+{
+    // NOTE: If we keep this monstrosity then I may do a closure or secondary function for the weird flat indexing here
+    // ... or to make the .get() a bit easier
+
+    // Augmented Identity matrix [A I]
+    // According to wikipedia, this has the shape of n * 2n [Augmented matrix x identity matrix]
+    let width = 2 * n;
+    let mut augmented_flat_mat =
+        SampleBuffer::new(NonZero::new(n * width).expect("n must be positive"));
+
+    for i in 0..n {
+        for j in 0..n {
+            if let Some(val) = matrix.get(i * width + n + j) {
+                *augmented_flat_mat.get_mut(i * width + j).expect(
+                    "Internal error with matrix bounds, range is set by projection order",
+                ) = *val;
+            }
+        }
+        // identity matrix part, again flat so n * i is like jumping to next row
+        *augmented_flat_mat
+            .get_mut(i * width + n * i)
+            .expect("Internal error with matrix bounds, range is set by projection order") =
+            F::one();
+    }
+
+    // TODO: improve expect() all along here too, there's a lot but I want to see if this works first
+    for i in 0..n {
+        let scale = *augmented_flat_mat
+            .get(i * width + i)
+            .expect("Matrix bounds erro");
+        for j in 0..(2 * n) {
+            *augmented_flat_mat
+                .get_mut(i * width + j)
+                .expect("Matrix bounds error") /= scale;
+        }
+
+        // Eliminate non-diagonal elements in the current column
+        for j in 0..n {
+            if j != i {
+                let elimination_factor = *augmented_flat_mat
+                    .get(j * width + i)
+                    .expect("Matrix bounds error");
+                for k in 0..(2 * n) {
+                    let leading_entry = *augmented_flat_mat
+                        .get_mut(i * width + k)
+                        .expect("Matrix bounds error");
+                    *augmented_flat_mat
+                        .get_mut(j * width + k)
+                        .expect("Matrix bounds error") -= elimination_factor * leading_entry;
+                }
+            }
+        }
+    }
+
+    // Now you apparently take the inverse matrix out of the augmented matrix
+    let mut inverted_matrix =
+        SampleBuffer::new(NonZero::new(n * width).expect("n must be positive"));
+    for i in 0..n {
+        for j in 0..n {
+            *inverted_matrix
+                .get_mut(i * n + j)
+                .expect("Matrix bounds error") = *augmented_flat_mat
+                .get(i * width + n + j)
+                .expect("Matrix bounds error");
+        }
+    }
+    inverted_matrix
 }
 
 #[derive(Debug, Clone, PartialEq)]
