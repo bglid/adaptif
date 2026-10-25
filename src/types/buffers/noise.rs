@@ -4,22 +4,26 @@ use std::ops::{Deref, DerefMut};
 use super::SampleBuffer;
 use crate::types::{BlockSize, FilterWeights, Float, WindowSize};
 
-pub struct NoiseBuffer<F: Float>(SampleBuffer<F>);
+pub struct NoiseBuffer<F: Float> {
+    inner: SampleBuffer<F>,
+}
 impl<F: Float> NoiseBuffer<F> {
     pub fn new(weights: &FilterWeights<F>) -> Self {
-        NoiseBuffer(SampleBuffer::new(weights.window_size().into()))
+        NoiseBuffer {
+            inner: SampleBuffer::new(weights.window_size().into()),
+        }
     }
 }
 impl<F: Float> Deref for NoiseBuffer<F> {
     type Target = SampleBuffer<F>;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.inner
     }
 }
 impl<F: Float> DerefMut for NoiseBuffer<F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        &mut self.inner
     }
 }
 
@@ -34,12 +38,11 @@ impl<F: Float> BlockNoiseBuffer<F> {
     /// Creates a buffer of length `window_size` + `block_size` - 1 for block processing.
     pub fn new(weights: &FilterWeights<F>, block_size: BlockSize) -> Self {
         let window_size = weights.window_size();
-        #[allow(
-            clippy::unwrap_used,
-            clippy::missing_panics_doc,
-            reason = "FilterWeights and BlockSize types ensure that capacity > 0"
-        )]
-        let capacity = NonZero::new(*window_size + *block_size - 1).unwrap();
+
+        #[allow(clippy::missing_panics_doc, reason = "independent of fn input")]
+        let capacity = NonZero::new(*window_size + *block_size - 1)
+            .expect("FilterWeights and BlockSize types should ensure that capacity > 0");
+
         let buffer = SampleBuffer::new(capacity);
 
         BlockNoiseBuffer {

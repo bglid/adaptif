@@ -87,8 +87,6 @@ mod tests {
         let window_size = WindowSize::new(2).unwrap();
 
         let mut lms = Lms::new(0.5).unwrap();
-        // Because of the underlying queue implementation, the arrays here are ordered
-        // from most to least recent sample
         let e_n = error_buffer_from(&[5.0, -6.0, 7.0]);
 
         let block_size = BlockSize::new(e_n.len()).unwrap();
@@ -107,8 +105,6 @@ mod tests {
         let window_size = WindowSize::new(3).unwrap();
 
         let mut lms = Lms::new(1.0).unwrap();
-        // Because of the underlying queue implementation, the arrays here are ordered
-        // from most to least recent sample
         let e_n = error_buffer_from(&[1.0, -1.0, 1.5]);
 
         let block_size = BlockSize::new(e_n.len()).unwrap();

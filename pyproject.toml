@@ -13,9 +13,9 @@ authors = [
 ]
 license="MIT OR Apache-2.0"
 license-files = ["LICENSE-APACHE", "LICENSE-MIT"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
-    "numpy>=1.21.0,<2.0.0",
+    "numpy>=1.26.4",
 ]
 classifiers = [  
     "Development Status :: 3 - Alpha",
@@ -25,11 +25,11 @@ classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
 ]
 
 [project.urls]
@@ -54,7 +54,7 @@ python-source = "python"
 module-name = "adaptif.adaptif"
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 exclude = [
     "env",
     "src/*", # Rust code

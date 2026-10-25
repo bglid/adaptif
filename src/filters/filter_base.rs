@@ -232,12 +232,9 @@ fn process_block<F>(
     F: Float,
 {
     for n in range {
-        #[allow(
-            clippy::expect_used,
-            reason = "This function is only called internally.
-                If an invalid range is (accidentally) provided, we don't want pass
-                it to the public caller or have it silently fail, so we panic instead."
-        )]
+        // Note on the `expect()`: This function is only called internally.
+        // If an invalid range is (accidentally) provided by a dev, we don't want pass
+        // it to the public caller or have it silently fail, so we panic instead.
         let (input_sample, noise_sample) = input_signal
             .get_sample(n)
             .zip(noise_ref.get_sample(n))

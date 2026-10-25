@@ -3,71 +3,37 @@ import pytest
 from adaptif import LMSFilter, NLMSFilter, RLSFilter
 
 
-@pytest.fixture(
-    params=[
-        (LMSFilter, {"mu": 0.1, "window_size": 16}),
-        (NLMSFilter, {"mu": 0.01, "eps": 1e-8, "window_size": 16}),
-        (
-            RLSFilter,
-            {"forgetting_factor": 0.999, "p_init_scale": 0.01, "window_size": 8},
-        ),
-    ]
-)
+@pytest.fixture(params=[LMSFilter, NLMSFilter, RLSFilter])
 def filter(request):
-    filter_class, kwargs = request.param
-    return filter_class(**kwargs)
+    return request.param()
 
 
-@pytest.mark.parametrize(
-    ["filter_class", "kwargs"],
-    [
-        (LMSFilter, {"mu": 0.1}),
-        (NLMSFilter, {"mu": 0.01, "eps": 1e-8}),
-        (RLSFilter, {"forgetting_factor": 0.999, "p_init_scale": 0.01}),
-    ],
-)
+@pytest.mark.parametrize("filter_class", [LMSFilter, NLMSFilter, RLSFilter])
 @pytest.mark.parametrize("block_size", [1, 4])
-def test_window_size(filter_class, kwargs, block_size):
-    kwargs["block_size"] = block_size
-    kwargs["window_size"] = 1
-    filter = filter_class(**kwargs)
+def test_window_size(filter_class, block_size):
+    filter = filter_class(window_size=1, block_size=block_size)
     assert filter.window_size == 1
 
-    kwargs["window_size"] = -1
     with pytest.raises(OverflowError):
-        filter_class(**kwargs)
+        filter_class(window_size=-1, block_size=block_size)
 
-    kwargs["window_size"] = 0
     with pytest.raises(ValueError):
-        filter_class(**kwargs)
+        filter_class(window_size=0, block_size=block_size)
 
 
-@pytest.mark.parametrize(
-    ["filter_class", "kwargs"],
-    [
-        (LMSFilter, {"mu": 0.1}),
-        (NLMSFilter, {"mu": 0.01, "eps": 1e-8}),
-        (RLSFilter, {"forgetting_factor": 0.999, "p_init_scale": 0.01}),
-    ],
-)
-def test_block_size(filter_class, kwargs):
-    kwargs["window_size"] = 16
-
-    kwargs["block_size"] = 1
-    filter = filter_class(**kwargs)
+@pytest.mark.parametrize("filter_class", [LMSFilter, NLMSFilter, RLSFilter])
+def test_block_size(filter_class):
+    filter = filter_class(block_size=1)
     assert filter.block_size == 1
 
-    kwargs["block_size"] = 2
-    filter = filter_class(**kwargs)
+    filter = filter_class(block_size=2)
     assert filter.block_size == 2
 
-    kwargs["block_size"] = -1
     with pytest.raises(OverflowError):
-        filter_class(**kwargs)
+        filter_class(block_size=-1)
 
-    kwargs["block_size"] = 0
     with pytest.raises(ValueError):
-        filter_class(**kwargs)
+        filter_class(block_size=0)
 
 
 def test_weights(filter):
