@@ -397,17 +397,16 @@ mod tests {
     #[test]
     fn update_apa_2() {
         let window_size = WindowSize::new(2).unwrap();
-        let block_size = BlockSize::new(2).unwrap();
+        let block_size = BlockSize::new(1).unwrap();
 
         let mut apa = Apa::new(0.5, 1.0, 2).unwrap();
         let e_n = {
             let mut e_n = BlockError::new(block_size);
             e_n.push(OutputSample(2.0));
-            e_n.push(OutputSample(-4.0));
             e_n
         };
-        let x_n = block_noise_buffer_from(&[1.0, 0.0, 1.0], window_size, block_size);
-        let expected = [0.5, -1.0];
+        let x_n = block_noise_buffer_from(&[1.0, 0.0], window_size, block_size);
+        let expected = [0.5, 0.0];
         let mut weights = FilterWeights::new(window_size);
 
         apa.update_block(&mut weights, &e_n, &x_n);
