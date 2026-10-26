@@ -16,7 +16,7 @@ pub struct Apa<F: Float> {
     /// Regularization term for matrix inversion.
     eps: F,
     /// Projection order (L) defining number of recent input vectors to use in update.
-    projection_order: usize, // NOTE: See question on data type for projection order
+    projection_order: usize,
     /// Stores up to L recent input vectors.
     input_history: InputHistory<F>,
     /// Stores the L most recent desired outputs.
@@ -41,36 +41,46 @@ impl<F: Float> Algorithm<F> for Apa<F> {
         noise_window: NoiseWindow<F>,
     ) {
         // Updates Input history once window size is known
-        if self.input_history.window_size != weights.window_size() {
-            self.input_history = InputHistory::new(self.projection_order, weights.window_size());
+        let window_size = weights.window_size();
+        if self.input_history.window_size != window_size {
+            self.input_history = InputHistory::new(self.projection_order, window_size);
         }
 
-        let desired_output = weights
-            .iter()
-            .copied()
-            .zip(noise_window.iter())
-            .fold(error.0, |acc, (w, x)| acc + w * x); // TODO: Question, should error.0 (OutputSample<F>) also be error.inner?
-        self.update_desired_history(desired_output);
+        let desired_output = (*error)
+            + weights
+                .iter()
+                .copied()
+                .zip(noise_window.iter())
+                .map(|(w, x)| w * x)
+                .sum();
+        self.desired_history.push(desired_output);
 
         self.update_input_history(&noise_window);
 
         // recalculating the entire error vector with prior to weight update
         self.recalculate_error_vector(weights);
 
-        let inner_matrix = self.build_matrix_product(*weights.window_size());
+        let inner_matrix = self.matrix_matrix_product(*weights.window_size());
 
-        //
-        let mut _inverted_matrix = gauss_jordan(&inner_matrix, self.projection_order);
+        let inverted_matrix = gauss_jordan(&inner_matrix, self.projection_order);
 
-        // product of inverted matrix and error vec
-        // for i in 0..self.projection_order {
-        //     for j in 0..self.projection_order {}
-        // }
+        let matrix_error_product = self.matrix_vector_product(&inverted_matrix);
 
+        // TODO: Generalize the matrix vector product to reuse it here too
         // $w_{n+1} = ``w_n`` + \mu * X(n)(X(n)^{T}X(n) + \epsilon I)^{-1} e(n)$
-        // for (w, x) in weights.iter_mut().zip() {
-        //     *w += self.mu * self.input_history.iter().zip(flat_input_dot.zip());
-        // }
+        for (j, w) in weights.iter_mut().enumerate() {
+            let mut update = F::zero();
+
+            for i in 0..self.projection_order {
+                let x = *self
+                    .input_history
+                    .get(i * (*window_size) + (*window_size) - 1 - j)
+                    .expect("matrix bounds");
+
+                update += x * (*matrix_error_product.get(i).expect("matrix bounds"));
+            }
+            *w += self.mu * update;
+        }
     }
 }
 
@@ -89,9 +99,6 @@ impl<F: Float> Apa<F> {
             return Err(Error::NonPositiveEpsilon);
         }
 
-        // NOTE: Question, should projection order be usize? It's an int, and can't be negative
-        // What's a better design decision? To make it usize to avoid ever having negative values
-        // OR, have it signed and return an error if ever negative (i.e <= 0 here)
         if projection_order == 0 {
             return Err(Error::InvalidProjectionOrder);
         }
@@ -109,14 +116,8 @@ impl<F: Float> Apa<F> {
     /// Updates the input history vector used in the APA weight update.
     fn update_input_history(&mut self, noise_ref: &NoiseWindow<F>) {
         for sample in noise_ref.iter() {
-            self.input_history.inner.push(sample);
+            self.input_history.push(sample);
         }
-    }
-
-    // TODO: Look over again, is this really necessary? Basically one line wrapper
-    /// Updates the desired history vector used in the APA weight update.
-    fn update_desired_history(&mut self, desired_output: F) {
-        self.desired_history.inner.push(desired_output);
     }
 
     /// Rebuilds the entire ``ErrorVector`` from scratch using new weight updates.
@@ -143,32 +144,59 @@ impl<F: Float> Apa<F> {
         }
     }
 
-    // TODO: consider breaking this into two functions and putting it into a lingalg file
+    // TODO: Break this and following function into non-methods for reusable linalg utils
+
     /// Returns the inner matrix prior to inversion.
     ///
     /// Calculates the Dot Product of two matricies and adds an epsilon value along the identity
     /// matrix. ``n`` is the window size.
-    fn build_matrix_product(&self, n: usize) -> SampleBuffer<F> {
-        let mut matrix_product = SampleBuffer::new(
+    fn matrix_matrix_product(&self, window: usize) -> SampleBuffer<F> {
+        let mut dot_product = SampleBuffer::new(
             NonZero::new(self.projection_order * self.projection_order)
-                .expect("Project order ensures that capacity is > 0"),
+                .expect("projection order ensures that capacity is > 0"),
         );
 
         // a little fp to make indexing sane to fn look at
         // Similar to what is done above in ``recalculate_error_vector()``, as well as everywhere else...
         // so may be worth making a function
-        let x = |i: usize, j: usize| -> F { *self.input_history.get(i * n + n - 1 - j).expect("") };
+        let x = |i: usize, j: usize| -> F {
+            *self
+                .input_history
+                .get(i * window + window - 1 - j)
+                .expect("internal error with matrix bounds.")
+        };
 
         // push() adds to the front so doing rev()
         for i in (0..self.projection_order).rev() {
             for j in (0..self.projection_order).rev() {
                 // getting dot product, where k is the index for this row by col
-                let product = (0..n).fold(F::zero(), |acc, k| acc + x(i, k) * x(j, k));
+                let product = (0..window).map(|k| x(i, k) * x(j, k)).sum::<F>();
                 let regularization = if i == j { self.eps } else { F::zero() };
-                matrix_product.push(product + regularization);
+                dot_product.push(product + regularization);
             }
         }
-        matrix_product
+        dot_product
+    }
+
+    fn matrix_vector_product(&self, matrix: &SampleBuffer<F>) -> SampleBuffer<F> {
+        let mut dot_product = SampleBuffer::new(
+            NonZero::new(self.projection_order)
+                .expect("projection order ensures that capacity is > 0"),
+        );
+
+        // push() adds to the front so doing rev()
+        for i in (0..self.projection_order).rev() {
+            let mut product = F::zero();
+
+            for j in 0..self.projection_order {
+                product += (*matrix
+                    .get(i * self.projection_order + j)
+                    .expect("matrix bounds"))
+                    * (*self.error_vector.get(j).expect("vector bounds"));
+            }
+            dot_product.push(product);
+        }
+        dot_product
     }
 }
 
@@ -192,7 +220,7 @@ where
 
     for i in 0..n {
         for j in 0..n {
-            if let Some(val) = matrix.get(i * width + n + j) {
+            if let Some(val) = matrix.get(i * n + j) {
                 *augmented_flat_mat.get_mut(i * width + j).expect(
                     "Internal error with matrix bounds, range is set by projection order",
                 ) = *val;
@@ -200,7 +228,7 @@ where
         }
         // identity matrix part, again flat so n * i is like jumping to next row
         *augmented_flat_mat
-            .get_mut(i * width + n * i)
+            .get_mut(i * width + n + i)
             .expect("Internal error with matrix bounds, range is set by projection order") =
             F::one();
     }
@@ -235,8 +263,7 @@ where
     }
 
     // Now you apparently take the inverse matrix out of the augmented matrix
-    let mut inverted_matrix =
-        SampleBuffer::new(NonZero::new(n * width).expect("n must be positive"));
+    let mut inverted_matrix = SampleBuffer::new(NonZero::new(n * n).expect("n must be positive"));
     for i in 0..n {
         for j in 0..n {
             *inverted_matrix
