@@ -108,28 +108,12 @@ impl<F: Float> Apa<F> {
 
     /// Updates the input history vector used in the APA weight update.
     fn update_input_history(&mut self, noise_ref: &NoiseWindow<F>) {
-        // Discards the oldest window of input (up to 1 window size) and inserts newest at end
-        // for i in 0..noise_ref.len() {
-        //     if let Some(&sample) = noise_ref.get(i) {
-        //         self.input_history.inner.push(sample);
-        //     }
-        // }
         for sample in noise_ref.iter() {
             self.input_history.inner.push(sample);
         }
-
-        // if let Some(last_window) = self.input_history.inner.get_mut(
-        //     (self.input_history.inner.len() - *self.input_history.window_size)
-        //         ..self.input_history.inner.len(),
-        // ) {
-        //     last_window
-        //         .iter_mut()
-        //         .zip(noise_ref.iter())
-        //         .for_each(|(input_h, noise_ref)| *input_h = noise_ref);
-        // }
     }
 
-    // TODO: Look over again, is this really necessary?
+    // TODO: Look over again, is this really necessary? Basically one line wrapper
     /// Updates the desired history vector used in the APA weight update.
     fn update_desired_history(&mut self, desired_output: F) {
         self.desired_history.inner.push(desired_output);
@@ -139,29 +123,22 @@ impl<F: Float> Apa<F> {
     fn recalculate_error_vector(&mut self, weights: &FilterWeights<F>) {
         // have to get oldest first because push inserts at front
         #[allow(clippy::missing_panics_doc, reason = "failure independent of fn input")]
-        for i_index in (0..self.projection_order).rev() {
-            let desired_sample = *self.desired_history.get(i_index).expect(
+        for i in (0..self.projection_order).rev() {
+            let desired_sample = *self.desired_history.get(i).expect(
                 "
                 desired sample get should only fail if index >= desired_history.len().
                 desired_history.len() == projection_order, so index (i) is always <= desired_history.len(),",
             );
 
             // prediction using flattened input history matrix by weights
-            let predicted_sample =
-                weights
-                    .iter()
-                    .enumerate()
-                    .fold(F::zero(), |acc, (j_index, &w)| {
-                        let x = *self
-                            .input_history
-                            .get(
-                                i_index * (*weights.window_size()) + (*weights.window_size())
-                                    - 1
-                                    - j_index,
-                            )
-                            .expect(""); // TODO: expect message here check
-                        acc + w * x
-                    });
+            // Since flattened, window size boundaries are essentially new rows
+            let predicted_sample = weights.iter().enumerate().fold(F::zero(), |acc, (j, &w)| {
+                let x = *self
+                    .input_history
+                    .get(i * (*weights.window_size()) + (*weights.window_size()) - 1 - j)
+                    .expect(""); // TODO: expect message here check
+                acc + w * x
+            });
             self.error_vector.push(desired_sample - predicted_sample);
         }
     }
@@ -170,7 +147,7 @@ impl<F: Float> Apa<F> {
     /// Returns the inner matrix prior to inversion.
     ///
     /// Calculates the Dot Product of two matricies and adds an epsilon value along the identity
-    /// matrix.
+    /// matrix. ``n`` is the window size.
     fn build_matrix_product(&self, n: usize) -> SampleBuffer<F> {
         let mut matrix_product = SampleBuffer::new(
             NonZero::new(self.projection_order * self.projection_order)
@@ -178,9 +155,11 @@ impl<F: Float> Apa<F> {
         );
 
         // a little fp to make indexing sane to fn look at
+        // Similar to what is done above in ``recalculate_error_vector()``, as well as everywhere else...
+        // so may be worth making a function
         let x = |i: usize, j: usize| -> F { *self.input_history.get(i * n + n - 1 - j).expect("") };
 
-        // Again, push() adds to the front so doing rev()
+        // push() adds to the front so doing rev()
         for i in (0..self.projection_order).rev() {
             for j in (0..self.projection_order).rev() {
                 // getting dot product, where k is the index for this row by col
