@@ -6,8 +6,8 @@
 
 use adaptif::algorithms::Algorithm;
 use adaptif::filters::{
-    FilterBase, LmsFilter, LmsOptions, NlmsFilter, NlmsOptions, ProcessingMode, RlsFilter,
-    RlsOptions,
+    ApaFilter, ApaOptions, FilterBase, LmsFilter, LmsOptions, NlmsFilter, NlmsOptions,
+    ProcessingMode, RlsFilter, RlsOptions,
 };
 
 use super::utils::{TestSignalBatch, load_test_signals, mse, snr};
@@ -58,6 +58,13 @@ fn rls_adapts_signal() {
 }
 
 #[test]
+fn apa_adapts_signal() {
+    let mut filter = ApaFilter::new(ApaOptions::default(), ProcessingMode::Sample).unwrap();
+
+    test_filter(&mut filter);
+}
+
+#[test]
 fn block_lms_adapts_signal() {
     let mut filter = LmsFilter::new(
         LmsOptions::default(),
@@ -81,6 +88,17 @@ fn block_nlms_adapts_signal() {
 fn block_rls_adapts_signal() {
     let mut filter = RlsFilter::new(
         RlsOptions::default(),
+        ProcessingMode::Block { block_size: 4 },
+    )
+    .unwrap();
+
+    test_filter(&mut filter);
+}
+
+#[test]
+fn block_apa_adapts_signal() {
+    let mut filter = ApaFilter::new(
+        ApaOptions::default(),
         ProcessingMode::Block { block_size: 4 },
     )
     .unwrap();
