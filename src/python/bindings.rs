@@ -11,8 +11,10 @@ use super::macros::generate_filter_bindings;
 
 use crate::Error;
 use crate::algorithms::Algorithm;
+use crate::filters::{
+    ApaFilter, ApaOptions, LmsFilter, LmsOptions, NlmsFilter, NlmsOptions, RlsFilter, RlsOptions,
+};
 use crate::filters::{FilterBase, ProcessingMode};
-use crate::filters::{LmsFilter, LmsOptions, NlmsFilter, NlmsOptions, RlsFilter, RlsOptions};
 use crate::types::signals::{InputSignal, NoiseReference};
 
 impl From<Error> for PyErr {
@@ -107,7 +109,7 @@ where
 #[pymodule]
 mod adaptif {
     #[pymodule_export]
-    use super::{LMSFilter, NLMSFilter, RLSFilter};
+    use super::{APAFilter, LMSFilter, NLMSFilter, RLSFilter};
 }
 
 #[pyclass]
@@ -186,3 +188,35 @@ impl RLSFilter {
 }
 
 generate_filter_bindings!(RLSFilter);
+
+#[pyclass]
+pub struct APAFilter {
+    inner: ApaFilter<f64>,
+}
+#[pymethods]
+impl APAFilter {
+    #[new]
+    #[pyo3(signature = (mu=0.01, eps=1e-8, projection_order=2, window_size=8, block_size=1))]
+    fn new(
+        mu: f64,
+        eps: f64,
+        projection_order: usize,
+        window_size: usize,
+        block_size: usize,
+    ) -> PyResult<Self> {
+        let filter = ApaFilter::new(
+            ApaOptions {
+                mu,
+                eps,
+                projection_order,
+                window_size,
+            },
+            ProcessingMode::Block { block_size },
+        )
+        .map_err(PyErr::from)?;
+
+        Ok(Self { inner: filter })
+    }
+}
+
+generate_filter_bindings!(APAFilter);

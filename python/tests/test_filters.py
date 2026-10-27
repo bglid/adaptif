@@ -1,14 +1,14 @@
 import numpy as np
 import pytest
-from adaptif import LMSFilter, NLMSFilter, RLSFilter
+from adaptif import APAFilter, LMSFilter, NLMSFilter, RLSFilter
 
 
-@pytest.fixture(params=[LMSFilter, NLMSFilter, RLSFilter])
+@pytest.fixture(params=[LMSFilter, NLMSFilter, RLSFilter, APAFilter])
 def filter(request):
     return request.param()
 
 
-@pytest.mark.parametrize("filter_class", [LMSFilter, NLMSFilter, RLSFilter])
+@pytest.mark.parametrize("filter_class", [LMSFilter, NLMSFilter, RLSFilter, APAFilter])
 @pytest.mark.parametrize("block_size", [1, 4])
 def test_window_size(filter_class, block_size):
     filter = filter_class(window_size=1, block_size=block_size)
@@ -21,7 +21,7 @@ def test_window_size(filter_class, block_size):
         filter_class(window_size=0, block_size=block_size)
 
 
-@pytest.mark.parametrize("filter_class", [LMSFilter, NLMSFilter, RLSFilter])
+@pytest.mark.parametrize("filter_class", [LMSFilter, NLMSFilter, RLSFilter, APAFilter])
 def test_block_size(filter_class):
     filter = filter_class(block_size=1)
     assert filter.block_size == 1

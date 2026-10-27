@@ -23,7 +23,7 @@ impl<F: Float> Default for ApaOptions<F> {
         )]
         // TODO: I don't know if the mu is ideal here, the others I am confident about though
         Self {
-            mu: F::from(0.1).unwrap(),
+            mu: F::from(0.01).unwrap(),
             eps: F::from(1e-8).unwrap(),
             projection_order: 2,
             window_size: 8,
