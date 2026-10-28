@@ -23,6 +23,8 @@ pub struct Apa<F: Float> {
     desired_history: DesiredHistory<F>,
     /// Preallocated the capacity for storing the recalculated error vector per weight update.
     error_vector: ErrorVector<F>,
+    /// Preallocated capacity for inner Gram matrix in APA update.
+    gram_matrix: GramMatrix<F>,
 }
 
 impl<F: Float> Algorithm<F> for Apa<F> {
@@ -55,14 +57,14 @@ impl<F: Float> Algorithm<F> for Apa<F> {
                 .sum();
         self.desired_history.push(desired_output);
 
-        self.update_input_history(&noise_window);
+        self.input_history.update_input_history(&noise_window);
 
         // recalculating the entire error vector with prior to weight update
         self.recalculate_error_vector(weights);
 
-        let inner_matrix = self.matrix_matrix_product(*weights.window_size());
+        self.matrix_matrix_product(*weights.window_size());
 
-        let inverted_matrix = gauss_jordan(&inner_matrix, self.projection_order);
+        let inverted_matrix = gauss_jordan(&self.gram_matrix.inner, self.projection_order);
 
         let matrix_error_product = self.matrix_vector_product(&inverted_matrix);
 
@@ -110,14 +112,11 @@ impl<F: Float> Apa<F> {
             input_history: InputHistory::new(projection_order, WindowSize::new(1)?),
             desired_history: DesiredHistory::new(projection_order),
             error_vector: ErrorVector::new(projection_order),
+            gram_matrix: GramMatrix::new(Shape {
+                rows: projection_order,
+                cols: projection_order,
+            }),
         })
-    }
-
-    /// Updates the input history vector used in the APA weight update.
-    fn update_input_history(&mut self, noise_ref: &NoiseWindow<F>) {
-        for sample in noise_ref.iter() {
-            self.input_history.push(sample);
-        }
     }
 
     /// Rebuilds the entire ``ErrorVector`` from scratch using new weight updates.
@@ -150,12 +149,7 @@ impl<F: Float> Apa<F> {
     ///
     /// Calculates the Dot Product of two matricies and adds an epsilon value along the identity
     /// matrix. ``n`` is the window size.
-    fn matrix_matrix_product(&self, window: usize) -> SampleBuffer<F> {
-        let mut dot_product = SampleBuffer::new(
-            NonZero::new(self.projection_order * self.projection_order)
-                .expect("projection order ensures that capacity is > 0"),
-        );
-
+    fn matrix_matrix_product(&mut self, window: usize) {
         // a little fp to make indexing sane to fn look at
         // Similar to what is done above in ``recalculate_error_vector()``, as well as everywhere else...
         // so may be worth making a function
@@ -166,16 +160,17 @@ impl<F: Float> Apa<F> {
                 .expect("internal error with matrix bounds.")
         };
 
-        // push() adds to the front so doing rev()
-        for i in (0..self.projection_order).rev() {
-            for j in (0..self.projection_order).rev() {
-                // getting dot product, where k is the index for this row by col
-                let product = (0..window).map(|k| x(i, k) * x(j, k)).sum::<F>();
-                let regularization = if i == j { self.eps } else { F::zero() };
-                dot_product.push(product + regularization);
+        #[allow(clippy::indexing_slicing, reason = "Bounds are checked before...")]
+        for i in 0..self.projection_order {
+            for k in 0..window {
+                let aik = x(i, k);
+                for j in 0..self.projection_order {
+                    // TODO: add deref for this
+                    self.gram_matrix.inner[i * self.projection_order + j] += aik * x(j, k);
+                }
             }
+            self.gram_matrix.inner[i * self.projection_order + i] += self.eps;
         }
-        dot_product
     }
 
     fn matrix_vector_product(&self, matrix: &SampleBuffer<F>) -> SampleBuffer<F> {
@@ -205,7 +200,7 @@ impl<F: Float> Apa<F> {
 // this is the GaussJordan approach pulled from this: https://gist.github.com/barbarbar338/b66e2a404abb3a7f7c4d542204a3626a
 // The simplest example I could find... lol
 // Also, https://en.wikipedia.org/wiki/Gaussian_elimination
-fn gauss_jordan<F>(matrix: &SampleBuffer<F>, n: usize) -> SampleBuffer<F>
+fn gauss_jordan<F>(matrix: &[F], n: usize) -> SampleBuffer<F>
 where
     F: Float,
 {
@@ -294,6 +289,13 @@ impl<F: Float> InputHistory<F> {
             window_size,
         }
     }
+
+    /// Updates the input history vector used in the APA weight update.
+    fn update_input_history(&mut self, noise_ref: &NoiseWindow<F>) {
+        for sample in noise_ref.iter() {
+            self.push(sample);
+        }
+    }
 }
 impl<F: Float> Deref for InputHistory<F> {
     type Target = SampleBuffer<F>;
@@ -365,6 +367,27 @@ impl<F: Float> DerefMut for ErrorVector<F> {
     }
 }
 
+// NOTE: This is will switch once we have matrix trait
+#[derive(Debug, Clone, PartialEq)]
+struct Shape {
+    rows: usize,
+    cols: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+/// L-dimensional vector of the newly calculated error vectory, where L = projection order.
+struct GramMatrix<F: Float> {
+    inner: Box<[F]>,
+    shape: Shape,
+}
+impl<F: Float> GramMatrix<F> {
+    pub fn new(shape: Shape) -> Self {
+        GramMatrix {
+            inner: vec![F::zero(); shape.rows * shape.cols].into_boxed_slice(),
+            shape,
+        }
+    }
+}
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::indexing_slicing, reason = "Tests")]
 mod tests {
