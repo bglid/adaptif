@@ -78,23 +78,14 @@ impl<F: Float> Algorithm<F> for Apa<F> {
         self.input_history
             .matmul(&history_t, &mut self.gram_matrix)
             .expect("matrix dims must match");
-
-        // TODO: Make this a method somewhere
-        // self.gram_matrix.add_eps(&mut self.gram_matrix, self.eps);
-        #[allow(
-            clippy::indexing_slicing,
-            reason = "Bounds are defined by projection order"
-        )]
-        for i in 0..self.projection_order {
-            self.gram_matrix[i * self.projection_order + i] += self.eps;
-        }
+        self.gram_matrix.add_eps(self.eps);
 
         self.gram_matrix
             .gauss_jordan_inversion(&mut self.augmented_matrix)
             .expect("Issue with gauss jordan matrix inversion");
 
         self.gram_matrix
-            .matmul(&(*self.error_vector), &mut self.solver_result);
+            .matmul(&self.error_vector, &mut self.solver_result);
 
         // TODO: Generalize the matrix vector product to reuse it here too
         // $w_{n+1} = ``w_n`` + \mu * X(n)(X(n)^{T}X(n) + \epsilon I)^{-1} e(n)$
@@ -291,17 +282,6 @@ pub trait MatrixOps<'a> {
         }
         Some(())
     }
-
-    // fn add_eps<'rhs, M>(&self, out: &mut [Self::Item], eps: Self::Item) -> Option<()>
-    // where
-    //     M: MatrixOps<'rhs, Item = Self::Item>,
-    // {
-    //     let (n_rows, n_cols) = (self.shape().rows, self.shape().cols);
-    //     for i in 0..n_rows {
-    //         out[i * n_cols + i] += eps;
-    //     }
-    //     Some(())
-    // }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -372,6 +352,16 @@ impl<F: Float> Matrix<F> {
             }
         }
         Some(())
+    }
+    #[allow(
+        clippy::indexing_slicing,
+        reason = "Bounds are defined by projection order"
+    )]
+    fn add_eps(&mut self, eps: F) {
+        let (n_rows, n_cols) = (self.shape().rows, self.shape().cols);
+        for i in 0..n_rows {
+            self[i * n_cols + i] += eps;
+        }
     }
 }
 
@@ -478,6 +468,16 @@ impl<F: Float> Deref for ErrorVector<F> {
 impl<F: Float> DerefMut for ErrorVector<F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
+    }
+}
+
+impl<F: Float> MatrixOps<'_> for ErrorVector<F> {
+    type Item = F;
+    fn get_2d(&self, row: usize, col: usize) -> Option<&Self::Item> {
+        self.inner.get_2d(row, col)
+    }
+    fn shape(&self) -> Shape {
+        self.inner.shape()
     }
 }
 
