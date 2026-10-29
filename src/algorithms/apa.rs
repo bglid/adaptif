@@ -1,3 +1,4 @@
+use num_traits::Zero as _; // TODO: Check w Elias why this needs to be imported
 use std::num::NonZero;
 use std::ops::{Deref, DerefMut};
 
@@ -24,7 +25,11 @@ pub struct Apa<F: Float> {
     /// Preallocated the capacity for storing the recalculated error vector per weight update.
     error_vector: ErrorVector<F>,
     /// Preallocated capacity for inner Gram matrix in APA update.
-    gram_matrix: GramMatrix<F>,
+    gram_matrix: Matrix<F>,
+    /// Augmented matrix used in Gauss Jordan algorithm for matrix inversion.
+    augmented_matrix: Matrix<F>,
+    /// Preallocated vector matrix to hold result of linear algebra solver.
+    solver_result: Matrix<F>,
 }
 
 impl<F: Float> Algorithm<F> for Apa<F> {
@@ -62,24 +67,43 @@ impl<F: Float> Algorithm<F> for Apa<F> {
         // recalculating the entire error vector with prior to weight update
         self.recalculate_error_vector(weights);
 
-        self.matrix_matrix_product(*weights.window_size());
+        // temp copy
+        let history_t = self.input_history.tranpose();
 
-        let inverted_matrix = gauss_jordan(&self.gram_matrix.inner, self.projection_order);
+        self.input_history
+            .matmul(&history_t, &mut self.gram_matrix)
+            .expect("matrix dims must match");
 
-        let matrix_error_product = self.matrix_vector_product(&inverted_matrix);
+        // TODO: Make this a method somewhere
+        // self.gram_matrix.add_eps(&mut self.gram_matrix, self.eps);
+        #[allow(
+            clippy::indexing_slicing,
+            reason = "Bounds are defined by projection order"
+        )]
+        for i in 0..self.projection_order {
+            self.gram_matrix[i * self.projection_order + i] += self.eps;
+        }
+
+        self.gram_matrix
+            .gauss_jordan_inversion(&mut self.augmented_matrix)
+            .expect("Issue with gauss jordan matrix inversion");
+
+        self.gram_matrix
+            .matmul(&(*self.error_vector), &mut self.solver_result);
 
         // TODO: Generalize the matrix vector product to reuse it here too
         // $w_{n+1} = ``w_n`` + \mu * X(n)(X(n)^{T}X(n) + \epsilon I)^{-1} e(n)$
+        #[allow(
+            clippy::indexing_slicing,
+            reason = "Bounds are defined by projection order"
+        )]
         for (j, w) in weights.iter_mut().enumerate() {
             let mut update = F::zero();
 
             for i in 0..self.projection_order {
-                let x = *self
-                    .input_history
-                    .get(i * (*window_size) + (*window_size) - 1 - j)
-                    .expect("matrix bounds");
+                let x = *self.input_history.get_2d(i, j).expect("matrix bounds");
 
-                update += x * (*matrix_error_product.get(i).expect("matrix bounds"));
+                update += x * self.solver_result[i];
             }
             *w += self.mu * update;
         }
@@ -112,9 +136,17 @@ impl<F: Float> Apa<F> {
             input_history: InputHistory::new(projection_order, WindowSize::new(1)?),
             desired_history: DesiredHistory::new(projection_order),
             error_vector: ErrorVector::new(projection_order),
-            gram_matrix: GramMatrix::new(Shape {
+            gram_matrix: Matrix::new(Shape {
                 rows: projection_order,
                 cols: projection_order,
+            }),
+            augmented_matrix: Matrix::new(Shape {
+                rows: projection_order,
+                cols: 2 * projection_order,
+            }),
+            solver_result: Matrix::new(Shape {
+                rows: projection_order,
+                cols: 1,
             }),
         })
     }
@@ -122,7 +154,10 @@ impl<F: Float> Apa<F> {
     /// Rebuilds the entire ``ErrorVector`` from scratch using new weight updates.
     fn recalculate_error_vector(&mut self, weights: &FilterWeights<F>) {
         // have to get oldest first because push inserts at front
-        #[allow(clippy::missing_panics_doc, reason = "failure independent of fn input")]
+        #[allow(
+            clippy::indexing_slicing,
+            reason = "Bounds are defined by projection order"
+        )]
         for i in (0..self.projection_order).rev() {
             let desired_sample = *self.desired_history.get(i).expect(
                 "
@@ -139,136 +174,9 @@ impl<F: Float> Apa<F> {
                     .expect(""); // TODO: expect message here check
                 acc + w * x
             });
-            self.error_vector.push(desired_sample - predicted_sample);
+            self.error_vector[i] = desired_sample - predicted_sample;
         }
     }
-
-    // TODO: Break this and following function into non-methods for reusable linalg utils
-
-    /// Returns the inner matrix prior to inversion.
-    ///
-    /// Calculates the Dot Product of two matricies and adds an epsilon value along the identity
-    /// matrix. ``n`` is the window size.
-    fn matrix_matrix_product(&mut self, window: usize) {
-        // a little fp to make indexing sane to fn look at
-        // Similar to what is done above in ``recalculate_error_vector()``, as well as everywhere else...
-        // so may be worth making a function
-        let x = |i: usize, j: usize| -> F {
-            *self
-                .input_history
-                .get(i * window + window - 1 - j)
-                .expect("internal error with matrix bounds.")
-        };
-
-        #[allow(clippy::indexing_slicing, reason = "Bounds are checked before...")]
-        for i in 0..self.projection_order {
-            for k in 0..window {
-                let aik = x(i, k);
-                for j in 0..self.projection_order {
-                    // TODO: add deref for this
-                    self.gram_matrix.inner[i * self.projection_order + j] += aik * x(j, k);
-                }
-            }
-            self.gram_matrix.inner[i * self.projection_order + i] += self.eps;
-        }
-    }
-
-    fn matrix_vector_product(&self, matrix: &SampleBuffer<F>) -> SampleBuffer<F> {
-        let mut dot_product = SampleBuffer::new(
-            NonZero::new(self.projection_order)
-                .expect("projection order ensures that capacity is > 0"),
-        );
-
-        // push() adds to the front so doing rev()
-        for i in (0..self.projection_order).rev() {
-            let mut product = F::zero();
-
-            for j in 0..self.projection_order {
-                product += (*matrix
-                    .get(i * self.projection_order + j)
-                    .expect("matrix bounds"))
-                    * (*self.error_vector.get(j).expect("vector bounds"));
-            }
-            dot_product.push(product);
-        }
-        dot_product
-    }
-}
-
-// TODO: Yeah this should go in it's own file...
-// From what I see online, doing Xn^-1 requires a "GaussJordan" elimination (or a linalg solver)
-// this is the GaussJordan approach pulled from this: https://gist.github.com/barbarbar338/b66e2a404abb3a7f7c4d542204a3626a
-// The simplest example I could find... lol
-// Also, https://en.wikipedia.org/wiki/Gaussian_elimination
-fn gauss_jordan<F>(matrix: &[F], n: usize) -> SampleBuffer<F>
-where
-    F: Float,
-{
-    // NOTE: If we keep this monstrosity then I may do a closure or secondary function for the weird flat indexing here
-    // ... or to make the .get() a bit easier
-
-    // Augmented Identity matrix [A I]
-    // According to wikipedia, this has the shape of n * 2n [Augmented matrix x identity matrix]
-    let width = 2 * n;
-    let mut augmented_flat_mat =
-        SampleBuffer::new(NonZero::new(n * width).expect("n must be positive"));
-
-    for i in 0..n {
-        for j in 0..n {
-            if let Some(val) = matrix.get(i * n + j) {
-                *augmented_flat_mat.get_mut(i * width + j).expect(
-                    "Internal error with matrix bounds, range is set by projection order",
-                ) = *val;
-            }
-        }
-        // identity matrix part, again flat so n * i is like jumping to next row
-        *augmented_flat_mat
-            .get_mut(i * width + n + i)
-            .expect("Internal error with matrix bounds, range is set by projection order") =
-            F::one();
-    }
-
-    // TODO: improve expect() all along here too, there's a lot but I want to see if this works first
-    for i in 0..n {
-        let scale = *augmented_flat_mat
-            .get(i * width + i)
-            .expect("Matrix bounds erro");
-        for j in 0..(2 * n) {
-            *augmented_flat_mat
-                .get_mut(i * width + j)
-                .expect("Matrix bounds error") /= scale;
-        }
-
-        // Eliminate non-diagonal elements in the current column
-        for j in 0..n {
-            if j != i {
-                let elimination_factor = *augmented_flat_mat
-                    .get(j * width + i)
-                    .expect("Matrix bounds error");
-                for k in 0..(2 * n) {
-                    let leading_entry = *augmented_flat_mat
-                        .get_mut(i * width + k)
-                        .expect("Matrix bounds error");
-                    *augmented_flat_mat
-                        .get_mut(j * width + k)
-                        .expect("Matrix bounds error") -= elimination_factor * leading_entry;
-                }
-            }
-        }
-    }
-
-    // Now you apparently take the inverse matrix out of the augmented matrix
-    let mut inverted_matrix = SampleBuffer::new(NonZero::new(n * n).expect("n must be positive"));
-    for i in 0..n {
-        for j in 0..n {
-            *inverted_matrix
-                .get_mut(i * n + j)
-                .expect("Matrix bounds error") = *augmented_flat_mat
-                .get(i * width + n + j)
-                .expect("Matrix bounds error");
-        }
-    }
-    inverted_matrix
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -310,6 +218,30 @@ impl<F: Float> DerefMut for InputHistory<F> {
     }
 }
 
+impl<F: Float> MatrixOps<'_> for InputHistory<F> {
+    type Item = F;
+    // TODO: Double check this
+    #[allow(
+        clippy::integer_division_remainder_used,
+        clippy::integer_division,
+        reason = "values in division are predetermined in initialization to not have a remainder that loses precision"
+    )]
+    fn shape(&self) -> Shape {
+        Shape {
+            rows: self.inner.len() / *self.window_size, // Gets the number of windows rather than samples
+            cols: *self.window_size,
+        }
+    }
+    fn get_2d(&self, row: usize, col: usize) -> Option<&Self::Item> {
+        if row >= self.shape().rows || col >= *self.window_size {
+            return None;
+        }
+
+        self.inner
+            .get(row * (*self.window_size) + (*self.window_size) - 1 - col)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 /// L-dimensional vector of the desired output history, where L = projection order.
 struct DesiredHistory<F: Float> {
@@ -339,23 +271,205 @@ impl<F: Float> DerefMut for DesiredHistory<F> {
     }
 }
 
+// NOTE: This is will switch once we have matrix trait
+pub trait MatrixOps<'a> {
+    type Item: Float;
+
+    fn get_2d(&self, row: usize, col: usize) -> Option<&Self::Item>;
+    fn shape(&self) -> Shape;
+
+    fn tranpose(&'a self) -> Transpose<'a, Self>
+    where
+        Self: Sized,
+    {
+        Transpose { matrix: self }
+    }
+
+    fn matmul<'rhs, M>(&self, rhs: &M, out: &mut [Self::Item]) -> Option<()>
+    where
+        M: MatrixOps<'rhs, Item = Self::Item>,
+    {
+        if self.shape().cols != rhs.shape().rows {
+            return None;
+        }
+
+        if out.len() != self.shape().rows * rhs.shape().cols {
+            return None;
+        }
+        // need to fill the output matrix with zeros since this'll be used across APA updates
+        out.fill(Self::Item::zero());
+
+        let (n_rows, inner, n_cols) = (self.shape().rows, self.shape().cols, rhs.shape().cols);
+        // let x = |i: usize, j: usize| -> Self::Item {
+        //     *self
+        //         // .get_2d(i * inner + inner - 1 - j)
+        //         .get_2d(i, j)
+        //         .expect("internal error with matrix bounds.")
+        // };
+
+        #[allow(clippy::indexing_slicing, reason = "Bounds are checked before...")]
+        for i in 0..n_rows {
+            for k in 0..inner {
+                let lhs = *self.get_2d(i, k)?;
+
+                for j in 0..n_cols {
+                    out[i * n_cols + j] += lhs * (*rhs.get_2d(k, j)?);
+                }
+            }
+        }
+        Some(())
+    }
+
+    // fn add_eps<'rhs, M>(&self, out: &mut [Self::Item], eps: Self::Item) -> Option<()>
+    // where
+    //     M: MatrixOps<'rhs, Item = Self::Item>,
+    // {
+    //     let (n_rows, n_cols) = (self.shape().rows, self.shape().cols);
+    //     for i in 0..n_rows {
+    //         out[i * n_cols + i] += eps;
+    //     }
+    //     Some(())
+    // }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+/// L-dimensional vector of the newly calculated error vectory, where L = projection order.
+struct Matrix<F: Float> {
+    inner: Box<[F]>,
+    shape: Shape,
+}
+impl<F: Float> Matrix<F> {
+    pub fn new(shape: Shape) -> Self {
+        Matrix {
+            inner: vec![F::zero(); shape.rows * shape.cols].into_boxed_slice(),
+            shape,
+        }
+    }
+
+    // TODO: Yeah this should go in it's own file...
+    // From what I see online, doing Xn^-1 requires a "GaussJordan" elimination (or a linalg solver)
+    // this is the GaussJordan approach pulled from this: https://gist.github.com/barbarbar338/b66e2a404abb3a7f7c4d542204a3626a
+    // The simplest example I could find... lol
+
+    // TODO: DOUBLE CHECK THIS ALLOW
+    #[allow(
+        clippy::indexing_slicing,
+        reason = "Bounds are defined by projection order"
+    )]
+    pub fn gauss_jordan_inversion(&mut self, augmented_matrix: &mut [F]) -> Option<()> {
+        let n = self.shape().rows;
+        let width = 2 * n;
+        if self.shape().cols != n || augmented_matrix.len() != n * width {
+            return None;
+        }
+
+        // Augmented Identity matrix [A I]
+        //  this has the shape of n * 2n [Augmented matrix x identity matrix]
+        augmented_matrix.fill(F::zero());
+
+        for i in 0..n {
+            for j in 0..n {
+                augmented_matrix[i * width + j] = *self.get_2d(i, j)?;
+            }
+            // identity matrix part
+            augmented_matrix[i * width + n + i] = F::one();
+        }
+
+        for i in 0..n {
+            let scale = augmented_matrix[i * width + i];
+            for j in 0..width {
+                augmented_matrix[i * width + j] /= scale;
+            }
+
+            // Eliminate non-diagonal elements in the current column
+            for j in 0..n {
+                if j != i {
+                    let elimination_factor = augmented_matrix[j * width + i];
+                    for k in 0..width {
+                        let leading_entry = augmented_matrix[i * width + k];
+                        augmented_matrix[j * width + k] -= elimination_factor * leading_entry;
+                    }
+                }
+            }
+        }
+
+        // Now you apparently take the inverse matrix out of the augmented matrix
+        for i in 0..n {
+            for j in 0..n {
+                self[i * n + j] = augmented_matrix[i * width + n + j];
+            }
+        }
+        Some(())
+    }
+}
+
+impl<F: Float> Deref for Matrix<F> {
+    type Target = Box<[F]>;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+impl<F: Float> DerefMut for Matrix<F> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
+impl<F: Float> MatrixOps<'_> for Matrix<F> {
+    type Item = F;
+    fn get_2d(&self, row: usize, col: usize) -> Option<&Self::Item> {
+        self.inner.get(row * self.shape().cols + col)
+    }
+    fn shape(&self) -> Shape {
+        self.shape.clone()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Transpose<'a, M>
+where
+    M: MatrixOps<'a>,
+{
+    matrix: &'a M,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Shape {
+    rows: usize,
+    cols: usize,
+}
+
+impl<'a, M: MatrixOps<'a>> MatrixOps<'a> for Transpose<'a, M> {
+    type Item = M::Item;
+    fn get_2d(&self, row: usize, col: usize) -> Option<&Self::Item> {
+        self.matrix.get_2d(col, row)
+    }
+
+    fn shape(&self) -> Shape {
+        Shape {
+            rows: self.matrix.shape().cols,
+            cols: self.matrix.shape().rows,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 /// L-dimensional vector of the newly calculated error vectory, where L = projection order.
 struct ErrorVector<F: Float> {
-    inner: SampleBuffer<F>,
+    inner: Matrix<F>,
 }
 impl<F: Float> ErrorVector<F> {
     pub fn new(projection_order: usize) -> Self {
-        let capacity = NonZero::new(projection_order).expect(
-            "Desired history is initialized by APA projection order, which must be greater than 0.",
-        );
         ErrorVector {
-            inner: SampleBuffer::new(capacity),
+            inner: Matrix::new(Shape {
+                rows: projection_order,
+                cols: 1,
+            }),
         }
     }
 }
 impl<F: Float> Deref for ErrorVector<F> {
-    type Target = SampleBuffer<F>;
+    type Target = Matrix<F>;
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
@@ -367,27 +481,6 @@ impl<F: Float> DerefMut for ErrorVector<F> {
     }
 }
 
-// NOTE: This is will switch once we have matrix trait
-#[derive(Debug, Clone, PartialEq)]
-struct Shape {
-    rows: usize,
-    cols: usize,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-/// L-dimensional vector of the newly calculated error vectory, where L = projection order.
-struct GramMatrix<F: Float> {
-    inner: Box<[F]>,
-    shape: Shape,
-}
-impl<F: Float> GramMatrix<F> {
-    pub fn new(shape: Shape) -> Self {
-        GramMatrix {
-            inner: vec![F::zero(); shape.rows * shape.cols].into_boxed_slice(),
-            shape,
-        }
-    }
-}
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::indexing_slicing, reason = "Tests")]
 mod tests {

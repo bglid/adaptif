@@ -46,10 +46,6 @@ impl<F: Float> SampleBuffer<F> {
         self.samples.get(index)
     }
 
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut F> {
-        self.samples.get_mut(index)
-    }
-
     pub fn len(&self) -> usize {
         self.capacity.into()
     }
