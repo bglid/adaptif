@@ -65,7 +65,12 @@ impl<F: Float> Algorithm<F> for Apa<F> {
         self.input_history.update_input_history(&noise_window);
 
         // recalculating the entire error vector with prior to weight update
-        self.recalculate_error_vector(weights);
+        // TODO: Maybe change this, this seems off
+        self.error_vector.recalculate_error_vector(
+            &self.desired_history,
+            &self.input_history,
+            weights,
+        );
 
         // temp copy
         let history_t = self.input_history.tranpose();
@@ -150,33 +155,6 @@ impl<F: Float> Apa<F> {
             }),
         })
     }
-
-    /// Rebuilds the entire ``ErrorVector`` from scratch using new weight updates.
-    fn recalculate_error_vector(&mut self, weights: &FilterWeights<F>) {
-        // have to get oldest first because push inserts at front
-        #[allow(
-            clippy::indexing_slicing,
-            reason = "Bounds are defined by projection order"
-        )]
-        for i in (0..self.projection_order).rev() {
-            let desired_sample = *self.desired_history.get(i).expect(
-                "
-                desired sample get should only fail if index >= desired_history.len().
-                desired_history.len() == projection_order, so index (i) is always <= desired_history.len(),",
-            );
-
-            // prediction using flattened input history matrix by weights
-            // Since flattened, window size boundaries are essentially new rows
-            let predicted_sample = weights.iter().enumerate().fold(F::zero(), |acc, (j, &w)| {
-                let x = *self
-                    .input_history
-                    .get(i * (*weights.window_size()) + (*weights.window_size()) - 1 - j)
-                    .expect(""); // TODO: expect message here check
-                acc + w * x
-            });
-            self.error_vector[i] = desired_sample - predicted_sample;
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -220,7 +198,7 @@ impl<F: Float> DerefMut for InputHistory<F> {
 
 impl<F: Float> MatrixOps<'_> for InputHistory<F> {
     type Item = F;
-    // TODO: Double check this
+    // TODO: Double check this division is checked
     #[allow(
         clippy::integer_division_remainder_used,
         clippy::integer_division,
@@ -300,12 +278,6 @@ pub trait MatrixOps<'a> {
         out.fill(Self::Item::zero());
 
         let (n_rows, inner, n_cols) = (self.shape().rows, self.shape().cols, rhs.shape().cols);
-        // let x = |i: usize, j: usize| -> Self::Item {
-        //     *self
-        //         // .get_2d(i * inner + inner - 1 - j)
-        //         .get_2d(i, j)
-        //         .expect("internal error with matrix bounds.")
-        // };
 
         #[allow(clippy::indexing_slicing, reason = "Bounds are checked before...")]
         for i in 0..n_rows {
@@ -465,6 +437,34 @@ impl<F: Float> ErrorVector<F> {
                 rows: projection_order,
                 cols: 1,
             }),
+        }
+    }
+    /// Rebuilds the entire ``ErrorVector`` from scratch using new weight updates.
+    fn recalculate_error_vector(
+        &mut self,
+        desired_history: &DesiredHistory<F>,
+        input_history: &InputHistory<F>,
+        weights: &FilterWeights<F>,
+    ) {
+        // have to get oldest first because push inserts at front
+        #[allow(
+            clippy::indexing_slicing,
+            reason = "Bounds are defined by projection order"
+        )]
+        for i in 0..self.inner.shape().rows {
+            let desired_sample = *desired_history.get(i).expect(
+                "
+                desired sample get should only fail if index >= desired_history.len().
+                desired_history.len() == projection_order, so index (i) is always <= desired_history.len(),",
+            );
+
+            // prediction using flattened input history matrix by weights
+            // Since flattened, window size boundaries are essentially new rows
+            let predicted_sample = weights.iter().enumerate().fold(F::zero(), |acc, (j, &w)| {
+                let x = *input_history.get_2d(i, j).expect("Input history bounds");
+                acc + w * x
+            });
+            self.inner[i] = desired_sample - predicted_sample;
         }
     }
 }
