@@ -81,7 +81,7 @@ impl<F: Float> Algorithm<F> for Apa<F> {
         self.gram_matrix.add_eps(self.eps);
 
         self.gram_matrix
-            .gauss_jordan_inversion(&mut self.augmented_matrix)
+            .gauss_jordan_elimination(&mut self.augmented_matrix)
             .expect("Issue with gauss jordan matrix inversion");
 
         self.gram_matrix
@@ -302,40 +302,54 @@ impl<F: Float> Matrix<F> {
     // From what I see online, doing Xn^-1 requires a "GaussJordan" elimination (or a linalg solver)
     // this is the GaussJordan approach pulled from this: https://gist.github.com/barbarbar338/b66e2a404abb3a7f7c4d542204a3626a
     // The simplest example I could find... lol
+    // Also, https://en.wikipedia.org/wiki/Gaussian_elimination
+    // And... https://www.wikihow.com/Reduce-a-Matrix-to-Row-Echelon-Form
 
     // TODO: DOUBLE CHECK THIS ALLOW
     #[allow(
         clippy::indexing_slicing,
         reason = "Bounds are defined by projection order"
     )]
-    pub fn gauss_jordan_inversion(&mut self, augmented_matrix: &mut [F]) -> Option<()> {
+    /// Gauss-Jordan elimination algorithm. Used for finding the inverse of a matrix.
+    /// Uses row reduction to compute the inverse matrix.
+    /// The matrix isn't invertible if it can't be reduced to the identity matrix.
+    pub fn gauss_jordan_elimination(&mut self, augmented_matrix: &mut [F]) -> Option<()> {
+        // Augmented Identity matrix [A I] has the shape of n * 2n [Augmented matrix x identity matrix]
         let n = self.shape().rows;
         let width = 2 * n;
+
+        // Algorithm requres these shape bounds of Matrix A = (n x n) & Matrix AI = (n * 2n)
         if self.shape().cols != n || augmented_matrix.len() != n * width {
             return None;
         }
 
-        // Augmented Identity matrix [A I]
-        //  this has the shape of n * 2n [Augmented matrix x identity matrix]
+        // NOTE: This down to line 336, we might be able to simplify, since the left side of AI is the matrix we are inverting
+        // We need the AI matrix to be fresh every time we call update step since
+        // we don't want the augmented matrix data from previous calls.
         augmented_matrix.fill(F::zero());
 
+        // The first step is to copy the values of the matrix we are inverting to left (n x n)
         for i in 0..n {
             for j in 0..n {
                 augmented_matrix[i * width + j] = *self.get_2d(i, j)?;
             }
-            // identity matrix part
+            // In the right half of the AI matrix, we 'augment' by creating a (n x n) identity matrix
             augmented_matrix[i * width + n + i] = F::one();
         }
 
+        // transforming into the `reduced row echelon form`
+        // This step divdes row by the leading entry so that the leading entry equals 1
         for i in 0..n {
             let scale = augmented_matrix[i * width + i];
             for j in 0..width {
                 augmented_matrix[i * width + j] /= scale;
             }
 
+            // We want 0s below the first pivot (leading entry)
             // Eliminate non-diagonal elements in the current column
             for j in 0..n {
                 if j != i {
+                    // We get the row reduction amounts here to bring the values under the leading entry to 0
                     let elimination_factor = augmented_matrix[j * width + i];
                     for k in 0..width {
                         let leading_entry = augmented_matrix[i * width + k];
@@ -345,7 +359,9 @@ impl<F: Float> Matrix<F> {
             }
         }
 
-        // Now you apparently take the inverse matrix out of the augmented matrix
+        // Now for the purposes of matrix inversion, we write the inverted matrix,
+        // which exists in the right-hand former identity side, to our matrix which
+        // we wish to invert.
         for i in 0..n {
             for j in 0..n {
                 self[i * n + j] = augmented_matrix[i * width + n + j];
