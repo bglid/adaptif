@@ -5,7 +5,7 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![License](https://img.shields.io/github/license/bglid/adaptif)](https://github.com/bglid/adaptif/blob/master/LICENSE)
 
-#### Rust crate for DSP Adaptive Filters with Python bindings. 
+#### Rust crate for DSP Adaptive Filters with Python bindings.
 
 ---
 
@@ -18,12 +18,12 @@ _Project is still WIP. Going through massive refactor to Rust [pyo3](https://git
 This project contains Rust implementations of Adaptive filtering algorithms, with bindings for Python.
 We're currently working towards a first full release, which will include the following algorithms:
 
-| Adaptive Filter Algorithm            |    Status     |
-| ------------------------------------ | :-----------: |
-| Least Mean Squares (LMS)             |       ✔       |
-| Normalized Least Mean Squares (NLMS) |       ✔       |
-| Recursive Least Squares (RLS)        |       ✔       |
-| Affine Projection Algorithm (APA)    | _in progress_ |
+| Adaptive Filter Algorithm            | Status |
+| ------------------------------------ | :----: |
+| Least Mean Squares (LMS)             |   ✔   |
+| Normalized Least Mean Squares (NLMS) |   ✔   |
+| Recursive Least Squares (RLS)        |   ✔   |
+| Affine Projection Algorithm (APA)    |  ✔   |
 
 ---
 
@@ -38,6 +38,7 @@ git clone https://github.com/bglid/adaptif.git
 ```
 
 Then use Make to set up the dev environment:
+
 ```bash
 make setup-rust # Install/update the Rust toolchain through Rustup
 make setup-uv # Install and setup uv for Python dependency management

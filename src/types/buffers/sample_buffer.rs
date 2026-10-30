@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 use std::num::NonZeroUsize;
+use std::ops::Index;
 
 use crate::types::Float;
 
@@ -63,6 +64,16 @@ impl<'a, F: Float> IntoIterator for &'a SampleBuffer<F> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
+    }
+}
+impl<F: Float> Index<usize> for SampleBuffer<F> {
+    type Output = F;
+    #[allow(
+        clippy::indexing_slicing,
+        reason = "When SampleBuffer is indexed, the bounds are checked."
+    )]
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.samples[index]
     }
 }
 
