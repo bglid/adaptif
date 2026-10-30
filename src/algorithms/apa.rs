@@ -49,7 +49,7 @@ impl<F: Float> Algorithm<F> for Apa<F> {
     ) {
         // Updates Input history once window size is known
         let window_size = weights.window_size();
-        if self.input_history.window_size != window_size {
+        if self.input_history.shape().cols != *window_size {
             self.input_history = InputHistory::new(self.projection_order, window_size);
         }
 
@@ -62,30 +62,24 @@ impl<F: Float> Algorithm<F> for Apa<F> {
                 .sum();
         self.desired_history.push(desired_output);
 
-        self.input_history.update_input_history(&noise_window);
+        self.input_history.update(&noise_window);
 
         // recalculating the entire error vector with prior to weight update
-        // TODO: Maybe change this, this seems off
-        self.error_vector.recalculate_error_vector(
-            &self.desired_history,
-            &self.input_history,
-            weights,
-        );
-
-        // temp copy
-        let history_t = self.input_history.tranpose();
+        self.error_vector
+            .update(&self.desired_history, &self.input_history, weights);
 
         self.input_history
-            .matmul(&history_t, &mut self.gram_matrix)
+            .matmul(&self.input_history.transpose(), &mut self.gram_matrix)
             .expect("matrix dims must match");
         self.gram_matrix.add_eps(self.eps);
 
         self.gram_matrix
-            .gauss_jordan_elimination(&mut self.augmented_matrix)
+            .inverse(&mut self.augmented_matrix)
             .expect("Issue with gauss jordan matrix inversion");
 
         self.gram_matrix
-            .matmul(&self.error_vector, &mut self.solver_result);
+            .matmul(&self.error_vector, &mut self.solver_result)
+            .expect("matrix x vector dims must match");
 
         // TODO: Generalize the matrix vector product to reuse it here too
         // $w_{n+1} = ``w_n`` + \mu * X(n)(X(n)^{T}X(n) + \epsilon I)^{-1} e(n)$
@@ -96,7 +90,7 @@ impl<F: Float> Algorithm<F> for Apa<F> {
         for (j, w) in weights.iter_mut().enumerate() {
             let mut update = F::zero();
 
-            for i in 0..self.projection_order {
+            for i in 0..self.input_history.shape().rows {
                 let x = *self.input_history.get_2d(i, j).expect("matrix bounds");
 
                 update += x * self.solver_result[i];
@@ -149,12 +143,12 @@ impl<F: Float> Apa<F> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-/// L x Window size dimensional matrix of previous input vectors, where L = projection order.
+/// L x window size dimensional matrix of previous input vectors, where L = projection order.
 struct InputHistory<F: Float> {
     /// Flattened matrix to store the L x Window size matrix.
     inner: SampleBuffer<F>, // NOTE: doing flattened matrix since window size is known to avoid Vec<Vec<...>>
-    /// Window size of APA filter.
-    window_size: WindowSize,
+    /// Shape of the input history. Has dimensions L x window size.
+    shape: Shape,
 }
 
 impl<F: Float> InputHistory<F> {
@@ -162,13 +156,16 @@ impl<F: Float> InputHistory<F> {
         let capacity = NonZero::new(projection_order * (*window_size))
             .expect("Projection order and WindowSize should ensure that capacity is > 0.");
         InputHistory {
-            inner: (SampleBuffer::new(capacity)),
-            window_size,
+            inner: SampleBuffer::new(capacity),
+            shape: Shape {
+                rows: projection_order,
+                cols: *window_size,
+            },
         }
     }
 
     /// Updates the input history vector used in the APA weight update.
-    fn update_input_history(&mut self, noise_ref: &NoiseWindow<F>) {
+    pub fn update(&mut self, noise_ref: &NoiseWindow<F>) {
         for sample in noise_ref.iter() {
             self.push(sample);
         }
@@ -189,25 +186,16 @@ impl<F: Float> DerefMut for InputHistory<F> {
 
 impl<F: Float> MatrixOps<'_> for InputHistory<F> {
     type Item = F;
-    // TODO: Double check this division is checked
-    #[allow(
-        clippy::integer_division_remainder_used,
-        clippy::integer_division,
-        reason = "values in division are predetermined in initialization to not have a remainder that loses precision"
-    )]
     fn shape(&self) -> Shape {
-        Shape {
-            rows: self.inner.len() / *self.window_size, // Gets the number of windows rather than samples
-            cols: *self.window_size,
-        }
+        self.shape
     }
     fn get_2d(&self, row: usize, col: usize) -> Option<&Self::Item> {
-        if row >= self.shape().rows || col >= *self.window_size {
+        if row >= self.shape.rows || col >= self.shape.cols {
             return None;
         }
 
         self.inner
-            .get(row * (*self.window_size) + (*self.window_size) - 1 - col)
+            .get(row * (self.shape.cols) + (self.shape.cols) - 1 - col)
     }
 }
 
@@ -218,7 +206,6 @@ struct DesiredHistory<F: Float> {
 }
 impl<F: Float> DesiredHistory<F> {
     pub fn new(projection_order: usize) -> Self {
-        // NOTE: projection order is capacity
         let capacity = NonZero::new(projection_order).expect(
             "Desired history is initialized by APA projection order, which must be greater than 0.",
         );
@@ -247,7 +234,7 @@ pub trait MatrixOps<'a> {
     fn get_2d(&self, row: usize, col: usize) -> Option<&Self::Item>;
     fn shape(&self) -> Shape;
 
-    fn tranpose(&'a self) -> Transpose<'a, Self>
+    fn transpose(&'a self) -> Transpose<'a, Self>
     where
         Self: Sized,
     {
@@ -298,28 +285,21 @@ impl<F: Float> Matrix<F> {
         }
     }
 
-    // TODO: Yeah this should go in it's own file...
-    // From what I see online, doing Xn^-1 requires a "GaussJordan" elimination (or a linalg solver)
-    // this is the GaussJordan approach pulled from this: https://gist.github.com/barbarbar338/b66e2a404abb3a7f7c4d542204a3626a
-    // The simplest example I could find... lol
-    // Also, https://en.wikipedia.org/wiki/Gaussian_elimination
-    // And... https://www.wikihow.com/Reduce-a-Matrix-to-Row-Echelon-Form
-
     // TODO: DOUBLE CHECK THIS ALLOW
     #[allow(
         clippy::indexing_slicing,
         reason = "Bounds are defined by projection order"
     )]
-    /// Gauss-Jordan elimination algorithm. Used for finding the inverse of a matrix.
+    /// Gauss-Jordan elimination algorithm for getting the inverse of a matrix.
     /// Uses row reduction to compute the inverse matrix.
     /// The matrix isn't invertible if it can't be reduced to the identity matrix.
-    pub fn gauss_jordan_elimination(&mut self, augmented_matrix: &mut [F]) -> Option<()> {
+    pub fn inverse(&mut self, augmented_matrix: &mut [F]) -> Option<()> {
         // Augmented Identity matrix [A I] has the shape of n * 2n [Augmented matrix x identity matrix]
-        let n = self.shape().rows;
+        let n = self.shape.rows;
         let width = 2 * n;
 
         // Algorithm requres these shape bounds of Matrix A = (n x n) & Matrix AI = (n * 2n)
-        if self.shape().cols != n || augmented_matrix.len() != n * width {
+        if self.shape.cols != n || augmented_matrix.len() != n * width {
             return None;
         }
 
@@ -374,7 +354,7 @@ impl<F: Float> Matrix<F> {
         reason = "Bounds are defined by projection order"
     )]
     fn add_eps(&mut self, eps: F) {
-        let (n_rows, n_cols) = (self.shape().rows, self.shape().cols);
+        let (n_rows, n_cols) = (self.shape.rows, self.shape.cols);
         for i in 0..n_rows {
             self[i * n_cols + i] += eps;
         }
@@ -396,10 +376,13 @@ impl<F: Float> DerefMut for Matrix<F> {
 impl<F: Float> MatrixOps<'_> for Matrix<F> {
     type Item = F;
     fn get_2d(&self, row: usize, col: usize) -> Option<&Self::Item> {
+        if row >= self.shape.rows || col >= self.shape.cols {
+            return None;
+        }
         self.inner.get(row * self.shape().cols + col)
     }
     fn shape(&self) -> Shape {
-        self.shape.clone()
+        self.shape
     }
 }
 
@@ -411,7 +394,7 @@ where
     matrix: &'a M,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Shape {
     rows: usize,
     cols: usize,
@@ -446,23 +429,19 @@ impl<F: Float> ErrorVector<F> {
         }
     }
     /// Rebuilds the entire ``ErrorVector`` from scratch using new weight updates.
-    fn recalculate_error_vector(
+    pub fn update(
         &mut self,
         desired_history: &DesiredHistory<F>,
         input_history: &InputHistory<F>,
         weights: &FilterWeights<F>,
     ) {
-        // have to get oldest first because push inserts at front
         #[allow(
             clippy::indexing_slicing,
             reason = "Bounds are defined by projection order"
         )]
         for i in 0..self.inner.shape().rows {
-            let desired_sample = *desired_history.get(i).expect(
-                "
-                desired sample get should only fail if index >= desired_history.len().
-                desired_history.len() == projection_order, so index (i) is always <= desired_history.len(),",
-            );
+            // desired_history.len() == projection_order, so index (i) is always <= desired_history.len()"
+            let desired_sample = desired_history[i];
 
             // prediction using flattened input history matrix by weights
             // Since flattened, window size boundaries are essentially new rows
@@ -472,18 +451,6 @@ impl<F: Float> ErrorVector<F> {
             });
             self.inner[i] = desired_sample - predicted_sample;
         }
-    }
-}
-impl<F: Float> Deref for ErrorVector<F> {
-    type Target = Matrix<F>;
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl<F: Float> DerefMut for ErrorVector<F> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
     }
 }
 
