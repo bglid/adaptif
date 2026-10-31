@@ -55,6 +55,3 @@ jobs:
 
       - name: Run safety checks
         run: uv audit
-
-      - name: Build package
-        run: uv build

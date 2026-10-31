@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "adaptif"
 version = "0.2.0"
-description = "Python implementation of DSP adaptive filters"
+description = "High-performance DSP adaptive filters for Python, built with Rust."
 readme = "README.md"
 authors = [
     { name = "bglid", email = "benjamin.h.glidden@gmail.com" },
@@ -20,6 +20,7 @@ dependencies = [
 classifiers = [  
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Programming Language :: Rust",
@@ -35,6 +36,9 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/bglid/adaptif"
 Repository = "https://github.com/bglid/adaptif"
+"Bug Tracker" = "https://github.com/bglid/adaptif/issues"
+Discussions = "https://github.com/bglid/adaptif/discussions"
+Changelog = "https://github.com/bglid/adaptif/releases"
 
 
 [dependency-groups]
