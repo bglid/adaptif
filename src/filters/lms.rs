@@ -38,8 +38,10 @@ impl<F: Float> LmsFilter<F> {
     /// Returns an error if ``mu <= 0.0`` or ``window_size == 0``.
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn new(options: LmsOptions<F>, mode: ProcessingMode) -> Result<Self> {
-        let lms = Lms::new(options.mu)?;
         let window_size = WindowSize::new(options.window_size)?;
+
+        let lms = Lms::new(options.mu, window_size)?;
+
         let block_size = mode.block_size()?;
 
         let filter = FilterBase::new(lms, window_size, block_size);
@@ -73,26 +75,29 @@ mod tests {
 
         let filter =
             LmsFilter::new(LmsOptions { mu, window_size }, ProcessingMode::Sample).unwrap();
+
+        let window_size = WindowSize::new(window_size).unwrap();
         let expected_inner = FilterBase::new(
-            Lms::new(mu).unwrap(),
-            WindowSize::new(window_size).unwrap(),
+            Lms::new(mu, window_size).unwrap(),
+            window_size,
             BlockSize::new(1).unwrap(),
         );
 
         assert_eq!(filter.inner, expected_inner);
-        assert_eq!(filter.window_size(), window_size);
+        assert_eq!(filter.window_size(), *window_size);
     }
 
     #[test]
     fn lms_load_weights_works() {
         let mu = 0.1;
         let weights = vec![1.0, 2.0, 3.0];
+        let window_size = WindowSize::new(weights.len()).unwrap();
 
         let filter = {
             let mut filter = LmsFilter::new(
                 LmsOptions {
                     mu,
-                    window_size: weights.len(),
+                    window_size: *window_size,
                 },
                 ProcessingMode::Sample,
             )
@@ -103,8 +108,8 @@ mod tests {
 
         let expected_inner = {
             let mut expected_inner = FilterBase::new(
-                Lms::new(mu).unwrap(),
-                WindowSize::new(weights.len()).unwrap(),
+                Lms::new(mu, window_size).unwrap(),
+                window_size,
                 BlockSize::new(1).unwrap(),
             );
             expected_inner.load_weights(weights.clone()).unwrap();
@@ -127,14 +132,16 @@ mod tests {
             ProcessingMode::Block { block_size },
         )
         .unwrap();
+
+        let window_size = WindowSize::new(window_size).unwrap();
         let expected_inner = FilterBase::new(
-            Lms::new(mu).unwrap(),
-            WindowSize::new(window_size).unwrap(),
+            Lms::new(mu, window_size).unwrap(),
+            window_size,
             BlockSize::new(block_size).unwrap(),
         );
 
         assert_eq!(filter.inner, expected_inner);
-        assert_eq!(filter.window_size(), window_size);
+        assert_eq!(filter.window_size(), *window_size);
         assert_eq!(filter.block_size(), block_size);
     }
 }

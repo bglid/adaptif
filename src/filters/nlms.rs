@@ -38,8 +38,9 @@ impl<F: Float> NlmsFilter<F> {
     /// Returns an error if options.mu or options.eps <= 0.0.
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn new(options: NlmsOptions<F>, mode: ProcessingMode) -> Result<Self> {
-        let nlms = Nlms::new(options.mu, options.eps)?;
         let window_size = WindowSize::new(options.window_size)?;
+
+        let nlms = Nlms::new(options.mu, options.eps, window_size)?;
         let block_size = mode.block_size()?;
         let filter = FilterBase::new(nlms, window_size, block_size);
         Ok(Self { inner: filter })
@@ -80,14 +81,16 @@ mod tests {
             ProcessingMode::Sample,
         )
         .unwrap();
+
+        let window_size = WindowSize::new(window_size).unwrap();
         let expected_inner = FilterBase::new(
-            Nlms::new(mu, eps).unwrap(),
-            WindowSize::new(window_size).unwrap(),
+            Nlms::new(mu, eps, window_size).unwrap(),
+            window_size,
             BlockSize::new(1).unwrap(),
         );
 
         assert_eq!(filter.inner, expected_inner);
-        assert_eq!(filter.window_size(), window_size);
+        assert_eq!(filter.window_size(), *window_size);
     }
 
     #[test]
@@ -95,13 +98,14 @@ mod tests {
         let mu = 0.1;
         let eps = 1e-8;
         let weights = vec![1.0, 2.0, 3.0];
+        let window_size = WindowSize::new(weights.len()).unwrap();
 
         let filter = {
             let mut filter = NlmsFilter::new(
                 NlmsOptions {
                     mu,
                     eps,
-                    window_size: weights.len(),
+                    window_size: *window_size,
                 },
                 ProcessingMode::Sample,
             )
@@ -112,8 +116,8 @@ mod tests {
 
         let expected_inner = {
             let mut expected_inner = FilterBase::new(
-                Nlms::new(mu, eps).unwrap(),
-                WindowSize::new(weights.len()).unwrap(),
+                Nlms::new(mu, eps, window_size).unwrap(),
+                window_size,
                 BlockSize::new(1).unwrap(),
             );
             expected_inner.load_weights(weights.clone()).unwrap();

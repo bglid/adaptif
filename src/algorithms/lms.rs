@@ -1,6 +1,6 @@
 use crate::types::buffers::NoiseWindow;
 use crate::types::signals::OutputSample;
-use crate::types::{FilterWeights, Float};
+use crate::types::{FilterWeights, Float, WindowSize};
 use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
@@ -10,14 +10,16 @@ use crate::algorithms::Algorithm;
 pub struct Lms<F: Float> {
     /// Step size for weight updates.
     mu: F,
+    /// Number of noise samples processed at a time.
+    window_size: WindowSize,
 }
 impl<F: Float> Lms<F> {
     /// # Errors
     ///
     /// Returns an error if mu <= 0.0.
-    pub fn new(mu: F) -> Result<Self> {
+    pub fn new(mu: F, window_size: WindowSize) -> Result<Self> {
         if mu > F::zero() {
-            Ok(Lms { mu })
+            Ok(Lms { mu, window_size })
         } else {
             Err(Error::NonPositiveStepSize)
         }
@@ -39,6 +41,10 @@ impl<F: Float> Algorithm<F> for Lms<F> {
             *w += self.mu * *error * x;
         }
     }
+
+    fn window_size(&self) -> WindowSize {
+        self.window_size
+    }
 }
 
 #[cfg(test)]
@@ -55,11 +61,11 @@ mod tests {
         let window_size = WindowSize::new(2).unwrap();
         let block_size = BlockSize::new(1).unwrap();
 
-        let mut lms = Lms::new(0.5).unwrap();
+        let mut lms = Lms::new(0.5, window_size).unwrap();
         let e_n = error_buffer_from(&[2.0]);
         let x_n = block_noise_buffer_from(&[1.0, -1.0], window_size, block_size);
         let expected = [1.0, -1.0];
-        let mut weights = FilterWeights::new(WindowSize::new(2).unwrap());
+        let mut weights = FilterWeights::new(window_size);
 
         lms.update_block(&mut weights, &e_n, &x_n);
 
@@ -71,7 +77,7 @@ mod tests {
         let window_size = WindowSize::new(2).unwrap();
         let block_size = BlockSize::new(1).unwrap();
 
-        let mut lms = Lms::new(1.0).unwrap();
+        let mut lms = Lms::new(1.0, window_size).unwrap();
         let e_n = error_buffer_from(&[1.0]);
         let x_n = block_noise_buffer_from(&[5.0, 2.0], window_size, block_size);
         let expected = [5.0, 2.0];
@@ -86,7 +92,7 @@ mod tests {
     fn update_block_lms_1() {
         let window_size = WindowSize::new(2).unwrap();
 
-        let mut lms = Lms::new(0.5).unwrap();
+        let mut lms = Lms::new(0.5, window_size).unwrap();
         let e_n = error_buffer_from(&[5.0, -6.0, 7.0]);
 
         let block_size = BlockSize::new(e_n.len()).unwrap();
@@ -104,7 +110,7 @@ mod tests {
     fn update_block_lms_2() {
         let window_size = WindowSize::new(3).unwrap();
 
-        let mut lms = Lms::new(1.0).unwrap();
+        let mut lms = Lms::new(1.0, window_size).unwrap();
         let e_n = error_buffer_from(&[1.0, -1.0, 1.5]);
 
         let block_size = BlockSize::new(e_n.len()).unwrap();
@@ -119,10 +125,27 @@ mod tests {
 
     #[test]
     fn mu_range() {
-        Lms::new(1.0).unwrap();
-        Lms::new(f64::MAX).unwrap();
+        let window_size = WindowSize::new(16).unwrap();
 
-        assert!(matches!(Lms::new(0.0), Err(Error::NonPositiveStepSize)));
-        assert!(matches!(Lms::new(-1.0), Err(Error::NonPositiveStepSize)));
+        Lms::new(1.0, window_size).unwrap();
+        Lms::new(f64::MAX, window_size).unwrap();
+
+        assert!(matches!(
+            Lms::new(0.0, window_size),
+            Err(Error::NonPositiveStepSize)
+        ));
+        assert!(matches!(
+            Lms::new(-1.0, window_size),
+            Err(Error::NonPositiveStepSize)
+        ));
+    }
+
+    #[test]
+    fn window_size_works() {
+        let window_size = WindowSize::new(16).unwrap();
+
+        let lms = Lms::new(0.1, window_size).unwrap();
+
+        assert_eq!(lms.window_size(), window_size);
     }
 }

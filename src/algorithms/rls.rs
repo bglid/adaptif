@@ -14,12 +14,14 @@ pub struct Rls<F: Float> {
     forgetting_factor: F,
     /// Positive scalar value, often referred to as `delta`, used for initalizing the inverse correlation `p_matrix`.
     p_init_scale: F,
-    /// Inverse correlation matrix, referred to as P[n], for RLS updates. Size is determined by the filter's
-    /// window size. The matrix size is M x M, where M corresponds to the filter's window size.
+    /// Window size of the filter.
+    /// Determines the size of the inverse correlation matrix and the kalman gain vector.
+    window_size: WindowSize,
+    /// Inverse correlation matrix, referred to as P[n], for RLS updates.
+    /// Its dimensions are (M, M), where M is the filter's window size.
     inverse_corr_matrix: InverseCorrMatrix<F>,
-    /// Kalman Gain vector used in updating filter coefficients
-    /// Initialized as none because past history is unnecessary. Size is determined by the filter's
-    /// window size.
+    /// Kalman Gain vector used in updating filter coefficients.
+    /// Its length is equal to the filter's window size.
     kalman_gain: KalmanGain<F>,
 }
 
@@ -28,7 +30,7 @@ impl<F: Float> Rls<F> {
     ///
     /// Returns an error if forgetting factor <= 0.0 or > 1.0.
     /// Returns an error if init scale <= 0.0.
-    pub fn new(forgetting_factor: F, p_init_scale: F) -> Result<Self> {
+    pub fn new(forgetting_factor: F, p_init_scale: F, window_size: WindowSize) -> Result<Self> {
         if forgetting_factor <= F::zero() || forgetting_factor > F::one() {
             return Err(Error::InvalidForgettingFactorRange);
         }
@@ -39,12 +41,9 @@ impl<F: Float> Rls<F> {
         Ok(Rls {
             forgetting_factor,
             p_init_scale,
-            inverse_corr_matrix: InverseCorrMatrix {
-                inner: vec![].into_boxed_slice(),
-            },
-            kalman_gain: KalmanGain {
-                inner: vec![].into_boxed_slice(),
-            },
+            window_size,
+            inverse_corr_matrix: InverseCorrMatrix::new(window_size, p_init_scale),
+            kalman_gain: KalmanGain::new(window_size),
         })
     }
 }
@@ -75,15 +74,6 @@ impl<F: Float> Algorithm<F> for Rls<F> {
         error: OutputSample<F>,
         noise_window: NoiseWindow<F>,
     ) {
-        // Updates p_matrix on first iteration once n is known
-        // No scenario where one is initialized and the other isn't
-        // TODO: remove once proper init is implemented
-        if self.inverse_corr_matrix.is_empty() {
-            self.inverse_corr_matrix =
-                InverseCorrMatrix::new(weights.window_size(), self.p_init_scale);
-            self.kalman_gain = KalmanGain::new(weights.window_size());
-        }
-
         self.kalman_gain.update(
             &self.inverse_corr_matrix,
             &noise_window,
@@ -96,6 +86,10 @@ impl<F: Float> Algorithm<F> for Rls<F> {
 
         self.inverse_corr_matrix
             .update(&self.kalman_gain, &noise_window, self.forgetting_factor);
+    }
+
+    fn window_size(&self) -> WindowSize {
+        self.window_size
     }
 }
 
@@ -299,7 +293,7 @@ mod tests {
         let window_size = WindowSize::new(2).unwrap();
         let block_size = BlockSize::new(1).unwrap();
 
-        let mut rls = Rls::new(0.5, 1.0).unwrap();
+        let mut rls = Rls::new(0.5, 1.0, window_size).unwrap();
         let e_n = {
             let mut e_n = BlockError::new(block_size);
             e_n.push(OutputSample(2.0));
@@ -319,7 +313,7 @@ mod tests {
         let window_size = WindowSize::new(2).unwrap();
         let block_size = BlockSize::new(1).unwrap();
 
-        let mut rls = Rls::new(1.0, 1.0).unwrap();
+        let mut rls = Rls::new(1.0, 1.0, window_size).unwrap();
         let e_n = {
             let mut e_n = BlockError::new(block_size);
             e_n.push(OutputSample(1.0));
@@ -337,20 +331,21 @@ mod tests {
     #[test]
     fn forgetting_factor_range() {
         let p_init_scale = 1.0;
-        Rls::new(0.01, p_init_scale).unwrap();
-        Rls::new(1.0, p_init_scale).unwrap();
+        let window_size = WindowSize::new(8).unwrap();
+        Rls::new(0.01, p_init_scale, window_size).unwrap();
+        Rls::new(1.0, p_init_scale, window_size).unwrap();
 
         assert!(matches!(
-            Rls::new(0.0, p_init_scale),
+            Rls::new(0.0, p_init_scale, window_size),
             Err(Error::InvalidForgettingFactorRange)
         ));
         assert!(matches!(
-            Rls::new(-1.0, p_init_scale),
+            Rls::new(-1.0, p_init_scale, window_size),
             Err(Error::InvalidForgettingFactorRange)
         ));
 
         assert!(matches!(
-            Rls::new(2.0, p_init_scale),
+            Rls::new(2.0, p_init_scale, window_size),
             Err(Error::InvalidForgettingFactorRange)
         ));
     }
@@ -358,15 +353,25 @@ mod tests {
     #[test]
     fn p_init_scale_range() {
         let good_init_scale = 100.0;
-        Rls::new(0.01, good_init_scale).unwrap();
+        let window_size = WindowSize::new(8).unwrap();
+        Rls::new(0.01, good_init_scale, window_size).unwrap();
 
         assert!(matches!(
-            Rls::new(0.5, 0.0),
+            Rls::new(0.5, 0.0, window_size),
             Err(Error::NonPositivePInitScale)
         ));
         assert!(matches!(
-            Rls::new(0.5, -1.0),
+            Rls::new(0.5, -1.0, window_size),
             Err(Error::NonPositivePInitScale)
         ));
+    }
+
+    #[test]
+    fn window_size_works() {
+        let window_size = WindowSize::new(16).unwrap();
+
+        let rls = Rls::new(0.01, 1.0, window_size).unwrap();
+
+        assert_eq!(rls.window_size(), window_size);
     }
 }

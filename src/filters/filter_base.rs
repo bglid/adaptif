@@ -331,6 +331,10 @@ mod tests {
         ) {
             *self.call_count.borrow_mut() += 1;
         }
+
+        fn window_size(&self) -> WindowSize {
+            WindowSize::new(16).unwrap()
+        }
     }
 
     fn testing_filter() -> FilterBase<f64, Lms<f64>> {
@@ -338,7 +342,8 @@ mod tests {
         let block_size = BlockSize::new(2).unwrap();
         let weights = [1.0, -2.0, 0.5];
 
-        let mut filter = FilterBase::new(Lms::new(1.0).unwrap(), window_size, block_size);
+        let mut filter =
+            FilterBase::new(Lms::new(1.0, window_size).unwrap(), window_size, block_size);
 
         for (i, val) in weights.iter().enumerate() {
             filter.weights[i] = *val;
@@ -351,11 +356,11 @@ mod tests {
     fn new_works() {
         let window_size = WindowSize::new(3).unwrap();
         let block_size = BlockSize::new(4).unwrap();
-        let filter = FilterBase::new(Lms::new(1.0).unwrap(), window_size, block_size);
+        let filter = FilterBase::new(Lms::new(1.0, window_size).unwrap(), window_size, block_size);
 
         assert_eq!(filter.window_size, window_size);
         assert_eq!(filter.block_size, block_size);
-        assert_eq!(filter.algorithm, Lms::new(1.0).unwrap());
+        assert_eq!(filter.algorithm, Lms::new(1.0, window_size).unwrap());
         assert!(all_approx_equal(filter.weights.iter(), [0.0; 3].iter()));
     }
 
@@ -386,10 +391,11 @@ mod tests {
     #[test]
     fn load_weights_works() {
         let weights = vec![1.0, 2.0, 3.0];
+        let window_size = WindowSize::new(weights.len()).unwrap();
 
         let mut filter = FilterBase::new(
-            Lms::new(0.1).unwrap(),
-            WindowSize::new(weights.len()).unwrap(),
+            Lms::new(0.1, window_size).unwrap(),
+            window_size,
             BlockSize::new(2).unwrap(),
         );
         filter.load_weights(weights.clone()).unwrap();
@@ -413,10 +419,11 @@ mod tests {
     fn load_weights_reject_window_size_mismatch() {
         let vec_too_long = vec![1.0, 2.0, 3.0, 4.0];
         let vec_too_short = vec![1.0, 2.0];
+        let window_size = WindowSize::new(3).unwrap();
 
         let mut filter = FilterBase::new(
-            Lms::new(0.1).unwrap(),
-            WindowSize::new(3).unwrap(),
+            Lms::new(0.1, window_size).unwrap(),
+            window_size,
             BlockSize::new(1).unwrap(),
         );
 
