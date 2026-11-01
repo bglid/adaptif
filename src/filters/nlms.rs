@@ -39,10 +39,11 @@ impl<F: Float> NlmsFilter<F> {
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn new(options: NlmsOptions<F>, mode: ProcessingMode) -> Result<Self> {
         let window_size = WindowSize::new(options.window_size)?;
+        let block_size = mode.block_size()?;
 
         let nlms = Nlms::new(options.mu, options.eps, window_size)?;
-        let block_size = mode.block_size()?;
-        let filter = FilterBase::new(nlms, window_size, block_size);
+        let filter = FilterBase::new(nlms, block_size);
+
         Ok(Self { inner: filter })
     }
 }
@@ -85,7 +86,6 @@ mod tests {
         let window_size = WindowSize::new(window_size).unwrap();
         let expected_inner = FilterBase::new(
             Nlms::new(mu, eps, window_size).unwrap(),
-            window_size,
             BlockSize::new(1).unwrap(),
         );
 
@@ -117,7 +117,6 @@ mod tests {
         let expected_inner = {
             let mut expected_inner = FilterBase::new(
                 Nlms::new(mu, eps, window_size).unwrap(),
-                window_size,
                 BlockSize::new(1).unwrap(),
             );
             expected_inner.load_weights(weights.clone()).unwrap();

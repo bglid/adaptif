@@ -39,9 +39,11 @@ impl<F: Float> RlsFilter<F> {
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn new(options: RlsOptions<F>, mode: ProcessingMode) -> Result<Self> {
         let window_size = WindowSize::new(options.window_size)?;
-        let rls = Rls::new(options.forgetting_factor, options.p_init_scale, window_size)?;
         let block_size = mode.block_size()?;
-        let filter = FilterBase::new(rls, window_size, block_size);
+
+        let rls = Rls::new(options.forgetting_factor, options.p_init_scale, window_size)?;
+        let filter = FilterBase::new(rls, block_size);
+
         Ok(Self { inner: filter })
     }
 }
@@ -86,7 +88,6 @@ mod tests {
                 WindowSize::new(window_size).unwrap(),
             )
             .unwrap(),
-            WindowSize::new(window_size).unwrap(),
             BlockSize::new(1).unwrap(),
         );
 
@@ -122,7 +123,6 @@ mod tests {
                     WindowSize::new(weights.len()).unwrap(),
                 )
                 .unwrap(),
-                WindowSize::new(weights.len()).unwrap(),
                 BlockSize::new(1).unwrap(),
             );
             expected_inner.load_weights(weights.clone()).unwrap();

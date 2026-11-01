@@ -39,12 +39,10 @@ impl<F: Float> LmsFilter<F> {
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn new(options: LmsOptions<F>, mode: ProcessingMode) -> Result<Self> {
         let window_size = WindowSize::new(options.window_size)?;
-
-        let lms = Lms::new(options.mu, window_size)?;
-
         let block_size = mode.block_size()?;
 
-        let filter = FilterBase::new(lms, window_size, block_size);
+        let lms = Lms::new(options.mu, window_size)?;
+        let filter = FilterBase::new(lms, block_size);
 
         Ok(Self { inner: filter })
     }
@@ -79,7 +77,6 @@ mod tests {
         let window_size = WindowSize::new(window_size).unwrap();
         let expected_inner = FilterBase::new(
             Lms::new(mu, window_size).unwrap(),
-            window_size,
             BlockSize::new(1).unwrap(),
         );
 
@@ -109,7 +106,6 @@ mod tests {
         let expected_inner = {
             let mut expected_inner = FilterBase::new(
                 Lms::new(mu, window_size).unwrap(),
-                window_size,
                 BlockSize::new(1).unwrap(),
             );
             expected_inner.load_weights(weights.clone()).unwrap();
@@ -136,7 +132,6 @@ mod tests {
         let window_size = WindowSize::new(window_size).unwrap();
         let expected_inner = FilterBase::new(
             Lms::new(mu, window_size).unwrap(),
-            window_size,
             BlockSize::new(block_size).unwrap(),
         );
 

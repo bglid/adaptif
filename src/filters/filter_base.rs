@@ -5,7 +5,7 @@ use crate::algorithms::Algorithm;
 use crate::error::{Error, Result};
 use crate::types::buffers::{BlockError, BlockNoiseBuffer};
 use crate::types::signals::{InputSample, InputSignal, NoiseReference, OutputSample, OutputSignal};
-use crate::types::{BlockSize, FilterWeights, Float, NoiseEstimate, WindowSize};
+use crate::types::{BlockSize, FilterWeights, Float, NoiseEstimate};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
@@ -31,20 +31,18 @@ impl ProcessingMode {
 pub struct FilterBase<F: Float, A: Algorithm<F>> {
     algorithm: A,
     weights: FilterWeights<F>,
-    window_size: WindowSize,
     block_size: BlockSize,
 }
 impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
     /// Initializes a filter using the provided algorithm configuration, window size,
     /// and block size.
     /// The weights are intialized to zero.
-    pub fn new(algorithm: A, window_size: WindowSize, block_size: BlockSize) -> Self {
-        let weights = FilterWeights::new(window_size);
+    pub fn new(algorithm: A, block_size: BlockSize) -> Self {
+        let weights = FilterWeights::new(algorithm.window_size());
 
         FilterBase {
             algorithm,
             weights,
-            window_size,
             block_size,
         }
     }
@@ -56,20 +54,20 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
     ///
     /// Returns an error if `weights.len() != self.window_size`.
     pub fn load_weights(&mut self, weights: Vec<F>) -> Result<()> {
-        if weights.len() == *self.window_size {
+        if weights.len() == self.window_size() {
             self.weights = FilterWeights::try_from(weights)?;
             Ok(())
         } else {
             Err(Error::WeightsDontMatchWindowSize {
                 n_weights: weights.len(),
-                window_size: *self.window_size,
+                window_size: self.window_size(),
             })
         }
     }
 
     /// Returns the filter's window size. This number is equal to the number of weights.
     pub fn window_size(&self) -> usize {
-        *self.window_size
+        *self.algorithm.window_size()
     }
 
     /// Returns the filter's block size.
@@ -305,16 +303,19 @@ mod tests {
     use crate::algorithms::Lms;
     use crate::error::Error;
     use crate::test_utils::{all_approx_equal, approx_equal};
+    use crate::types::WindowSize;
     use crate::types::buffers::NoiseWindow;
     use crate::types::signals::{InputSample, OutputSample};
 
     struct UpdateCallCounter {
         call_count: RefCell<usize>,
+        window_size: WindowSize,
     }
     impl UpdateCallCounter {
-        pub fn new() -> Self {
+        pub fn new(window_size: WindowSize) -> Self {
             UpdateCallCounter {
                 call_count: RefCell::new(0),
+                window_size,
             }
         }
 
@@ -333,7 +334,7 @@ mod tests {
         }
 
         fn window_size(&self) -> WindowSize {
-            WindowSize::new(16).unwrap()
+            self.window_size
         }
     }
 
@@ -342,8 +343,7 @@ mod tests {
         let block_size = BlockSize::new(2).unwrap();
         let weights = [1.0, -2.0, 0.5];
 
-        let mut filter =
-            FilterBase::new(Lms::new(1.0, window_size).unwrap(), window_size, block_size);
+        let mut filter = FilterBase::new(Lms::new(1.0, window_size).unwrap(), block_size);
 
         for (i, val) in weights.iter().enumerate() {
             filter.weights[i] = *val;
@@ -356,9 +356,9 @@ mod tests {
     fn new_works() {
         let window_size = WindowSize::new(3).unwrap();
         let block_size = BlockSize::new(4).unwrap();
-        let filter = FilterBase::new(Lms::new(1.0, window_size).unwrap(), window_size, block_size);
+        let filter = FilterBase::new(Lms::new(1.0, window_size).unwrap(), block_size);
 
-        assert_eq!(filter.window_size, window_size);
+        assert_eq!(filter.window_size(), *window_size);
         assert_eq!(filter.block_size, block_size);
         assert_eq!(filter.algorithm, Lms::new(1.0, window_size).unwrap());
         assert!(all_approx_equal(filter.weights.iter(), [0.0; 3].iter()));
@@ -366,9 +366,12 @@ mod tests {
 
     #[test]
     fn window_size_works() {
-        let filter = testing_filter();
+        let window_size = WindowSize::new(3).unwrap();
+        let block_size = BlockSize::new(2).unwrap();
 
-        assert_eq!(filter.window_size(), *filter.window_size);
+        let filter = FilterBase::new(Lms::new(1.0, window_size).unwrap(), block_size);
+
+        assert_eq!(filter.window_size(), *window_size);
     }
 
     #[test]
@@ -395,7 +398,6 @@ mod tests {
 
         let mut filter = FilterBase::new(
             Lms::new(0.1, window_size).unwrap(),
-            window_size,
             BlockSize::new(2).unwrap(),
         );
         filter.load_weights(weights.clone()).unwrap();
@@ -423,7 +425,6 @@ mod tests {
 
         let mut filter = FilterBase::new(
             Lms::new(0.1, window_size).unwrap(),
-            window_size,
             BlockSize::new(1).unwrap(),
         );
 
@@ -535,18 +536,15 @@ mod tests {
     /// checks that if the end of the final block falls on
     /// the final sample, the update step is still called.
     fn n_samples_multiple_of_block_size() {
-        let block_size = 2;
-        let mut filter = FilterBase::new(
-            UpdateCallCounter::new(),
-            WindowSize::new(3).unwrap(),
-            BlockSize::new(block_size).unwrap(),
-        );
+        let window_size = WindowSize::new(3).unwrap();
+        let block_size = BlockSize::new(2).unwrap();
+        let mut filter = FilterBase::new(UpdateCallCounter::new(window_size), block_size);
 
         let input = InputSignal::new(vec![1.0, 2.0, 3.0, 4.0]).unwrap();
         let noise = NoiseReference::new(vec![4.0, 5.0, 6.0, 7.0]).unwrap();
 
         filter.adapt(&input, &noise).unwrap();
-        assert_eq!(filter.algorithm.call_count(), 2 * block_size);
+        assert_eq!(filter.algorithm.call_count(), 2 * (*block_size));
 
         filter.filter(&input, &noise).unwrap();
     }
@@ -555,19 +553,16 @@ mod tests {
     /// checks that if the end of the final block doesn't align
     /// with the final sample, the update step is NOT called.
     fn n_samples_not_multiple_of_block_size() {
-        let block_size = 2;
-        let mut filter = FilterBase::new(
-            UpdateCallCounter::new(),
-            WindowSize::new(3).unwrap(),
-            BlockSize::new(block_size).unwrap(),
-        );
+        let window_size = WindowSize::new(3).unwrap();
+        let block_size = BlockSize::new(2).unwrap();
+        let mut filter = FilterBase::new(UpdateCallCounter::new(window_size), block_size);
 
         let input = InputSignal::new(vec![1.0, 2.0, 3.0, 4.0, 5.0]).unwrap();
         let noise = NoiseReference::new(vec![4.0, 5.0, 6.0, 7.0, 8.0]).unwrap();
 
         filter.adapt(&input, &noise).unwrap();
         // update not called on final block because the shapes don't match
-        assert_eq!(filter.algorithm.call_count(), 2 * block_size);
+        assert_eq!(filter.algorithm.call_count(), 2 * (*block_size));
 
         filter.filter(&input, &noise).unwrap();
     }

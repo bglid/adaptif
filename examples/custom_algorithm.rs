@@ -43,11 +43,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         alpha: 1.0,
         window_size: WindowSize::new(16)?,
     };
-    let window_size = WindowSize::new(16)?;
     let block_size = BlockSize::new(1)?;
 
     // Instantiate the filter using SampleFilterBase and our custom algorithm
-    let mut filter = FilterBase::new(algorithm_cfg, window_size, block_size);
+    let mut filter = FilterBase::new(algorithm_cfg, block_size);
 
     // Adapt the filter using our algorithm's update rules
     let _output = filter.adapt(&input_signal, &noise_ref)?;
