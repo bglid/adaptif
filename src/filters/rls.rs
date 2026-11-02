@@ -38,10 +38,12 @@ impl<F: Float> RlsFilter<F> {
     /// Returns an error if options.forgetting factor <= 0.0 or > 1.0, or if init scale <= 0.0.
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn new(options: RlsOptions<F>, mode: ProcessingMode) -> Result<Self> {
-        let rls = Rls::new(options.forgetting_factor, options.p_init_scale)?;
         let window_size = WindowSize::new(options.window_size)?;
         let block_size = mode.block_size()?;
-        let filter = FilterBase::new(rls, window_size, block_size);
+
+        let rls = Rls::new(options.forgetting_factor, options.p_init_scale, window_size)?;
+        let filter = FilterBase::new(rls, block_size);
+
         Ok(Self { inner: filter })
     }
 }
@@ -80,8 +82,12 @@ mod tests {
         )
         .unwrap();
         let expected_inner = FilterBase::new(
-            Rls::new(forgetting_factor, p_init_scale).unwrap(),
-            WindowSize::new(window_size).unwrap(),
+            Rls::new(
+                forgetting_factor,
+                p_init_scale,
+                WindowSize::new(window_size).unwrap(),
+            )
+            .unwrap(),
             BlockSize::new(1).unwrap(),
         );
 
@@ -111,8 +117,12 @@ mod tests {
 
         let expected_inner = {
             let mut expected_inner = FilterBase::new(
-                Rls::new(forgetting_factor, p_init_scale).unwrap(),
-                WindowSize::new(weights.len()).unwrap(),
+                Rls::new(
+                    forgetting_factor,
+                    p_init_scale,
+                    WindowSize::new(weights.len()).unwrap(),
+                )
+                .unwrap(),
                 BlockSize::new(1).unwrap(),
             );
             expected_inner.load_weights(weights.clone()).unwrap();

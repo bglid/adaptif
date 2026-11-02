@@ -1,6 +1,6 @@
 use crate::types::buffers::NoiseWindow;
 use crate::types::signals::OutputSample;
-use crate::types::{FilterWeights, Float};
+use crate::types::{FilterWeights, Float, WindowSize};
 use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
@@ -12,13 +12,15 @@ pub struct Nlms<F: Float> {
     mu: F,
     /// Regularization term to avoid division by zero.
     eps: F,
+    /// Number of noise samples processed at a time.
+    window_size: WindowSize,
 }
 impl<F: Float> Nlms<F> {
     /// # Errors
     ///
     /// Returns an error if mu <= 0.0.
     /// Returns an error if eps <= 0.0.
-    pub fn new(mu: F, eps: F) -> Result<Self> {
+    pub fn new(mu: F, eps: F, window_size: WindowSize) -> Result<Self> {
         if mu <= F::zero() {
             return Err(Error::NonPositiveStepSize);
         }
@@ -27,7 +29,11 @@ impl<F: Float> Nlms<F> {
             return Err(Error::NonPositiveEpsilon);
         }
 
-        Ok(Nlms { mu, eps })
+        Ok(Nlms {
+            mu,
+            eps,
+            window_size,
+        })
     }
 }
 impl<F: Float> Algorithm<F> for Nlms<F> {
@@ -50,6 +56,10 @@ impl<F: Float> Algorithm<F> for Nlms<F> {
             *w += mu_normalized * (*error) * x;
         }
     }
+
+    fn window_size(&self) -> WindowSize {
+        self.window_size
+    }
 }
 
 #[cfg(test)]
@@ -67,7 +77,7 @@ mod tests {
         let window_size = WindowSize::new(2).unwrap();
         let block_size = BlockSize::new(1).unwrap();
 
-        let mut nlms = Nlms::new(0.5, 1e-8).unwrap();
+        let mut nlms = Nlms::new(0.5, 1e-8, window_size).unwrap();
         let e_n = {
             let mut e_n = BlockError::new(block_size);
             e_n.push(OutputSample(2.0));
@@ -87,7 +97,7 @@ mod tests {
         let window_size = WindowSize::new(2).unwrap();
         let block_size = BlockSize::new(1).unwrap();
 
-        let mut nlms = Nlms::new(1.0, 1e-8).unwrap();
+        let mut nlms = Nlms::new(1.0, 1e-8, window_size).unwrap();
         let e_n = {
             let mut e_n = BlockError::new(block_size);
             e_n.push(OutputSample(1.0));
@@ -104,30 +114,43 @@ mod tests {
 
     #[test]
     fn mu_range() {
-        Nlms::new(1.0, 1e-8).unwrap();
-        Nlms::new(f64::MAX, 1e-8).unwrap();
+        let window_size = WindowSize::new(16).unwrap();
+
+        Nlms::new(1.0, 1e-8, window_size).unwrap();
+        Nlms::new(f64::MAX, 1e-8, window_size).unwrap();
 
         assert!(matches!(
-            Nlms::new(0.0, 1e-8),
+            Nlms::new(0.0, 1e-8, window_size),
             Err(Error::NonPositiveStepSize)
         ));
         assert!(matches!(
-            Nlms::new(-1.0, 1e-8),
+            Nlms::new(-1.0, 1e-8, window_size),
             Err(Error::NonPositiveStepSize)
         ));
     }
 
     #[test]
     fn eps_range() {
-        Nlms::new(1.0, 1e-8).unwrap();
+        let window_size = WindowSize::new(16).unwrap();
+
+        Nlms::new(1.0, 1e-8, window_size).unwrap();
 
         assert!(matches!(
-            Nlms::new(1.0, 0.0),
+            Nlms::new(1.0, 0.0, window_size),
             Err(Error::NonPositiveEpsilon)
         ));
         assert!(matches!(
-            Nlms::new(1.0, -1.0),
+            Nlms::new(1.0, -1.0, window_size),
             Err(Error::NonPositiveEpsilon)
         ));
+    }
+
+    #[test]
+    fn window_size_works() {
+        let window_size = WindowSize::new(16).unwrap();
+
+        let nlms = Nlms::new(0.1, 1e-8, window_size).unwrap();
+
+        assert_eq!(nlms.window_size(), window_size);
     }
 }
