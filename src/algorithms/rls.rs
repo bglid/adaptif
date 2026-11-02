@@ -14,13 +14,38 @@ pub struct Rls<F: Float> {
     forgetting_factor: F,
     /// Positive scalar value, often referred to as `delta`, used for initalizing the inverse correlation `p_matrix`.
     p_init_scale: F,
-    /// Inverse correlation matrix, referred to as P[n], for RLS updates. Size is determined by the filter's
-    /// window size. The matrix size is M x M, where M corresponds to the filter's window size.
+    /// Window size of the filter.
+    /// Determines the size of the inverse correlation matrix and the kalman gain vector.
+    window_size: WindowSize,
+    /// Inverse correlation matrix, referred to as P[n], for RLS updates.
+    /// Its dimensions are (M, M), where M is the filter's window size.
     inverse_corr_matrix: InverseCorrMatrix<F>,
-    /// Kalman Gain vector used in updating filter coefficients
-    /// Initialized as none because past history is unnecessary. Size is determined by the filter's
-    /// window size.
+    /// Kalman Gain vector used in updating filter coefficients.
+    /// Its length is equal to the filter's window size.
     kalman_gain: KalmanGain<F>,
+}
+
+impl<F: Float> Rls<F> {
+    /// # Errors
+    ///
+    /// Returns an error if forgetting factor <= 0.0 or > 1.0.
+    /// Returns an error if init scale <= 0.0.
+    pub fn new(forgetting_factor: F, p_init_scale: F, window_size: WindowSize) -> Result<Self> {
+        if forgetting_factor <= F::zero() || forgetting_factor > F::one() {
+            return Err(Error::InvalidForgettingFactorRange);
+        }
+
+        if p_init_scale <= F::zero() {
+            return Err(Error::NonPositivePInitScale);
+        }
+        Ok(Rls {
+            forgetting_factor,
+            p_init_scale,
+            window_size,
+            inverse_corr_matrix: InverseCorrMatrix::new(window_size, p_init_scale),
+            kalman_gain: KalmanGain::new(window_size),
+        })
+    }
 }
 
 /// Updates the filter weights using the following algorithm.
@@ -49,120 +74,22 @@ impl<F: Float> Algorithm<F> for Rls<F> {
         error: OutputSample<F>,
         noise_window: NoiseWindow<F>,
     ) {
-        // Updates p_matrix on first iteration once n is known
-        // No scenario where one is initialized and the other isn't
-        // TODO: remove once proper init is implemented
-        if self.inverse_corr_matrix.is_empty() {
-            self.inverse_corr_matrix =
-                InverseCorrMatrix::new(weights.window_size(), self.p_init_scale);
-            self.kalman_gain = KalmanGain::new(weights.window_size());
-        }
-
-        self.update_kalman_gain(&noise_window);
+        self.kalman_gain.update(
+            &self.inverse_corr_matrix,
+            &noise_window,
+            self.forgetting_factor,
+        );
 
         for (w, k) in weights.iter_mut().zip(self.kalman_gain.iter().copied()) {
             *w += k * (*error);
         }
 
-        self.update_p_matrix(&noise_window);
-    }
-}
-
-impl<F: Float> Rls<F> {
-    /// # Errors
-    ///
-    /// Returns an error if forgetting factor <= 0.0 or > 1.0.
-    /// Returns an error if init scale <= 0.0.
-    pub fn new(forgetting_factor: F, p_init_scale: F) -> Result<Self> {
-        if forgetting_factor <= F::zero() || forgetting_factor > F::one() {
-            return Err(Error::InvalidForgettingFactorRange);
-        }
-
-        if p_init_scale <= F::zero() {
-            return Err(Error::NonPositivePInitScale);
-        }
-        Ok(Rls {
-            forgetting_factor,
-            p_init_scale,
-            inverse_corr_matrix: InverseCorrMatrix {
-                inner: vec![].into_boxed_slice(),
-            },
-            kalman_gain: KalmanGain {
-                inner: vec![].into_boxed_slice(),
-            },
-        })
+        self.inverse_corr_matrix
+            .update(&self.kalman_gain, &noise_window, self.forgetting_factor);
     }
 
-    /// Updates the Kalman gain vector used in the RLS weight update.
-    ///
-    /// Kalman gain vector update calculated as:
-    ///
-    /// $``k_n`` = \frac{P_{n-1} ``x_n``}
-    /// {\lambda + ``x_n^T`` P_{n-1} ``x_n``}$.
-    ///
-    /// Existing Kalman gain buffer gets reused to store the numerator
-    /// value in update calculation to avoid reallocating a new vector.
-    fn update_kalman_gain(&mut self, noise_ref: &NoiseWindow<F>) {
-        // reusing kalman buffer for getting numerator to avoid clone of numerator
-        for (k_i, row) in self
-            .kalman_gain
-            .iter_mut()
-            .zip(self.inverse_corr_matrix.chunks_exact(noise_ref.len()))
-        {
-            *k_i = row
-                .iter()
-                .copied()
-                .zip(noise_ref.iter())
-                .map(|(px, x)| px * x)
-                .sum::<F>();
-        }
-
-        let denominator = self.forgetting_factor
-            + noise_ref
-                .iter()
-                .zip(self.kalman_gain.iter().copied())
-                .map(|(noise, num)| noise * num)
-                .sum::<F>();
-
-        for k_i in self.kalman_gain.iter_mut() {
-            *k_i /= denominator;
-        }
-    }
-
-    /// Updates the inverse correlation matrix used in the RLS weight update.
-    /// Utilizes current Kalman gain ``k_n``.
-    ///
-    /// Inverse correlation matrix update calculated as:
-    ///
-    /// $``P_n`` = \frac{1}{\lambda}
-    /// \left(P_{n-1} - ``k_n`` ``x_n^T`` P_{n-1}\right)$.
-    ///
-    /// The matrix is stored as a flat buffer and updated in place.
-    fn update_p_matrix(&mut self, noise_ref: &NoiseWindow<F>) {
-        // We calculate [x^T_n p_{n-1}] by computing the dot product of
-        // ``noise_ref`` with each columnn in ``inverse_corr_matrix``
-        for col in 0..noise_ref.len() {
-            let p_col = self
-                .inverse_corr_matrix
-                .iter()
-                .copied()
-                .skip(col)
-                .step_by(noise_ref.len());
-            let xt_p_col = noise_ref.iter().zip(p_col).map(|(x, p)| x * p).sum::<F>();
-
-            // takes result^ and computes lambda^-1 * [p_{n-1} - k(xt_p column)]
-            for (row, k_i) in self.kalman_gain.iter().copied().enumerate() {
-                // index is into a flat buffer, so row * n gives us the start of each row
-                let index = row * noise_ref.len() + col;
-
-                let p_i = self
-                    .inverse_corr_matrix
-                    .get_mut(index)
-                    // TODO(ben): How is this enforced?
-                    .expect("Index should always be valid based on the type invariants");
-                *p_i = (*p_i - k_i * xt_p_col) / self.forgetting_factor;
-            }
-        }
+    fn window_size(&self) -> WindowSize {
+        self.window_size
     }
 }
 
@@ -175,6 +102,46 @@ impl<F: Float> KalmanGain<F> {
     pub fn new(window_size: WindowSize) -> Self {
         KalmanGain {
             inner: vec![F::zero(); *window_size].into_boxed_slice(),
+        }
+    }
+
+    /// Updates the Kalman gain vector used in the RLS weight update.
+    ///
+    /// Kalman gain vector update calculated as:
+    ///
+    /// $``k_n`` = \frac{P_{n-1} ``x_n``}
+    /// {\lambda + ``x_n^T`` P_{n-1} ``x_n``}$.
+    ///
+    /// Existing Kalman gain buffer gets reused to store the numerator
+    /// value in update calculation to avoid reallocating a new vector.
+    fn update(
+        &mut self,
+        inverse_corr_matrix: &InverseCorrMatrix<F>,
+        noise_ref: &NoiseWindow<F>,
+        lambda: F,
+    ) {
+        // reusing kalman buffer for getting numerator to avoid clone of numerator
+        for (k_i, row) in self
+            .iter_mut()
+            .zip(inverse_corr_matrix.chunks_exact(noise_ref.len()))
+        {
+            *k_i = row
+                .iter()
+                .copied()
+                .zip(noise_ref.iter())
+                .map(|(px, x)| px * x)
+                .sum::<F>();
+        }
+
+        let denominator = lambda
+            + noise_ref
+                .iter()
+                .zip(self.iter().copied())
+                .map(|(noise, num)| noise * num)
+                .sum::<F>();
+
+        for k_i in self.iter_mut() {
+            *k_i /= denominator;
         }
     }
 }
@@ -212,6 +179,38 @@ impl<F: Float> InverseCorrMatrix<F> {
         }
         InverseCorrMatrix { inner: p }
     }
+
+    /// Updates the inverse correlation matrix used in the RLS weight update.
+    /// Utilizes current Kalman gain ``k_n``.
+    ///
+    /// Inverse correlation matrix update calculated as:
+    ///
+    /// $``P_n`` = \frac{1}{\lambda}
+    /// \left(P_{n-1} - ``k_n`` ``x_n^T`` P_{n-1}\right)$.
+    ///
+    /// The matrix is stored as a flat buffer and updated in place.
+    fn update(&mut self, kalman_gain: &KalmanGain<F>, noise_ref: &NoiseWindow<F>, lambda: F) {
+        // We calculate [x^T P] by computing the dot product of
+        // noise_ref (x) with each column in inverse_corr_matrix (P),
+        // then update the values for that column in place.
+        for col in 0..noise_ref.len() {
+            // Get the j-th column in P and take its dot product with x.
+            let p_col = self.iter().copied().skip(col).step_by(noise_ref.len());
+            let xt_p_col = noise_ref.iter().zip(p_col).map(|(x, p)| x * p).sum::<F>();
+
+            // Update the values in that column in place
+            for (row, k_i) in kalman_gain.iter().copied().enumerate() {
+                // index is into a flat buffer, so row * n gives us the start of each row
+                let index = row * noise_ref.len() + col;
+
+                let p_i = self
+                    .get_mut(index)
+                    // TODO(ben): How is this enforced?
+                    .expect("Index should always be valid based on the type invariants");
+                *p_i = (*p_i - k_i * xt_p_col) / lambda;
+            }
+        }
+    }
 }
 impl<F: Float> Deref for InverseCorrMatrix<F> {
     type Target = [F];
@@ -247,12 +246,11 @@ mod tests {
 
     #[test]
     fn update_kalman_gain_works() {
-        let mut rls = Rls::new(1.0, 1.0).unwrap();
-        rls.inverse_corr_matrix = InverseCorrMatrix {
-            inner: vec![1.0, 0.0, 0.0, 1.0].into_boxed_slice(),
-        };
-        rls.kalman_gain = KalmanGain {
+        let mut k = KalmanGain {
             inner: vec![0.0; 2].into_boxed_slice(),
+        };
+        let p = InverseCorrMatrix {
+            inner: vec![1.0, 0.0, 0.0, 1.0].into_boxed_slice(),
         };
         let x_n = block_noise_buffer_from(
             &[1.0, 2.0],
@@ -260,20 +258,19 @@ mod tests {
             BlockSize::new(1).unwrap(),
         );
 
-        rls.update_kalman_gain(&x_n.get_window(0).unwrap());
+        k.update(&p, &x_n.get_window(0).unwrap(), 1.0);
 
         let expected = [1.0 / 6.0, 1.0 / 3.0];
 
-        assert!(all_approx_equal(rls.kalman_gain.iter(), expected.iter()));
+        assert!(all_approx_equal(k.iter(), expected.iter()));
     }
 
     #[test]
     fn update_p_matrix_works() {
-        let mut rls = Rls::new(1.0, 1.0).unwrap();
-        rls.inverse_corr_matrix = InverseCorrMatrix {
+        let mut p = InverseCorrMatrix {
             inner: vec![1.0, 0.0, 0.0, 1.0].into_boxed_slice(),
         };
-        rls.kalman_gain = KalmanGain {
+        let k = KalmanGain {
             inner: vec![1.0 / 6.0, 1.0 / 3.0].into_boxed_slice(),
         };
         let x_n = block_noise_buffer_from(
@@ -282,16 +279,13 @@ mod tests {
             BlockSize::new(1).unwrap(),
         );
 
-        rls.update_p_matrix(&x_n.get_window(0).unwrap());
+        p.update(&k, &x_n.get_window(0).unwrap(), 1.0);
 
         let expected = InverseCorrMatrix {
             inner: vec![5.0 / 6.0, -1.0 / 3.0, -1.0 / 3.0, 1.0 / 3.0].into_boxed_slice(),
         };
 
-        assert!(all_approx_equal(
-            rls.inverse_corr_matrix.iter(),
-            expected.iter()
-        ));
+        assert!(all_approx_equal(p.iter(), expected.iter()));
     }
 
     #[test]
@@ -299,7 +293,7 @@ mod tests {
         let window_size = WindowSize::new(2).unwrap();
         let block_size = BlockSize::new(1).unwrap();
 
-        let mut rls = Rls::new(0.5, 1.0).unwrap();
+        let mut rls = Rls::new(0.5, 1.0, window_size).unwrap();
         let e_n = {
             let mut e_n = BlockError::new(block_size);
             e_n.push(OutputSample(2.0));
@@ -319,7 +313,7 @@ mod tests {
         let window_size = WindowSize::new(2).unwrap();
         let block_size = BlockSize::new(1).unwrap();
 
-        let mut rls = Rls::new(1.0, 1.0).unwrap();
+        let mut rls = Rls::new(1.0, 1.0, window_size).unwrap();
         let e_n = {
             let mut e_n = BlockError::new(block_size);
             e_n.push(OutputSample(1.0));
@@ -337,20 +331,21 @@ mod tests {
     #[test]
     fn forgetting_factor_range() {
         let p_init_scale = 1.0;
-        Rls::new(0.01, p_init_scale).unwrap();
-        Rls::new(1.0, p_init_scale).unwrap();
+        let window_size = WindowSize::new(8).unwrap();
+        Rls::new(0.01, p_init_scale, window_size).unwrap();
+        Rls::new(1.0, p_init_scale, window_size).unwrap();
 
         assert!(matches!(
-            Rls::new(0.0, p_init_scale),
+            Rls::new(0.0, p_init_scale, window_size),
             Err(Error::InvalidForgettingFactorRange)
         ));
         assert!(matches!(
-            Rls::new(-1.0, p_init_scale),
+            Rls::new(-1.0, p_init_scale, window_size),
             Err(Error::InvalidForgettingFactorRange)
         ));
 
         assert!(matches!(
-            Rls::new(2.0, p_init_scale),
+            Rls::new(2.0, p_init_scale, window_size),
             Err(Error::InvalidForgettingFactorRange)
         ));
     }
@@ -358,15 +353,25 @@ mod tests {
     #[test]
     fn p_init_scale_range() {
         let good_init_scale = 100.0;
-        Rls::new(0.01, good_init_scale).unwrap();
+        let window_size = WindowSize::new(8).unwrap();
+        Rls::new(0.01, good_init_scale, window_size).unwrap();
 
         assert!(matches!(
-            Rls::new(0.5, 0.0),
+            Rls::new(0.5, 0.0, window_size),
             Err(Error::NonPositivePInitScale)
         ));
         assert!(matches!(
-            Rls::new(0.5, -1.0),
+            Rls::new(0.5, -1.0, window_size),
             Err(Error::NonPositivePInitScale)
         ));
+    }
+
+    #[test]
+    fn window_size_works() {
+        let window_size = WindowSize::new(16).unwrap();
+
+        let rls = Rls::new(0.01, 1.0, window_size).unwrap();
+
+        assert_eq!(rls.window_size(), window_size);
     }
 }
