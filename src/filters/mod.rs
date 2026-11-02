@@ -9,3 +9,6 @@ pub use nlms::{NlmsFilter, NlmsOptions};
 
 mod rls;
 pub use rls::{RlsFilter, RlsOptions};
+
+mod apa;
+pub use apa::{ApaFilter, ApaOptions};

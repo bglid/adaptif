@@ -22,6 +22,7 @@ pub enum Error {
         n_weights: usize,
         window_size: usize,
     },
+    InvalidProjectionOrder,
 }
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -52,6 +53,9 @@ impl Display for Error {
                 f,
                 "number of weights ({n_weights}) must match the window size ({window_size})"
             ),
+            Self::InvalidProjectionOrder => {
+                write!(f, "projection order (l) must be greater than 0")
+            }
         }
     }
 }

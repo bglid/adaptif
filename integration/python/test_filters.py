@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from adaptif import LMSFilter, NLMSFilter, RLSFilter
+from adaptif import APAFilter, LMSFilter, NLMSFilter, RLSFilter
 
 from .utils import load_test_signals, mse, snr
 
@@ -13,7 +13,7 @@ def signals(request):
 
 @pytest.mark.parametrize(
     "filter_class",
-    [LMSFilter, NLMSFilter, RLSFilter],
+    [LMSFilter, NLMSFilter, RLSFilter, APAFilter],
 )
 @pytest.mark.parametrize("block_size", [1, 4])
 def test_filter_adapts_signal(filter_class, block_size, signals) -> None:
