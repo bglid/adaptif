@@ -43,10 +43,15 @@ impl<F: Float> ApaFilter<F> {
     /// Returns an error if projection order <= 0.
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn new(options: ApaOptions<F>, mode: ProcessingMode) -> Result<Self> {
-        let apa = Apa::new(options.mu, options.eps, options.projection_order)?;
         let window_size = WindowSize::new(options.window_size)?;
         let block_size = mode.block_size()?;
-        let filter = FilterBase::new(apa, window_size, block_size);
+        let apa = Apa::new(
+            options.mu,
+            options.eps,
+            options.projection_order,
+            window_size,
+        )?;
+        let filter = FilterBase::new(apa, block_size);
         Ok(Self { inner: filter })
     }
 }
@@ -87,8 +92,13 @@ mod tests {
         )
         .unwrap();
         let expected_inner = FilterBase::new(
-            Apa::new(mu, eps, projection_order).unwrap(),
-            WindowSize::new(window_size).unwrap(),
+            Apa::new(
+                mu,
+                eps,
+                projection_order,
+                WindowSize::new(window_size).unwrap(),
+            )
+            .unwrap(),
             BlockSize::new(1).unwrap(),
         );
 
@@ -120,8 +130,13 @@ mod tests {
 
         let expected_inner = {
             let mut expected_inner = FilterBase::new(
-                Apa::new(mu, eps, projection_order).unwrap(),
-                WindowSize::new(weights.len()).unwrap(),
+                Apa::new(
+                    mu,
+                    eps,
+                    projection_order,
+                    WindowSize::new(weights.len()).unwrap(),
+                )
+                .unwrap(),
                 BlockSize::new(1).unwrap(),
             );
             expected_inner.load_weights(weights.clone()).unwrap();

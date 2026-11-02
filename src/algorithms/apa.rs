@@ -18,6 +18,9 @@ pub struct Apa<F: Float> {
     eps: F,
     /// Projection order (L) defining number of recent input vectors to use in update.
     projection_order: usize,
+    /// Window size of the filter.
+    /// Determines the size of the...
+    window_size: WindowSize,
     /// Stores up to L recent input vectors.
     input_history: InputHistory<F>,
     /// Stores the L most recent desired outputs.
@@ -30,6 +33,48 @@ pub struct Apa<F: Float> {
     augmented_matrix: Matrix<F>,
     /// Preallocated vector matrix to hold result of linear algebra solver.
     solver_result: Matrix<F>,
+}
+impl<F: Float> Apa<F> {
+    /// # Errors
+    ///
+    /// Returns an error if mu <= 0.0.
+    /// Returns an error if eps <= 0.0.
+    /// Returns an error if projection order <= 0.
+    pub fn new(mu: F, eps: F, projection_order: usize, window_size: WindowSize) -> Result<Self> {
+        if mu <= F::zero() {
+            return Err(Error::NonPositiveStepSize);
+        }
+
+        if eps <= F::zero() {
+            return Err(Error::NonPositiveEpsilon);
+        }
+
+        if projection_order == 0 {
+            return Err(Error::InvalidProjectionOrder);
+        }
+
+        Ok(Apa {
+            mu,
+            eps,
+            projection_order,
+            window_size,
+            input_history: InputHistory::new(projection_order, window_size),
+            desired_history: DesiredHistory::new(projection_order),
+            error_vector: ErrorVector::new(projection_order),
+            gram_matrix: Matrix::new(Shape {
+                rows: projection_order,
+                cols: projection_order,
+            }),
+            augmented_matrix: Matrix::new(Shape {
+                rows: projection_order,
+                cols: 2 * projection_order,
+            }),
+            solver_result: Matrix::new(Shape {
+                rows: projection_order,
+                cols: 1,
+            }),
+        })
+    }
 }
 
 impl<F: Float> Algorithm<F> for Apa<F> {
@@ -47,12 +92,7 @@ impl<F: Float> Algorithm<F> for Apa<F> {
         error: OutputSample<F>,
         noise_window: NoiseWindow<F>,
     ) {
-        // Updates Input history once window size is known
-        let window_size = weights.window_size();
-        if self.input_history.shape().cols != *window_size {
-            self.input_history = InputHistory::new(self.projection_order, window_size);
-        }
-
+        // reconstructing the desired output
         let desired_output = (*error)
             + weights
                 .iter()
@@ -98,47 +138,9 @@ impl<F: Float> Algorithm<F> for Apa<F> {
             *w += self.mu * update;
         }
     }
-}
 
-impl<F: Float> Apa<F> {
-    /// # Errors
-    ///
-    /// Returns an error if mu <= 0.0.
-    /// Returns an error if eps <= 0.0.
-    /// Returns an error if projection order <= 0.
-    pub fn new(mu: F, eps: F, projection_order: usize) -> Result<Self> {
-        if mu <= F::zero() {
-            return Err(Error::NonPositiveStepSize);
-        }
-
-        if eps <= F::zero() {
-            return Err(Error::NonPositiveEpsilon);
-        }
-
-        if projection_order == 0 {
-            return Err(Error::InvalidProjectionOrder);
-        }
-
-        Ok(Apa {
-            mu,
-            eps,
-            projection_order,
-            input_history: InputHistory::new(projection_order, WindowSize::new(1)?),
-            desired_history: DesiredHistory::new(projection_order),
-            error_vector: ErrorVector::new(projection_order),
-            gram_matrix: Matrix::new(Shape {
-                rows: projection_order,
-                cols: projection_order,
-            }),
-            augmented_matrix: Matrix::new(Shape {
-                rows: projection_order,
-                cols: 2 * projection_order,
-            }),
-            solver_result: Matrix::new(Shape {
-                rows: projection_order,
-                cols: 1,
-            }),
-        })
+    fn window_size(&self) -> WindowSize {
+        self.window_size
     }
 }
 
@@ -303,7 +305,6 @@ impl<F: Float> Matrix<F> {
             return None;
         }
 
-        // NOTE: This down to line 336, we might be able to simplify, since the left side of AI is the matrix we are inverting
         // We need the AI matrix to be fresh every time we call update step since
         // we don't want the augmented matrix data from previous calls.
         augmented_matrix.fill(F::zero());
@@ -478,7 +479,7 @@ mod tests {
         let window_size = WindowSize::new(2).unwrap();
         let block_size = BlockSize::new(1).unwrap();
 
-        let mut apa = Apa::new(0.5, 1.0, 1).unwrap();
+        let mut apa = Apa::new(0.5, 1.0, 1, window_size).unwrap();
         let e_n = {
             let mut e_n = BlockError::new(block_size);
             e_n.push(OutputSample(2.0));
@@ -498,7 +499,7 @@ mod tests {
         let window_size = WindowSize::new(2).unwrap();
         let block_size = BlockSize::new(1).unwrap();
 
-        let mut apa = Apa::new(0.5, 1.0, 2).unwrap();
+        let mut apa = Apa::new(0.5, 1.0, 2, window_size).unwrap();
         let e_n = {
             let mut e_n = BlockError::new(block_size);
             e_n.push(OutputSample(2.0));
@@ -515,39 +516,51 @@ mod tests {
 
     #[test]
     fn mu_range() {
-        Apa::new(0.5, 1.0, 2).unwrap();
+        let window_size = WindowSize::new(8).unwrap();
+        Apa::new(0.5, 1.0, 2, window_size).unwrap();
 
         assert!(matches!(
-            Apa::new(0.0, 1.0, 2),
+            Apa::new(0.0, 1.0, 2, window_size),
             Err(Error::NonPositiveStepSize)
         ));
         assert!(matches!(
-            Apa::new(-1.0, 1.0, 2),
+            Apa::new(-1.0, 1.0, 2, window_size),
             Err(Error::NonPositiveStepSize)
         ));
     }
 
     #[test]
     fn eps_range() {
-        Apa::new(0.5, 1.0, 2).unwrap();
+        let window_size = WindowSize::new(8).unwrap();
+        Apa::new(0.5, 1.0, 2, window_size).unwrap();
 
         assert!(matches!(
-            Apa::new(0.5, 0.0, 2),
+            Apa::new(0.5, 0.0, 2, window_size),
             Err(Error::NonPositiveEpsilon)
         ));
         assert!(matches!(
-            Apa::new(0.5, -1.0, 2),
+            Apa::new(0.5, -1.0, 2, window_size),
             Err(Error::NonPositiveEpsilon)
         ));
     }
 
     #[test]
     fn projection_order_range() {
-        Apa::new(0.5, 1.0, 2).unwrap();
+        let window_size = WindowSize::new(8).unwrap();
+        Apa::new(0.5, 1.0, 2, window_size).unwrap();
 
         assert!(matches!(
-            Apa::new(0.5, 1.0, 0),
+            Apa::new(0.5, 1.0, 0, window_size),
             Err(Error::InvalidProjectionOrder)
         ));
+    }
+
+    #[test]
+    fn window_size_works() {
+        let window_size = WindowSize::new(16).unwrap();
+
+        let apa = Apa::new(0.01, 1.0, 2, window_size).unwrap();
+
+        assert_eq!(apa.window_size(), window_size);
     }
 }
