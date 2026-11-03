@@ -230,7 +230,8 @@ impl<F: Float> DerefMut for InverseCorrMatrix<F> {
 mod tests {
     use super::*;
     use crate::{
-        test_utils::{all_approx_equal, block_noise_buffer_from},
+        test_utils::all_approx_equal,
+        types::buffers::NoiseBuffer,
         types::{BlockSize, FilterWeights, WindowSize, buffers::BlockError},
     };
 
@@ -252,7 +253,7 @@ mod tests {
         let p = InverseCorrMatrix {
             inner: vec![1.0, 0.0, 0.0, 1.0].into_boxed_slice(),
         };
-        let x_n = block_noise_buffer_from(
+        let x_n = NoiseBuffer::from_slice(
             &[1.0, 2.0],
             WindowSize::new(2).unwrap(),
             BlockSize::new(1).unwrap(),
@@ -273,7 +274,7 @@ mod tests {
         let k = KalmanGain {
             inner: vec![1.0 / 6.0, 1.0 / 3.0].into_boxed_slice(),
         };
-        let x_n = block_noise_buffer_from(
+        let x_n = NoiseBuffer::from_slice(
             &[1.0, 2.0],
             WindowSize::new(2).unwrap(),
             BlockSize::new(1).unwrap(),
@@ -299,7 +300,7 @@ mod tests {
             e_n.push(OutputSample(2.0));
             e_n
         };
-        let x_n = block_noise_buffer_from(&[1.0, -1.0], window_size, block_size);
+        let x_n = NoiseBuffer::from_slice(&[1.0, -1.0], window_size, block_size);
         let expected = [0.8, -0.8];
         let mut weights = FilterWeights::new(window_size);
 
@@ -319,7 +320,7 @@ mod tests {
             e_n.push(OutputSample(1.0));
             e_n
         };
-        let x_n = block_noise_buffer_from(&[5.0, 2.0], window_size, block_size);
+        let x_n = NoiseBuffer::from_slice(&[5.0, 2.0], window_size, block_size);
         let expected = [5.0 / 30.0, 2.0 / 30.0];
         let mut weights = FilterWeights::new(WindowSize::new(2).unwrap());
 

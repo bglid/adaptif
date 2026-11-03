@@ -17,6 +17,30 @@ impl<F: Float> BlockError<F> {
     pub fn push(&mut self, item: OutputSample<F>) {
         self.inner.push(*item);
     }
+    /// Create an error buffer filled with the values in `arr`.
+    /// Only to be used for setting up variables in unit tests.
+    ///
+    /// The samples in the buffer will be stored in the same order
+    /// as they are in `arr`. This means that `arr` should be ordered from
+    /// most to least recent sample, i.e. `arr[0]` is the most recent sample.
+    #[cfg(test)]
+    #[allow(
+        clippy::unwrap_used,
+        clippy::missing_panics_doc,
+        reason = "Testing only"
+    )]
+    pub fn from_slice(value: &[F]) -> Self {
+        let mut buffer = BlockError::new(BlockSize::new(value.len()).unwrap());
+
+        // The underlying buffer implementation pushes new samples to the front and pops
+        // old samples from the back.
+        // We therefore process `arr` in reverse so that the orders of the samples is preserved.
+        for val in value.iter().rev() {
+            buffer.push(OutputSample(*val));
+        }
+
+        buffer
+    }
 }
 impl<F: Float> Deref for BlockError<F> {
     type Target = SampleBuffer<F>;

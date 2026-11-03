@@ -67,8 +67,8 @@ impl<F: Float> Algorithm<F> for Nlms<F> {
 mod tests {
     use super::*;
     use crate::{
-        test_utils::{all_approx_equal, block_noise_buffer_from},
-        types::buffers::BlockError,
+        test_utils::all_approx_equal,
+        types::buffers::{BlockError, NoiseBuffer},
         types::{BlockSize, FilterWeights, WindowSize},
     };
 
@@ -83,7 +83,7 @@ mod tests {
             e_n.push(OutputSample(2.0));
             e_n
         };
-        let x_n = block_noise_buffer_from(&[1.0, -1.0], window_size, block_size);
+        let x_n = NoiseBuffer::from_slice(&[1.0, -1.0], window_size, block_size);
         let expected = [1.0 / (2.0 + nlms.eps), -1.0 / (2.0 + nlms.eps)];
         let mut weights = FilterWeights::new(window_size);
 
@@ -103,7 +103,7 @@ mod tests {
             e_n.push(OutputSample(1.0));
             e_n
         };
-        let x_n = block_noise_buffer_from(&[5.0, 2.0], window_size, block_size);
+        let x_n = NoiseBuffer::from_slice(&[5.0, 2.0], window_size, block_size);
         let expected = [(5.0 / (29.0 + nlms.eps)), (2.0 / (29.0 + nlms.eps))];
         let mut weights = FilterWeights::new(window_size);
 

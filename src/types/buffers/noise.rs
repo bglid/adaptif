@@ -39,6 +39,30 @@ impl<F: Float> NoiseBuffer<F> {
             })
         }
     }
+
+    /// Create a noise buffer filled with the values in `arr`.
+    /// Only to be used for setting up variables in unit tests.
+    ///
+    /// The samples in the buffer will be stored in the same order
+    /// as they are in `arr`. This means that `arr` should be ordered from
+    /// most to least recent sample, i.e. `arr[0]` is the most recent sample.
+    #[cfg(test)]
+    #[allow(clippy::missing_panics_doc, reason = "Testing only")]
+    pub fn from_slice(arr: &[F], window_size: WindowSize, block_size: BlockSize) -> Self {
+        assert_eq!(arr.len(), *window_size + *block_size - 1);
+
+        let weights = FilterWeights::new(window_size);
+        let mut buffer = NoiseBuffer::new(&weights, block_size);
+
+        // The underlying buffer implementation pushes new samples to the front and pops
+        // old samples from the back.
+        // We therefore process `arr` in reverse so that the orders of the samples is preserved.
+        for val in arr.iter().rev() {
+            buffer.push(*val);
+        }
+
+        buffer
+    }
 }
 impl<F: Float> Deref for NoiseBuffer<F> {
     type Target = SampleBuffer<F>;
