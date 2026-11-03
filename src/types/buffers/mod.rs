@@ -1,5 +1,5 @@
 mod error;
-pub use error::BlockError;
+pub use error::ErrorBuffer;
 
 mod noise;
 pub use noise::{NoiseBuffer, NoiseWindow};

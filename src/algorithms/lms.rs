@@ -53,7 +53,7 @@ mod tests {
     use super::*;
     use crate::{
         test_utils::all_approx_equal,
-        types::buffers::{BlockError, NoiseBuffer},
+        types::buffers::{ErrorBuffer, NoiseBuffer},
         types::{BlockSize, FilterWeights, WindowSize},
     };
 
@@ -63,7 +63,7 @@ mod tests {
         let block_size = BlockSize::new(1).unwrap();
 
         let mut lms = Lms::new(0.5, window_size).unwrap();
-        let e_n = BlockError::from_slice(&[2.0]);
+        let e_n = ErrorBuffer::from_slice(&[2.0]);
         let x_n = NoiseBuffer::from_slice(&[1.0, -1.0], window_size, block_size);
         let expected = [1.0, -1.0];
         let mut weights = FilterWeights::new(window_size);
@@ -79,7 +79,7 @@ mod tests {
         let block_size = BlockSize::new(1).unwrap();
 
         let mut lms = Lms::new(1.0, window_size).unwrap();
-        let e_n = BlockError::from_slice(&[1.0]);
+        let e_n = ErrorBuffer::from_slice(&[1.0]);
         let x_n = NoiseBuffer::from_slice(&[5.0, 2.0], window_size, block_size);
         let expected = [5.0, 2.0];
         let mut weights = FilterWeights::new(window_size);
@@ -94,7 +94,7 @@ mod tests {
         let window_size = WindowSize::new(2).unwrap();
 
         let mut lms = Lms::new(0.5, window_size).unwrap();
-        let e_n = BlockError::from_slice(&[5.0, -6.0, 7.0]);
+        let e_n = ErrorBuffer::from_slice(&[5.0, -6.0, 7.0]);
 
         let block_size = BlockSize::new(e_n.len()).unwrap();
 
@@ -112,7 +112,7 @@ mod tests {
         let window_size = WindowSize::new(3).unwrap();
 
         let mut lms = Lms::new(1.0, window_size).unwrap();
-        let e_n = BlockError::from_slice(&[1.0, -1.0, 1.5]);
+        let e_n = ErrorBuffer::from_slice(&[1.0, -1.0, 1.5]);
 
         let block_size = BlockSize::new(e_n.len()).unwrap();
         let x_n = NoiseBuffer::from_slice(&[1.0, -2.0, 3.0, -4.0, 5.0], window_size, block_size);

@@ -3,7 +3,7 @@ use std::ops::Range;
 use crate::algorithms::Algorithm;
 
 use crate::error::{Error, Result};
-use crate::types::buffers::{BlockError, NoiseBuffer};
+use crate::types::buffers::{ErrorBuffer, NoiseBuffer};
 use crate::types::signals::{InputSample, InputSignal, NoiseReference, OutputSample, OutputSignal};
 use crate::types::{BlockSize, FilterWeights, Float, NoiseEstimate};
 
@@ -100,7 +100,7 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
         check_signal_lengths(input_signal, noise_ref)?;
 
         let mut noise_buffer = NoiseBuffer::new(&self.weights, self.block_size);
-        let mut block_error = BlockError::new(self.block_size);
+        let mut error_buffer = ErrorBuffer::new(self.block_size);
         let mut cleaned_signal = OutputSignal::new(input_signal);
 
         let n_samples = input_signal.len();
@@ -115,12 +115,12 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
                     input_signal,
                     noise_ref,
                     &mut noise_buffer,
-                    &mut block_error,
+                    &mut error_buffer,
                     &mut cleaned_signal,
                 );
 
                 self.algorithm
-                    .update_block(&mut self.weights, &block_error, &noise_buffer);
+                    .update_block(&mut self.weights, &error_buffer, &noise_buffer);
             } else {
                 // last block: finish off remaining samples w/o updating the weights
                 process_block(
@@ -129,7 +129,7 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
                     input_signal,
                     noise_ref,
                     &mut noise_buffer,
-                    &mut block_error,
+                    &mut error_buffer,
                     &mut cleaned_signal,
                 );
 
@@ -188,7 +188,7 @@ where
     check_signal_lengths(input_signal, noise_ref)?;
 
     let mut noise_buffer = NoiseBuffer::new(weights, block_size);
-    let mut block_error = BlockError::new(block_size);
+    let mut error_buffer = ErrorBuffer::new(block_size);
     let mut cleaned_signal = OutputSignal::new(input_signal);
 
     let n_samples = input_signal.len();
@@ -202,7 +202,7 @@ where
             input_signal,
             noise_ref,
             &mut noise_buffer,
-            &mut block_error,
+            &mut error_buffer,
             &mut cleaned_signal,
         );
     }
@@ -224,7 +224,7 @@ fn process_block<F>(
     input_signal: &InputSignal<F>,
     noise_ref: &NoiseReference<F>,
     noise_buffer: &mut NoiseBuffer<F>,
-    block_error: &mut BlockError<F>,
+    error_buffer: &mut ErrorBuffer<F>,
     cleaned_signal: &mut OutputSignal<F>,
 ) where
     F: Float,
@@ -253,7 +253,7 @@ fn process_block<F>(
 
         let error = compute_error(input_sample, noise_estimate);
 
-        block_error.push(error);
+        error_buffer.push(error);
         cleaned_signal.push(error);
     }
 }

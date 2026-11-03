@@ -7,7 +7,7 @@
 
 use std::num::NonZero;
 
-use crate::types::buffers::{BlockError, NoiseBuffer};
+use crate::types::buffers::{ErrorBuffer, NoiseBuffer};
 use crate::types::signals::OutputSample;
 use crate::types::{BlockSize, FilterWeights, Float, WindowSize};
 

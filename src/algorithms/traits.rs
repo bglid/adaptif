@@ -1,4 +1,4 @@
-use crate::types::buffers::{BlockError, NoiseBuffer, NoiseWindow};
+use crate::types::buffers::{ErrorBuffer, NoiseBuffer, NoiseWindow};
 use crate::types::signals::OutputSample;
 use crate::types::{FilterWeights, Float, WindowSize};
 
@@ -22,7 +22,7 @@ pub trait Algorithm<F: Float> {
     fn update_block(
         &mut self,
         weights: &mut FilterWeights<F>,
-        error: &BlockError<F>,
+        error: &ErrorBuffer<F>,
         noise_ref: &NoiseBuffer<F>,
     ) {
         for (window_start, window_error) in error.iter().copied().enumerate() {

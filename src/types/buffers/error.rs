@@ -4,12 +4,12 @@ use crate::types::buffers::SampleBuffer;
 use crate::types::signals::OutputSample;
 use crate::types::{BlockSize, Float};
 
-pub struct BlockError<F: Float> {
+pub struct ErrorBuffer<F: Float> {
     inner: SampleBuffer<F>,
 }
-impl<F: Float> BlockError<F> {
+impl<F: Float> ErrorBuffer<F> {
     pub fn new(block_size: BlockSize) -> Self {
-        BlockError {
+        ErrorBuffer {
             inner: SampleBuffer::new(block_size.into()),
         }
     }
@@ -30,7 +30,7 @@ impl<F: Float> BlockError<F> {
         reason = "Testing only"
     )]
     pub fn from_slice(value: &[F]) -> Self {
-        let mut buffer = BlockError::new(BlockSize::new(value.len()).unwrap());
+        let mut buffer = ErrorBuffer::new(BlockSize::new(value.len()).unwrap());
 
         // The underlying buffer implementation pushes new samples to the front and pops
         // old samples from the back.
@@ -42,14 +42,14 @@ impl<F: Float> BlockError<F> {
         buffer
     }
 }
-impl<F: Float> Deref for BlockError<F> {
+impl<F: Float> Deref for ErrorBuffer<F> {
     type Target = SampleBuffer<F>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
-impl<F: Float> DerefMut for BlockError<F> {
+impl<F: Float> DerefMut for ErrorBuffer<F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -62,8 +62,8 @@ mod tests {
     use crate::test_utils::all_approx_equal;
 
     #[test]
-    fn block_error_init_to_zero() {
-        let buffer = BlockError::new(BlockSize::new(2).unwrap());
+    fn error_buffer_init_to_zero() {
+        let buffer = ErrorBuffer::new(BlockSize::new(2).unwrap());
         assert!(all_approx_equal(buffer.iter(), [0.0; 2].iter()));
     }
 }

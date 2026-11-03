@@ -68,7 +68,7 @@ mod tests {
     use super::*;
     use crate::{
         test_utils::all_approx_equal,
-        types::buffers::{BlockError, NoiseBuffer},
+        types::buffers::{ErrorBuffer, NoiseBuffer},
         types::{BlockSize, FilterWeights, WindowSize},
     };
 
@@ -79,7 +79,7 @@ mod tests {
 
         let mut nlms = Nlms::new(0.5, 1e-8, window_size).unwrap();
         let e_n = {
-            let mut e_n = BlockError::new(block_size);
+            let mut e_n = ErrorBuffer::new(block_size);
             e_n.push(OutputSample(2.0));
             e_n
         };
@@ -99,7 +99,7 @@ mod tests {
 
         let mut nlms = Nlms::new(1.0, 1e-8, window_size).unwrap();
         let e_n = {
-            let mut e_n = BlockError::new(block_size);
+            let mut e_n = ErrorBuffer::new(block_size);
             e_n.push(OutputSample(1.0));
             e_n
         };

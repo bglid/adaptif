@@ -232,7 +232,7 @@ mod tests {
     use crate::{
         test_utils::all_approx_equal,
         types::buffers::NoiseBuffer,
-        types::{BlockSize, FilterWeights, WindowSize, buffers::BlockError},
+        types::{BlockSize, FilterWeights, WindowSize, buffers::ErrorBuffer},
     };
 
     #[test]
@@ -296,7 +296,7 @@ mod tests {
 
         let mut rls = Rls::new(0.5, 1.0, window_size).unwrap();
         let e_n = {
-            let mut e_n = BlockError::new(block_size);
+            let mut e_n = ErrorBuffer::new(block_size);
             e_n.push(OutputSample(2.0));
             e_n
         };
@@ -316,7 +316,7 @@ mod tests {
 
         let mut rls = Rls::new(1.0, 1.0, window_size).unwrap();
         let e_n = {
-            let mut e_n = BlockError::new(block_size);
+            let mut e_n = ErrorBuffer::new(block_size);
             e_n.push(OutputSample(1.0));
             e_n
         };
