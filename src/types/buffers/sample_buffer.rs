@@ -50,8 +50,8 @@ impl<F: Float> SampleBuffer<F> {
         self.capacity.into()
     }
 
-    pub fn iter(&self) -> SampleIter<'_, F> {
-        SampleIter {
+    pub fn iter(&self) -> Iter<'_, F> {
+        Iter {
             buffer: self,
             next_idx: 0,
         }
@@ -59,18 +59,18 @@ impl<F: Float> SampleBuffer<F> {
 }
 impl<'a, F: Float> IntoIterator for &'a SampleBuffer<F> {
     type Item = &'a F;
-    type IntoIter = SampleIter<'a, F>;
+    type IntoIter = Iter<'a, F>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
 }
 
-pub struct SampleIter<'a, F: Float> {
+pub struct Iter<'a, F: Float> {
     buffer: &'a SampleBuffer<F>,
     next_idx: usize,
 }
-impl<'a, F: Float> Iterator for SampleIter<'a, F> {
+impl<'a, F: Float> Iterator for Iter<'a, F> {
     type Item = &'a F;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -79,7 +79,7 @@ impl<'a, F: Float> Iterator for SampleIter<'a, F> {
         item
     }
 }
-impl<F: Float> ExactSizeIterator for SampleIter<'_, F> {
+impl<F: Float> ExactSizeIterator for Iter<'_, F> {
     fn len(&self) -> usize {
         self.buffer.len()
     }

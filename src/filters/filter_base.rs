@@ -234,8 +234,8 @@ fn process_block<F>(
         // If an invalid range is (accidentally) provided by a dev, we don't want pass
         // it to the public caller or have it silently fail, so we panic instead.
         let (input_sample, noise_sample) = input_signal
-            .get_sample(n)
-            .zip(noise_ref.get_sample(n))
+            .get(n)
+            .zip(noise_ref.get(n))
             .expect("process_block() called with invalid range");
 
         noise_ref_buffer.push(*noise_sample);

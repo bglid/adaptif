@@ -96,7 +96,7 @@ mod tests {
     }
 
     #[test]
-    fn from_weights_works() {
+    fn load_weights_works() {
         let forgetting_factor = 0.999;
         let p_init_scale = 1e-4;
         let weights = vec![1.0, 2.0, 3.0];

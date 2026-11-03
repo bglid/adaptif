@@ -26,7 +26,7 @@ impl<F: Float> InputSignal<F> {
         }
     }
 
-    pub fn get_sample(&self, n: usize) -> Option<InputSample<F>> {
+    pub fn get(&self, n: usize) -> Option<InputSample<F>> {
         Some(InputSample(*self.inner.get(n)?))
     }
 }

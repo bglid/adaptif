@@ -258,7 +258,7 @@ mod tests {
             BlockSize::new(1).unwrap(),
         );
 
-        k.update(&p, &x_n.get_window(0).unwrap(), 1.0);
+        k.update(&p, &x_n.window(0).unwrap(), 1.0);
 
         let expected = [1.0 / 6.0, 1.0 / 3.0];
 
@@ -279,7 +279,7 @@ mod tests {
             BlockSize::new(1).unwrap(),
         );
 
-        p.update(&k, &x_n.get_window(0).unwrap(), 1.0);
+        p.update(&k, &x_n.window(0).unwrap(), 1.0);
 
         let expected = InverseCorrMatrix {
             inner: vec![5.0 / 6.0, -1.0 / 3.0, -1.0 / 3.0, 1.0 / 3.0].into_boxed_slice(),

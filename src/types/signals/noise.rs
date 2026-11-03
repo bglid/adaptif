@@ -24,7 +24,7 @@ impl<F: Float> NoiseReference<F> {
         }
     }
 
-    pub fn get_sample(&self, n: usize) -> Option<NoiseSample<F>> {
+    pub fn get(&self, n: usize) -> Option<NoiseSample<F>> {
         Some(NoiseSample(*self.inner.get(n)?))
     }
 }

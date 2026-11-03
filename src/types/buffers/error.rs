@@ -38,7 +38,7 @@ mod tests {
     use crate::test_utils::all_approx_equal;
 
     #[test]
-    fn error_buffer_init_to_zero() {
+    fn block_error_init_to_zero() {
         let buffer = BlockError::new(BlockSize::new(2).unwrap());
         assert!(all_approx_equal(buffer.iter(), [0.0; 2].iter()));
     }

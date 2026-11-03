@@ -66,8 +66,8 @@ fn add_white_noise(
         .collect();
 
     // Getting noise scale to update noise vec
-    let signal_power = get_power(clean_signal);
-    let noise_power = get_power(&noise);
+    let signal_power = compute_signal_power(clean_signal);
+    let noise_power = compute_signal_power(&noise);
     let target_noise_power = signal_power / (10.0_f64.powf(snr_db / 10.0));
     let scale = (target_noise_power / noise_power).sqrt();
 
@@ -85,7 +85,7 @@ fn add_white_noise(
 }
 
 /// Calculates the signal power for converting to dB.
-fn get_power(signal: &[f64]) -> f64 {
+fn compute_signal_power(signal: &[f64]) -> f64 {
     signal.iter().map(|sample| sample.powi(2)).sum::<f64>()
 }
 

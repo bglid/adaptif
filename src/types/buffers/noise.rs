@@ -52,13 +52,13 @@ impl<F: Float> BlockNoiseBuffer<F> {
         }
     }
 
-    pub fn get_window(&self, window_start: usize) -> Option<NoiseWindow<'_, F>> {
-        if window_start >= *self.block_size {
+    pub fn window(&self, start_idx: usize) -> Option<NoiseWindow<'_, F>> {
+        if start_idx >= *self.block_size {
             None
         } else {
             Some(NoiseWindow {
                 buffer: self,
-                start_idx: window_start,
+                start_idx,
             })
         }
     }
@@ -149,11 +149,11 @@ mod tests {
             buffer
         };
 
-        assert_eq!(buffer.get_window(block_size), None);
-        assert_eq!(buffer.get_window(block_size + 1), None);
+        assert_eq!(buffer.window(block_size), None);
+        assert_eq!(buffer.window(block_size + 1), None);
 
         for window_start in [0, 3, block_size - 1] {
-            let noise_window = buffer.get_window(window_start).unwrap();
+            let noise_window = buffer.window(window_start).unwrap();
 
             assert_eq!(noise_window.get(window_size), None);
             assert_eq!(noise_window.get(window_size + 1), None);

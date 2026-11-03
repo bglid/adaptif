@@ -27,8 +27,8 @@ pub trait Algorithm<F: Float> {
     ) {
         for (window_start, window_error) in error.iter().copied().enumerate() {
             #[allow(clippy::missing_panics_doc, reason = "failure independent of fn input")]
-            let current_window = noise_ref.get_window(window_start).expect(
-                "get_window() should only fail if window_start >= noise_ref.block_size.
+            let current_window = noise_ref.window(window_start).expect(
+                "window() should only fail if window_start >= noise_ref.block_size.
                 error.len() == block_size, so window_start is always < block_size",
             );
 
