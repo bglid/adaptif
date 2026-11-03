@@ -7,10 +7,11 @@
 
 use std::num::NonZero;
 
-use crate::types::buffers::{BlockError, BlockNoiseBuffer, NoiseBuffer};
+use crate::types::buffers::{BlockError, NoiseBuffer};
 use crate::types::signals::OutputSample;
 use crate::types::{BlockSize, FilterWeights, Float, WindowSize};
 
+// TODO: see if we can replace these three float comparison fns with a dev dependency
 pub fn approx_equal<F>(a: F, b: F, eps: F) -> bool
 where
     F: Float,
@@ -45,18 +46,19 @@ where
 /// The samples in the buffer will be stored in the same order
 /// as they are in `arr`. This means that `arr` should be ordered from
 /// most to least recent sample, i.e. `arr[0]` is the most recent sample.
+// TODO(elias): add as a From impl to NoiseBuffer and only compile for tests
 pub fn block_noise_buffer_from<F>(
     arr: &[F],
     window_size: WindowSize,
     block_size: BlockSize,
-) -> BlockNoiseBuffer<F>
+) -> NoiseBuffer<F>
 where
     F: Float,
 {
     assert_eq!(arr.len(), *window_size + *block_size - 1);
 
     let weights = FilterWeights::new(window_size);
-    let mut buffer = BlockNoiseBuffer::new(&weights, block_size);
+    let mut buffer = NoiseBuffer::new(&weights, block_size);
 
     // The underlying buffer implementation pushes new samples to the front and pops
     // old samples from the back.
@@ -73,6 +75,7 @@ where
 /// The samples in the buffer will be stored in the same order
 /// as they are in `arr`. This means that `arr` should be ordered from
 /// most to least recent sample, i.e. `arr[0]` is the most recent sample.
+// TODO(elias): add as a From impl to BlockError and only compile for tests
 pub fn error_buffer_from<F>(arr: &[F]) -> BlockError<F>
 where
     F: Float,

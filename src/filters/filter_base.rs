@@ -3,7 +3,7 @@ use std::ops::Range;
 use crate::algorithms::Algorithm;
 
 use crate::error::{Error, Result};
-use crate::types::buffers::{BlockError, BlockNoiseBuffer};
+use crate::types::buffers::{BlockError, NoiseBuffer};
 use crate::types::signals::{InputSample, InputSignal, NoiseReference, OutputSample, OutputSignal};
 use crate::types::{BlockSize, FilterWeights, Float, NoiseEstimate};
 
@@ -99,7 +99,7 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
     ) -> Result<Vec<F>> {
         check_signal_lengths(input_signal, noise_ref)?;
 
-        let mut noise_ref_buffer = BlockNoiseBuffer::new(&self.weights, self.block_size);
+        let mut noise_buffer = NoiseBuffer::new(&self.weights, self.block_size);
         let mut block_error = BlockError::new(self.block_size);
         let mut cleaned_signal = OutputSignal::new(input_signal);
 
@@ -114,13 +114,13 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
                     &self.weights,
                     input_signal,
                     noise_ref,
-                    &mut noise_ref_buffer,
+                    &mut noise_buffer,
                     &mut block_error,
                     &mut cleaned_signal,
                 );
 
                 self.algorithm
-                    .update_block(&mut self.weights, &block_error, &noise_ref_buffer);
+                    .update_block(&mut self.weights, &block_error, &noise_buffer);
             } else {
                 // last block: finish off remaining samples w/o updating the weights
                 process_block(
@@ -128,7 +128,7 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
                     &self.weights,
                     input_signal,
                     noise_ref,
-                    &mut noise_ref_buffer,
+                    &mut noise_buffer,
                     &mut block_error,
                     &mut cleaned_signal,
                 );
@@ -187,7 +187,7 @@ where
 {
     check_signal_lengths(input_signal, noise_ref)?;
 
-    let mut noise_ref_buffer = BlockNoiseBuffer::new(weights, block_size);
+    let mut noise_buffer = NoiseBuffer::new(weights, block_size);
     let mut block_error = BlockError::new(block_size);
     let mut cleaned_signal = OutputSignal::new(input_signal);
 
@@ -201,7 +201,7 @@ where
             weights,
             input_signal,
             noise_ref,
-            &mut noise_ref_buffer,
+            &mut noise_buffer,
             &mut block_error,
             &mut cleaned_signal,
         );
@@ -223,7 +223,7 @@ fn process_block<F>(
     weights: &FilterWeights<F>,
     input_signal: &InputSignal<F>,
     noise_ref: &NoiseReference<F>,
-    noise_ref_buffer: &mut BlockNoiseBuffer<F>,
+    noise_buffer: &mut NoiseBuffer<F>,
     block_error: &mut BlockError<F>,
     cleaned_signal: &mut OutputSignal<F>,
 ) where
@@ -238,12 +238,9 @@ fn process_block<F>(
             .zip(noise_ref.get(n))
             .expect("process_block() called with invalid range");
 
-        noise_ref_buffer.push(*noise_sample);
+        noise_buffer.push(*noise_sample);
 
-        let current_window = noise_ref_buffer
-            .iter()
-            .copied()
-            .take(*weights.window_size());
+        let current_window = noise_buffer.iter().copied().take(*weights.window_size());
 
         let noise_estimate = NoiseEstimate(
             weights

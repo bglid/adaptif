@@ -4,37 +4,14 @@ use std::ops::{Deref, DerefMut};
 use super::SampleBuffer;
 use crate::types::{BlockSize, FilterWeights, Float, WindowSize};
 
-pub struct NoiseBuffer<F: Float> {
-    inner: SampleBuffer<F>,
-}
-impl<F: Float> NoiseBuffer<F> {
-    pub fn new(weights: &FilterWeights<F>) -> Self {
-        NoiseBuffer {
-            inner: SampleBuffer::new(weights.window_size().into()),
-        }
-    }
-}
-impl<F: Float> Deref for NoiseBuffer<F> {
-    type Target = SampleBuffer<F>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-impl<F: Float> DerefMut for NoiseBuffer<F> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
-    }
-}
-
 /// Noise reference buffer for block processing.
 #[derive(Debug, Clone, PartialEq)]
-pub struct BlockNoiseBuffer<F: Float> {
+pub struct NoiseBuffer<F: Float> {
     inner: SampleBuffer<F>,
     window_size: WindowSize,
     block_size: BlockSize,
 }
-impl<F: Float> BlockNoiseBuffer<F> {
+impl<F: Float> NoiseBuffer<F> {
     /// Creates a buffer of length `window_size` + `block_size` - 1 for block processing.
     pub fn new(weights: &FilterWeights<F>, block_size: BlockSize) -> Self {
         let window_size = weights.window_size();
@@ -45,7 +22,7 @@ impl<F: Float> BlockNoiseBuffer<F> {
 
         let buffer = SampleBuffer::new(capacity);
 
-        BlockNoiseBuffer {
+        NoiseBuffer {
             inner: buffer,
             window_size,
             block_size,
@@ -63,14 +40,14 @@ impl<F: Float> BlockNoiseBuffer<F> {
         }
     }
 }
-impl<F: Float> Deref for BlockNoiseBuffer<F> {
+impl<F: Float> Deref for NoiseBuffer<F> {
     type Target = SampleBuffer<F>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
-impl<F: Float> DerefMut for BlockNoiseBuffer<F> {
+impl<F: Float> DerefMut for NoiseBuffer<F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -82,7 +59,7 @@ impl<F: Float> DerefMut for BlockNoiseBuffer<F> {
 )]
 #[derive(Debug, Clone, PartialEq)]
 pub struct NoiseWindow<'a, F: Float> {
-    buffer: &'a BlockNoiseBuffer<F>,
+    buffer: &'a NoiseBuffer<F>,
     start_idx: usize,
 }
 impl<F: Float> NoiseWindow<'_, F> {
@@ -118,15 +95,7 @@ mod tests {
     fn noise_buffer_init_to_zero() {
         let weights = FilterWeights::new(WindowSize::new(3).unwrap());
 
-        let buffer = NoiseBuffer::new(&weights);
-        assert!(all_approx_equal(buffer.iter(), [0.0; 3].iter()));
-    }
-
-    #[test]
-    fn block_noise_buffer_init_to_zero() {
-        let weights = FilterWeights::new(WindowSize::new(3).unwrap());
-
-        let buffer = BlockNoiseBuffer::new(&weights, BlockSize::new(2).unwrap());
+        let buffer = NoiseBuffer::new(&weights, BlockSize::new(2).unwrap());
         assert!(all_approx_equal(buffer.iter(), [0.0; 4].iter()));
     }
 
@@ -140,7 +109,7 @@ mod tests {
 
         let buffer = {
             let weights = FilterWeights::new(WindowSize::new(window_size).unwrap());
-            let mut buffer = BlockNoiseBuffer::new(&weights, BlockSize::new(block_size).unwrap());
+            let mut buffer = NoiseBuffer::new(&weights, BlockSize::new(block_size).unwrap());
 
             for x in noise {
                 buffer.push(x);

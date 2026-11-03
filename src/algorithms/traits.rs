@@ -1,4 +1,4 @@
-use crate::types::buffers::{BlockError, BlockNoiseBuffer, NoiseWindow};
+use crate::types::buffers::{BlockError, NoiseBuffer, NoiseWindow};
 use crate::types::signals::OutputSample;
 use crate::types::{FilterWeights, Float, WindowSize};
 
@@ -23,7 +23,7 @@ pub trait Algorithm<F: Float> {
         &mut self,
         weights: &mut FilterWeights<F>,
         error: &BlockError<F>,
-        noise_ref: &BlockNoiseBuffer<F>,
+        noise_ref: &NoiseBuffer<F>,
     ) {
         for (window_start, window_error) in error.iter().copied().enumerate() {
             #[allow(clippy::missing_panics_doc, reason = "failure independent of fn input")]
