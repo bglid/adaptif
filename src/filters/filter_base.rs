@@ -7,7 +7,7 @@ use crate::types::buffers::{ErrorBuffer, NoiseBuffer};
 use crate::types::signals::{InputSample, InputSignal, NoiseReference, OutputSample, OutputSignal};
 use crate::types::{BlockSize, FilterWeights, Float, NoiseEstimate};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[non_exhaustive]
 pub enum ProcessingMode {
     Sample,
@@ -238,7 +238,7 @@ fn process_block<F>(
             .zip(noise_ref.get(n))
             .expect("process_block() called with invalid range");
 
-        noise_buffer.push(*noise_sample);
+        noise_buffer.push(noise_sample);
 
         let current_window = noise_buffer.iter().copied().take(*weights.window_size());
 

@@ -2,6 +2,7 @@ use std::num::NonZero;
 use std::ops::{Deref, DerefMut};
 
 use super::SampleBuffer;
+use crate::types::signals::NoiseSample;
 use crate::types::{BlockSize, FilterWeights, Float, WindowSize};
 
 /// Noise reference buffer for block processing.
@@ -40,6 +41,10 @@ impl<F: Float> NoiseBuffer<F> {
         }
     }
 
+    pub fn push(&mut self, value: NoiseSample<F>) {
+        self.inner.push(*value);
+    }
+
     /// Create a noise buffer filled with the values in `arr`.
     /// Only to be used for setting up variables in unit tests.
     ///
@@ -58,7 +63,7 @@ impl<F: Float> NoiseBuffer<F> {
         // old samples from the back.
         // We therefore process `arr` in reverse so that the orders of the samples is preserved.
         for val in arr.iter().rev() {
-            buffer.push(*val);
+            buffer.push(NoiseSample(*val));
         }
 
         buffer
@@ -136,7 +141,7 @@ mod tests {
             let mut buffer = NoiseBuffer::new(&weights, BlockSize::new(block_size).unwrap());
 
             for x in noise {
-                buffer.push(x);
+                buffer.push(NoiseSample(x));
             }
 
             buffer
