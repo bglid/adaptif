@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 use crate::Error;
 use crate::types::{Float, WindowSize};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct FilterWeights<F: Float> {
     weights: Box<[F]>, // We use a boxed slice instead of a Vec to ensure length doesn't change
     window_size: WindowSize,

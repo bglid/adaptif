@@ -7,12 +7,6 @@ use crate::types::Float;
 pub struct NoiseReference<F: Float> {
     inner: Vec<F>,
 }
-impl<F: Float> Deref for NoiseReference<F> {
-    type Target = [F];
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
 impl<F: Float> NoiseReference<F> {
     /// # Errors
     /// Returns an error if `noise_ref` is empty.
@@ -26,6 +20,12 @@ impl<F: Float> NoiseReference<F> {
 
     pub fn get(&self, n: usize) -> Option<NoiseSample<F>> {
         Some(NoiseSample(*self.inner.get(n)?))
+    }
+}
+impl<F: Float> Deref for NoiseReference<F> {
+    type Target = [F];
+    fn deref(&self) -> &Self::Target {
+        &self.inner
     }
 }
 

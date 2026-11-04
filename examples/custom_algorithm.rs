@@ -4,21 +4,21 @@ use adaptif::algorithms::Algorithm;
 use adaptif::filters::FilterBase;
 use adaptif::types::buffers::NoiseWindow;
 use adaptif::types::signals::{InputSignal, NoiseReference, OutputSample};
-use adaptif::types::{BlockSize, FilterWeights, Float, WindowSize};
+use adaptif::types::{BlockSize, FilterWeights, WindowSize};
 
 // Create a struct to hold any required parameters or state
-pub struct MyAlgorithm<F: Float> {
-    pub alpha: F,
+pub struct MyAlgorithm {
+    pub alpha: f64,
     pub window_size: WindowSize,
 }
 // Implement the Algorithm trait so the algorithm can be used with SampleFilterBase
-impl<F: Float> Algorithm<F> for MyAlgorithm<F> {
+impl Algorithm<f64> for MyAlgorithm {
     // This function is called every iteration during adaptation to update the weights
     fn update_step(
         &mut self,
-        weights: &mut FilterWeights<F>,
-        error: OutputSample<F>,
-        noise_window: NoiseWindow<F>,
+        weights: &mut FilterWeights<f64>,
+        error: OutputSample<f64>,
+        noise_window: NoiseWindow<f64>,
     ) {
         for (w, x) in weights.iter_mut().zip(noise_window.iter()) {
             *w += self.alpha * (*error) * x;

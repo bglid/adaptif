@@ -3,7 +3,7 @@ use std::ops::Deref;
 
 use crate::{Error, Result};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct WindowSize {
     inner: usize,
 }
