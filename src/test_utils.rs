@@ -1,15 +1,6 @@
-#![allow(unused, reason = "Used in tests for other modules")]
-#![allow(
-    clippy::unwrap_used,
-    clippy::unwrap_in_result,
-    reason = "Only used in tests"
-)]
+#![allow(clippy::unwrap_used, reason = "Only used in tests")]
 
-use std::num::NonZero;
-
-use crate::types::buffers::{ErrorBuffer, NoiseBuffer};
-use crate::types::signals::OutputSample;
-use crate::types::{BlockSize, FilterWeights, Float, WindowSize};
+use crate::types::Float;
 
 // TODO: see if we can replace these three float comparison fns with a dev dependency
 pub fn approx_equal<F>(a: F, b: F, eps: F) -> bool
