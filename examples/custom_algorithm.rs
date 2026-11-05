@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use adaptif::algorithms::Algorithm;
+use adaptif::Algorithm;
 use adaptif::filters::FilterBase;
 use adaptif::types::buffers::NoiseWindow;
 use adaptif::types::signals::{InputSignal, NoiseReference, OutputSample};

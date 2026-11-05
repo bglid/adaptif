@@ -1,6 +1,9 @@
-pub mod algorithms;
+mod algorithms;
+pub use algorithms::Algorithm;
+
 mod error;
 pub use error::{Error, Result};
+
 pub mod filters;
 pub mod types;
 

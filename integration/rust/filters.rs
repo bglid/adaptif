@@ -4,7 +4,7 @@
 )]
 #![allow(clippy::unwrap_used, reason = "Integration test")]
 
-use adaptif::algorithms::Algorithm;
+use adaptif::Algorithm;
 use adaptif::filters::{
     FilterBase, LmsFilter, LmsOptions, NlmsFilter, NlmsOptions, ProcessingMode, RlsFilter,
     RlsOptions,
