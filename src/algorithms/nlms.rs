@@ -1,6 +1,5 @@
 use crate::types::buffers::NoiseWindow;
-use crate::types::signals::OutputSample;
-use crate::types::{FilterWeights, Float, WindowSize};
+use crate::types::{Float, WindowSize};
 use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
@@ -43,17 +42,12 @@ impl<F: Float> Algorithm<F> for Nlms<F> {
     /// where $``e_n``$ is the scalar error for the current sample,
     /// and $``x_n``$ is a vector of length `window_size` of the
     /// most recent noise reference samples.
-    fn update_step(
-        &mut self,
-        weights: &mut FilterWeights<F>,
-        error: OutputSample<F>,
-        noise_window: NoiseWindow<F>,
-    ) {
+    fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindow<F>) {
         let norm_squared = noise_window.iter().map(|x| x * x).sum();
         let mu_normalized = self.mu / (self.eps + norm_squared);
 
         for (w, x) in weights.iter_mut().zip(noise_window.iter()) {
-            *w += mu_normalized * (*error) * x;
+            *w += mu_normalized * error * x;
         }
     }
 
@@ -69,6 +63,7 @@ mod tests {
     use crate::{
         test_utils::all_approx_equal,
         types::buffers::{ErrorBuffer, NoiseBuffer},
+        types::signals::OutputSample,
         types::{BlockSize, FilterWeights, WindowSize},
     };
 

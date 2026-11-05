@@ -4,6 +4,8 @@
 )]
 #![allow(clippy::unwrap_used, reason = "Integration test")]
 
+// TODO: exclude integration tests from tarpaulin
+
 use adaptif::Algorithm;
 use adaptif::filters::{
     FilterBase, LmsFilter, LmsOptions, NlmsFilter, NlmsOptions, ProcessingMode, RlsFilter,

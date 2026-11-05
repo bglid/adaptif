@@ -1,6 +1,5 @@
 use crate::types::buffers::NoiseWindow;
-use crate::types::signals::OutputSample;
-use crate::types::{FilterWeights, Float, WindowSize};
+use crate::types::{Float, WindowSize};
 use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
@@ -31,14 +30,9 @@ impl<F: Float> Algorithm<F> for Lms<F> {
     /// $w_{n+1} = ``w_n`` + \mu ``e_n``^T ``X_n``$
     /// where $``X_n``$ is a matrix with shape `(block_size, window_size)`,
     /// and $``e_n``$ is a vector of length `block_size`.
-    fn update_step(
-        &mut self,
-        weights: &mut FilterWeights<F>,
-        error: OutputSample<F>,
-        noise_window: NoiseWindow<F>,
-    ) {
+    fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindow<F>) {
         for (w, x) in weights.iter_mut().zip(noise_window.iter()) {
-            *w += self.mu * *error * x;
+            *w += self.mu * error * x;
         }
     }
 

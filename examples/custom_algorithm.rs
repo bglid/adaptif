@@ -3,8 +3,8 @@ use std::error::Error;
 use adaptif::Algorithm;
 use adaptif::filters::FilterBase;
 use adaptif::types::buffers::NoiseWindow;
-use adaptif::types::signals::{InputSignal, NoiseReference, OutputSample};
-use adaptif::types::{BlockSize, FilterWeights, WindowSize};
+use adaptif::types::signals::{InputSignal, NoiseReference};
+use adaptif::types::{BlockSize, WindowSize};
 
 // Create a struct to hold any required parameters or state
 pub struct MyAlgorithm {
@@ -14,14 +14,9 @@ pub struct MyAlgorithm {
 // Implement the Algorithm trait so the algorithm can be used with SampleFilterBase
 impl Algorithm<f64> for MyAlgorithm {
     // This function is called every iteration during adaptation to update the weights
-    fn update_step(
-        &mut self,
-        weights: &mut FilterWeights<f64>,
-        error: OutputSample<f64>,
-        noise_window: NoiseWindow<f64>,
-    ) {
+    fn update_step(&mut self, weights: &mut [f64], error: f64, noise_window: NoiseWindow<f64>) {
         for (w, x) in weights.iter_mut().zip(noise_window.iter()) {
-            *w += self.alpha * (*error) * x;
+            *w += self.alpha * error * x;
         }
     }
 

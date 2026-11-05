@@ -4,8 +4,8 @@ mod output;
 
 pub use input::InputSignal;
 pub use noise::NoiseReference;
-pub use output::OutputSample; // pub because it's a param on Algorithm::update_step()
 pub use output::OutputSignal;
 
 pub(crate) use input::InputSample;
 pub(crate) use noise::NoiseSample;
+pub(crate) use output::OutputSample;

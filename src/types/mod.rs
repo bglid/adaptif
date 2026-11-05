@@ -1,11 +1,11 @@
-mod filter_weights;
-pub use filter_weights::FilterWeights; // pub because used in Algorithm::update_step()
-
 mod window_size;
 pub use window_size::WindowSize;
 
 mod block_size;
 pub use block_size::BlockSize;
+
+mod filter_weights;
+pub(crate) use filter_weights::FilterWeights;
 
 mod noise_estimate;
 pub(crate) use noise_estimate::NoiseEstimate;

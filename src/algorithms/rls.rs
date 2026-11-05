@@ -1,8 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::types::buffers::NoiseWindow;
-use crate::types::signals::OutputSample;
-use crate::types::{FilterWeights, Float, WindowSize};
+use crate::types::{Float, WindowSize};
 use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
@@ -68,12 +67,7 @@ impl<F: Float> Rls<F> {
 /// and $``x_n``$ is a vector of length `window_size` of the
 /// most recent noise reference samples.
 impl<F: Float> Algorithm<F> for Rls<F> {
-    fn update_step(
-        &mut self,
-        weights: &mut FilterWeights<F>,
-        error: OutputSample<F>,
-        noise_window: NoiseWindow<F>,
-    ) {
+    fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindow<F>) {
         self.kalman_gain.update(
             &self.inverse_corr_matrix,
             &noise_window,
@@ -81,7 +75,7 @@ impl<F: Float> Algorithm<F> for Rls<F> {
         );
 
         for (w, k) in weights.iter_mut().zip(self.kalman_gain.iter().copied()) {
-            *w += k * (*error);
+            *w += k * error;
         }
 
         self.inverse_corr_matrix
@@ -232,6 +226,7 @@ mod tests {
     use crate::{
         test_utils::all_approx_equal,
         types::buffers::NoiseBuffer,
+        types::signals::OutputSample,
         types::{BlockSize, FilterWeights, WindowSize, buffers::ErrorBuffer},
     };
 
