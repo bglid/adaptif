@@ -16,13 +16,14 @@ crate-type = ["cdylib", "rlib"]
 default = []
 python = ["dep:pyo3", "dep:numpy"]
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"]}
 
 [lints.clippy]
 pedantic = {level = "warn", priority = -1}
 restriction = {level = "warn", priority = -1}
 blanket_clippy_restriction_lints = "allow"
 allow_attributes = "allow"
-
 
 # no-brainers
 arithmetic_side_effects = "allow" # otherwise we get warnings about potential overflows on _every_ arithmetic op
@@ -61,9 +62,6 @@ expect_used = "allow" # reason is already provided, so allow macro is superfluou
 # This may be worth considering for the pure Rust API, but for PyO3 it's irrelevant.
 # Since inlining is done at the call site, this only applies to public functions anyway.
 missing_inline_in_public_items = "allow" 
-
-# This one is supposed to skip test modules (#[cfg(test)]), but as of 1.98.0 it only works on nightly.
-inline_modules = "allow"
 
 [[test]]
 name = "rust"

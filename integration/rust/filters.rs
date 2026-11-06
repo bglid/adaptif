@@ -1,10 +1,9 @@
+#![cfg(not(tarpaulin_include))]
 #![allow(
     clippy::tests_outside_test_module,
     reason = "This crate is exclusively an integration test target"
 )]
 #![allow(clippy::unwrap_used, reason = "Integration test")]
-
-// TODO: exclude integration tests from tarpaulin
 
 use adaptif::Algorithm;
 use adaptif::filters::{
