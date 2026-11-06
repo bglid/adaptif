@@ -7,7 +7,7 @@ use crate::algorithms::Rls;
 use crate::filters::ProcessingMode;
 use crate::types::{Float, WindowSize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct RlsOptions<F: Float> {
     pub forgetting_factor: F,
     pub p_init_scale: F,
@@ -28,7 +28,7 @@ impl<F: Float> Default for RlsOptions<F> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct RlsFilter<F: Float> {
     inner: FilterBase<F, Rls<F>>,
 }

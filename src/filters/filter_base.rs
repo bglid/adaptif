@@ -27,7 +27,7 @@ impl ProcessingMode {
 }
 
 /// Underlying, algorithm-agnostic filter implementation.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct FilterBase<F: Float, A: Algorithm<F>> {
     algorithm: A,
     weights: FilterWeights<F>,

@@ -1,8 +1,6 @@
-use std::{
-    fmt::Debug,
-    iter::Sum,
-    ops::{AddAssign, DivAssign, MulAssign, SubAssign},
-};
+use std::fmt::Debug;
+use std::iter::Sum;
+use std::ops::{AddAssign, DivAssign, MulAssign, SubAssign};
 
 // The Float trait from num_traits doesn't require the traits below, which means generic
 // Float types don't permit certain operations (e.g. `a += b`, `x.iter().sum()`).

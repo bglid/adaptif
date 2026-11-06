@@ -6,8 +6,8 @@ use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
 
-#[derive(Debug, Clone, PartialEq)]
 /// Recursive least squares algorithm.
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Rls<F: Float> {
     /// Forgetting factor, often referred to as `lambda`, used for weight updates.
     forgetting_factor: F,
@@ -87,8 +87,8 @@ impl<F: Float> Algorithm<F> for Rls<F> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
 /// M-dimensional vector of Kalman gains, where M is the filter's window size.
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 struct KalmanGain<F: Float> {
     inner: Box<[F]>,
 }
@@ -152,8 +152,8 @@ impl<F: Float> DerefMut for KalmanGain<F> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
 /// Inverse Correlation Matrix with shape M * M, where M is the filter's window size.
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 struct InverseCorrMatrix<F: Float> {
     inner: Box<[F]>,
 }

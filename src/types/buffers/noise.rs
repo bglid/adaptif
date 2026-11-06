@@ -6,7 +6,7 @@ use crate::types::signals::NoiseSample;
 use crate::types::{BlockSize, FilterWeights, Float, WindowSize};
 
 /// Noise reference buffer for block processing.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct NoiseBuffer<F: Float> {
     inner: SampleBuffer<F>,
     window_size: WindowSize,
@@ -86,7 +86,7 @@ impl<F: Float> DerefMut for NoiseBuffer<F> {
     clippy::len_without_is_empty,
     reason = "Buffer has a fixed size and can't be empty"
 )]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct NoiseWindow<'a, F: Float> {
     buffer: &'a NoiseBuffer<F>,
     start_idx: usize,

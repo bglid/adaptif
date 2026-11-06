@@ -4,7 +4,7 @@ use crate::types::Float;
 
 use super::InputSignal;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct OutputSignal<F: Float> {
     inner: Vec<F>,
 }

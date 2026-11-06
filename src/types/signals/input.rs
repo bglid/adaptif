@@ -3,7 +3,7 @@ use std::ops::Deref;
 use crate::error::{Error, Result};
 use crate::types::Float;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct InputSignal<F: Float> {
     inner: Vec<F>,
 }

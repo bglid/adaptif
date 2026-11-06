@@ -1,5 +1,5 @@
-use std::num::NonZero;
 use std::ops::Deref;
+use std::{fmt::Display, num::NonZero};
 
 use crate::{Error, Result};
 
@@ -28,5 +28,10 @@ impl Deref for WindowSize {
 impl From<WindowSize> for NonZero<usize> {
     fn from(value: WindowSize) -> Self {
         NonZero::new(*value).expect("WindowSize should be guaranteed non-zero.")
+    }
+}
+impl Display for WindowSize {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.inner)
     }
 }

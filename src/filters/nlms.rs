@@ -7,7 +7,7 @@ use crate::algorithms::Nlms;
 use crate::filters::ProcessingMode;
 use crate::types::{Float, WindowSize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct NlmsOptions<F: Float> {
     pub mu: F,
     pub eps: F,
@@ -28,7 +28,7 @@ impl<F: Float> Default for NlmsOptions<F> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct NlmsFilter<F: Float> {
     inner: FilterBase<F, Nlms<F>>,
 }

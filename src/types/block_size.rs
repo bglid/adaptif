@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::num::NonZero;
 use std::ops::Deref;
 
@@ -28,5 +29,10 @@ impl Deref for BlockSize {
 impl From<BlockSize> for NonZero<usize> {
     fn from(value: BlockSize) -> Self {
         NonZero::new(*value).expect("BlockSize should be guaranteed non-zero")
+    }
+}
+impl Display for BlockSize {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.inner)
     }
 }

@@ -10,7 +10,7 @@ use crate::types::Float;
     clippy::len_without_is_empty,
     reason = "Buffer has a fixed size and can't be empty"
 )]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct SampleBuffer<F: Float> {
     samples: VecDeque<F>,
     capacity: NonZeroUsize,

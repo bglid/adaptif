@@ -7,7 +7,7 @@ use crate::algorithms::Lms;
 use crate::filters::ProcessingMode;
 use crate::types::{Float, WindowSize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct LmsOptions<F: Float> {
     pub mu: F,
     pub window_size: usize,
@@ -28,7 +28,7 @@ impl<F: Float> Default for LmsOptions<F> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct LmsFilter<F: Float> {
     inner: FilterBase<F, Lms<F>>,
 }

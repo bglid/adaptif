@@ -4,8 +4,8 @@ use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
 
-#[derive(Debug, Clone, PartialEq)]
 /// Normalized least mean squares algorithm.
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Nlms<F: Float> {
     /// Step size for weight updates.
     mu: F,

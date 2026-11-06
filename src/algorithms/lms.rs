@@ -4,8 +4,8 @@ use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
 
-#[derive(Debug, Clone, PartialEq)]
 /// Least mean squares algorithm.
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Lms<F: Float> {
     /// Step size for weight updates.
     mu: F,
