@@ -152,7 +152,7 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
             }
         }
 
-        Ok(cleaned_signal.into_inner())
+        Ok(cleaned_signal.into())
     }
 
     /// Applies the filter to the input signal without updating the filter coefficients.
@@ -207,7 +207,7 @@ where
         );
     }
 
-    Ok(cleaned_signal.into_inner())
+    Ok(cleaned_signal.into())
 }
 
 /// Calculates the error for a block of samples.

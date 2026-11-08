@@ -8,7 +8,6 @@ pub trait Algorithm<F: Float> {
     /// This function is called for every processing block by the filter during adapation.
     /// `error` are the cleaned samples from the current block.
     /// `noise_ref` is the noise reference signal within the current processing window (the $k$ most recent samples).
-    // TODO: replace NoiseWindow with types::buffers::Iter
     fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindow<F>);
 
     /// Window size used by the algorithm.

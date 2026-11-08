@@ -33,7 +33,6 @@ must_use_candidate = "allow" # just shows where #[must_use] can be used
 single_call_fn = "allow" # functions are useful for code organization and self-documentation
 question_mark_used = "allow" # greatly simplifies error handling
 absolute_paths = "allow" # fine if used within reason
-arbitrary_source_item_ordering = "allow" # conflicts with optimizing structs for cache locality
 missing_trait_methods = "allow" # should only be used on individual trait implementations, not globally
 single_char_lifetime_names = "allow" # idiomatic
 
@@ -42,6 +41,7 @@ std_instead_of_alloc = "allow"
 std_instead_of_core = "allow"
 
 # good to have
+arbitrary_source_item_ordering = "allow" # items should be ordered by importance
 min_ident_chars = "allow" # to represent single-character variables used in literature
 shadow_reuse = "allow" # variable shadowing is useful
 default_numeric_fallback = "allow" # many false positives

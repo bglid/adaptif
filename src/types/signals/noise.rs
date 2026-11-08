@@ -28,6 +28,11 @@ impl<F: Float> Deref for NoiseReference<F> {
         &self.inner
     }
 }
+impl<F: Float> From<NoiseReference<F>> for Vec<F> {
+    fn from(value: NoiseReference<F>) -> Self {
+        value.inner
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct NoiseSample<F: Float>(pub F);

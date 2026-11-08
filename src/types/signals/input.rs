@@ -7,12 +7,6 @@ use crate::types::Float;
 pub struct InputSignal<F: Float> {
     inner: Vec<F>,
 }
-impl<F: Float> Deref for InputSignal<F> {
-    type Target = [F];
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
 impl<F: Float> InputSignal<F> {
     /// # Errors
     /// Returns an error if `input_signal` is empty.
@@ -28,6 +22,17 @@ impl<F: Float> InputSignal<F> {
 
     pub fn get(&self, n: usize) -> Option<InputSample<F>> {
         Some(InputSample(*self.inner.get(n)?))
+    }
+}
+impl<F: Float> Deref for InputSignal<F> {
+    type Target = [F];
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+impl<F: Float> From<InputSignal<F>> for Vec<F> {
+    fn from(value: InputSignal<F>) -> Self {
+        value.inner
     }
 }
 

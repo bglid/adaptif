@@ -18,15 +18,16 @@ impl<F: Float> OutputSignal<F> {
     pub fn push(&mut self, error: OutputSample<F>) {
         self.inner.push(*error);
     }
-
-    pub fn into_inner(self) -> Vec<F> {
-        self.inner
-    }
 }
 impl<F: Float> Deref for OutputSignal<F> {
-    type Target = Vec<F>;
+    type Target = [F];
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<F: Float> From<OutputSignal<F>> for Vec<F> {
+    fn from(value: OutputSignal<F>) -> Self {
+        value.inner
     }
 }
 
