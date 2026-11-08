@@ -5,7 +5,7 @@ use crate::types::Float;
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct InputSignal<F: Float> {
-    inner: Vec<F>,
+    samples: Vec<F>,
 }
 impl<F: Float> InputSignal<F> {
     /// # Errors
@@ -15,13 +15,13 @@ impl<F: Float> InputSignal<F> {
             Err(Error::EmptyInputArr)
         } else {
             Ok(InputSignal {
-                inner: input_signal,
+                samples: input_signal,
             })
         }
     }
 
     pub fn get(&self, n: usize) -> Option<InputSample<F>> {
-        Some(InputSample(*self.inner.get(n)?))
+        Some(InputSample(*self.samples.get(n)?))
     }
 
     #[allow(
@@ -29,17 +29,17 @@ impl<F: Float> InputSignal<F> {
         reason = "InputSignal can't be empty (see new())"
     )]
     pub fn len(&self) -> usize {
-        self.inner.len()
+        self.samples.len()
     }
 }
 impl<F: Float> AsRef<[F]> for InputSignal<F> {
     fn as_ref(&self) -> &[F] {
-        &self.inner
+        &self.samples
     }
 }
 impl<F: Float> From<InputSignal<F>> for Vec<F> {
     fn from(value: InputSignal<F>) -> Self {
-        value.inner
+        value.samples
     }
 }
 

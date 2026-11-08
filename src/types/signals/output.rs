@@ -6,22 +6,22 @@ use super::InputSignal;
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct OutputSignal<F: Float> {
-    inner: Vec<F>,
+    samples: Vec<F>,
 }
 impl<F: Float> OutputSignal<F> {
     pub fn new(input_signal: &InputSignal<F>) -> Self {
         OutputSignal {
-            inner: Vec::with_capacity(input_signal.len()),
+            samples: Vec::with_capacity(input_signal.len()),
         }
     }
 
     pub fn push(&mut self, error: OutputSample<F>) {
-        self.inner.push(*error);
+        self.samples.push(*error);
     }
 }
 impl<F: Float> From<OutputSignal<F>> for Vec<F> {
     fn from(value: OutputSignal<F>) -> Self {
-        value.inner
+        value.samples
     }
 }
 

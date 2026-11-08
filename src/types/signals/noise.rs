@@ -5,7 +5,7 @@ use crate::types::Float;
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct NoiseReference<F: Float> {
-    inner: Vec<F>,
+    samples: Vec<F>,
 }
 impl<F: Float> NoiseReference<F> {
     /// # Errors
@@ -14,12 +14,12 @@ impl<F: Float> NoiseReference<F> {
         if noise_ref.is_empty() {
             Err(Error::EmptyInputArr)
         } else {
-            Ok(NoiseReference { inner: noise_ref })
+            Ok(NoiseReference { samples: noise_ref })
         }
     }
 
     pub fn get(&self, n: usize) -> Option<NoiseSample<F>> {
-        Some(NoiseSample(*self.inner.get(n)?))
+        Some(NoiseSample(*self.samples.get(n)?))
     }
 
     #[allow(
@@ -27,17 +27,17 @@ impl<F: Float> NoiseReference<F> {
         reason = "NoiseReference can't be empty (see new())"
     )]
     pub fn len(&self) -> usize {
-        self.inner.len()
+        self.samples.len()
     }
 }
 impl<F: Float> AsRef<[F]> for NoiseReference<F> {
     fn as_ref(&self) -> &[F] {
-        &self.inner
+        &self.samples
     }
 }
 impl<F: Float> From<NoiseReference<F>> for Vec<F> {
     fn from(value: NoiseReference<F>) -> Self {
-        value.inner
+        value.samples
     }
 }
 
