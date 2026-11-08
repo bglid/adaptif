@@ -309,7 +309,7 @@ mod tests {
     use crate::error::Error;
     use crate::test_utils::{all_approx_equal, approx_equal};
     use crate::types::WindowSize;
-    use crate::types::buffers::NoiseWindow;
+    use crate::types::buffers::NoiseWindowView;
     use crate::types::signals::InputSample;
 
     struct UpdateCallCounter {
@@ -329,7 +329,12 @@ mod tests {
         }
     }
     impl<F: Float> Algorithm<F> for UpdateCallCounter {
-        fn update_step(&mut self, _weights: &mut [F], _error: F, _noise_window: NoiseWindow<F>) {
+        fn update_step(
+            &mut self,
+            _weights: &mut [F],
+            _error: F,
+            _noise_window: NoiseWindowView<F>,
+        ) {
             *self.call_count.borrow_mut() += 1;
         }
 

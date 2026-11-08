@@ -1,4 +1,4 @@
-use crate::types::buffers::NoiseWindow;
+use crate::types::buffers::NoiseWindowView;
 use crate::types::{Float, WindowSize};
 
 /// Trait used for implementing algorithms with block-based processing used in conjuction with
@@ -8,7 +8,7 @@ pub trait Algorithm<F: Float> {
     /// This function is called for every processing block by the filter during adapation.
     /// `error` are the cleaned samples from the current block.
     /// `noise_ref` is the noise reference signal within the current processing window (the $k$ most recent samples).
-    fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindow<F>);
+    fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindowView<F>);
 
     /// Window size used by the algorithm.
     fn window_size(&self) -> WindowSize;

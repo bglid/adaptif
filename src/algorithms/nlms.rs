@@ -1,4 +1,4 @@
-use crate::types::buffers::NoiseWindow;
+use crate::types::buffers::NoiseWindowView;
 use crate::types::{Float, WindowSize};
 use crate::{Error, Result};
 
@@ -42,7 +42,7 @@ impl<F: Float> Algorithm<F> for Nlms<F> {
     /// where $``e_n``$ is the scalar error for the current sample,
     /// and $``x_n``$ is a vector of length `window_size` of the
     /// most recent noise reference samples.
-    fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindow<F>) {
+    fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindowView<F>) {
         let norm_squared = noise_window.iter().map(|x| x * x).sum();
         let mu_normalized = self.mu / (self.eps + norm_squared);
 

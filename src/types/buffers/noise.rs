@@ -30,11 +30,11 @@ impl<F: Float> NoiseBuffer<F> {
         }
     }
 
-    pub fn window(&self, start_idx: usize) -> Option<NoiseWindow<'_, F>> {
+    pub fn window(&self, start_idx: usize) -> Option<NoiseWindowView<'_, F>> {
         if start_idx >= *self.block_size {
             None
         } else {
-            Some(NoiseWindow {
+            Some(NoiseWindowView {
                 buffer: self,
                 start_idx,
             })
@@ -83,11 +83,11 @@ impl<F: Float> DerefMut for NoiseBuffer<F> {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct NoiseWindow<'a, F: Float> {
+pub struct NoiseWindowView<'a, F: Float> {
     buffer: &'a NoiseBuffer<F>,
     start_idx: usize,
 }
-impl<F: Float> NoiseWindow<'_, F> {
+impl<F: Float> NoiseWindowView<'_, F> {
     pub fn get(&self, index: usize) -> Option<&F> {
         if index >= *self.buffer.window_size {
             None

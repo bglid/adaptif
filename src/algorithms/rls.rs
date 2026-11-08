@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::types::buffers::NoiseWindow;
+use crate::types::buffers::NoiseWindowView;
 use crate::types::{Float, WindowSize};
 use crate::{Error, Result};
 
@@ -67,7 +67,7 @@ impl<F: Float> Rls<F> {
 /// and $``x_n``$ is a vector of length `window_size` of the
 /// most recent noise reference samples.
 impl<F: Float> Algorithm<F> for Rls<F> {
-    fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindow<F>) {
+    fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindowView<F>) {
         self.kalman_gain.update(
             &self.inverse_corr_matrix,
             &noise_window,
@@ -111,7 +111,7 @@ impl<F: Float> KalmanGain<F> {
     fn update(
         &mut self,
         inverse_corr_matrix: &InverseCorrMatrix<F>,
-        noise_ref: &NoiseWindow<F>,
+        noise_ref: &NoiseWindowView<F>,
         lambda: F,
     ) {
         // reusing kalman buffer for getting numerator to avoid clone of numerator
@@ -183,7 +183,7 @@ impl<F: Float> InverseCorrMatrix<F> {
     /// \left(P_{n-1} - ``k_n`` ``x_n^T`` P_{n-1}\right)$.
     ///
     /// The matrix is stored as a flat buffer and updated in place.
-    fn update(&mut self, kalman_gain: &KalmanGain<F>, noise_ref: &NoiseWindow<F>, lambda: F) {
+    fn update(&mut self, kalman_gain: &KalmanGain<F>, noise_ref: &NoiseWindowView<F>, lambda: F) {
         // We calculate [x^T P] by computing the dot product of
         // noise_ref (x) with each column in inverse_corr_matrix (P),
         // then update the values for that column in place.
