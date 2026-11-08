@@ -29,11 +29,11 @@ where
         assert_eq!(cleaned_signal.len(), batch.noisy_signal.len());
         assert!(cleaned_signal.iter().all(|sample| sample.is_finite()));
 
-        let before_mse = mse(&batch.clean_signal, &batch.noisy_signal);
+        let before_mse = mse(&batch.clean_signal, batch.noisy_signal.as_ref());
         let after_mse = mse(&batch.clean_signal, &cleaned_signal);
         assert!(after_mse < before_mse);
 
-        let before_snr = snr(&batch.clean_signal, &batch.noisy_signal);
+        let before_snr = snr(&batch.clean_signal, batch.noisy_signal.as_ref());
         let after_snr = snr(&batch.clean_signal, &cleaned_signal);
         assert!(after_snr > before_snr);
     }

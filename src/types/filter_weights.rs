@@ -39,7 +39,7 @@ impl<F: Float> From<FilterWeights<F>> for Vec<F> {
     }
 }
 impl<F: Float> Deref for FilterWeights<F> {
-    type Target = Box<[F]>;
+    type Target = [F];
     fn deref(&self) -> &Self::Target {
         &self.weights
     }

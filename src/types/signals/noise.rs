@@ -21,10 +21,17 @@ impl<F: Float> NoiseReference<F> {
     pub fn get(&self, n: usize) -> Option<NoiseSample<F>> {
         Some(NoiseSample(*self.inner.get(n)?))
     }
+
+    #[allow(
+        clippy::len_without_is_empty,
+        reason = "NoiseReference can't be empty (see new())"
+    )]
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
 }
-impl<F: Float> Deref for NoiseReference<F> {
-    type Target = [F];
-    fn deref(&self) -> &Self::Target {
+impl<F: Float> AsRef<[F]> for NoiseReference<F> {
+    fn as_ref(&self) -> &[F] {
         &self.inner
     }
 }
