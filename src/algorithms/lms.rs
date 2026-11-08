@@ -47,8 +47,7 @@ mod tests {
     use super::*;
     use crate::{
         test_utils::all_approx_equal,
-        types::buffers::{ErrorBuffer, NoiseBuffer},
-        types::{BlockSize, FilterWeights, WindowSize},
+        types::{BlockSize, FilterWeights, WindowSize, buffers::NoiseBuffer},
     };
 
     #[test]
@@ -57,12 +56,12 @@ mod tests {
         let block_size = BlockSize::new(1).unwrap();
 
         let mut lms = Lms::new(0.5, window_size).unwrap();
-        let e_n = ErrorBuffer::from_slice(&[2.0]);
+        let e_n = 2.0;
         let x_n = NoiseBuffer::from_slice(&[1.0, -1.0], window_size, block_size);
         let expected = [1.0, -1.0];
         let mut weights = FilterWeights::new(window_size);
 
-        lms.update_block(&mut weights, &e_n, &x_n, block_size);
+        lms.update_step(&mut weights, e_n, x_n.window(0).unwrap());
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
     }
@@ -73,47 +72,12 @@ mod tests {
         let block_size = BlockSize::new(1).unwrap();
 
         let mut lms = Lms::new(1.0, window_size).unwrap();
-        let e_n = ErrorBuffer::from_slice(&[1.0]);
+        let e_n = 1.0;
         let x_n = NoiseBuffer::from_slice(&[5.0, 2.0], window_size, block_size);
         let expected = [5.0, 2.0];
         let mut weights = FilterWeights::new(window_size);
 
-        lms.update_block(&mut weights, &e_n, &x_n, block_size);
-
-        assert!(all_approx_equal(weights.iter(), expected.iter()));
-    }
-
-    #[test]
-    fn update_block_lms_1() {
-        let window_size = WindowSize::new(2).unwrap();
-
-        let mut lms = Lms::new(0.5, window_size).unwrap();
-        let e_n = ErrorBuffer::from_slice(&[5.0, -6.0, 7.0]);
-
-        let block_size = BlockSize::new(e_n.len()).unwrap();
-
-        let x_n = NoiseBuffer::from_slice(&[1.0, -2.0, 3.0, -4.0], window_size, block_size);
-        let expected = [19.0, -28.0];
-        let mut weights = FilterWeights::new(window_size);
-
-        lms.update_block(&mut weights, &e_n, &x_n, block_size);
-
-        assert!(all_approx_equal(weights.iter(), expected.iter()));
-    }
-
-    #[test]
-    fn update_block_lms_2() {
-        let window_size = WindowSize::new(3).unwrap();
-
-        let mut lms = Lms::new(1.0, window_size).unwrap();
-        let e_n = ErrorBuffer::from_slice(&[1.0, -1.0, 1.5]);
-
-        let block_size = BlockSize::new(e_n.len()).unwrap();
-        let x_n = NoiseBuffer::from_slice(&[1.0, -2.0, 3.0, -4.0, 5.0], window_size, block_size);
-        let expected = [7.5, -11.0, 14.5];
-        let mut weights = FilterWeights::new(window_size);
-
-        lms.update_block(&mut weights, &e_n, &x_n, block_size);
+        lms.update_step(&mut weights, e_n, x_n.window(0).unwrap());
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
     }

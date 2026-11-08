@@ -62,8 +62,7 @@ mod tests {
     use super::*;
     use crate::{
         test_utils::all_approx_equal,
-        types::buffers::{ErrorBuffer, NoiseBuffer},
-        types::signals::OutputSample,
+        types::buffers::NoiseBuffer,
         types::{BlockSize, FilterWeights, WindowSize},
     };
 
@@ -73,16 +72,12 @@ mod tests {
         let block_size = BlockSize::new(1).unwrap();
 
         let mut nlms = Nlms::new(0.5, 1e-8, window_size).unwrap();
-        let e_n = {
-            let mut e_n = ErrorBuffer::new(block_size);
-            e_n.push(OutputSample(2.0));
-            e_n
-        };
+        let e_n = 2.0;
         let x_n = NoiseBuffer::from_slice(&[1.0, -1.0], window_size, block_size);
         let expected = [1.0 / (2.0 + nlms.eps), -1.0 / (2.0 + nlms.eps)];
         let mut weights = FilterWeights::new(window_size);
 
-        nlms.update_block(&mut weights, &e_n, &x_n, block_size);
+        nlms.update_step(&mut weights, e_n, x_n.window(0).unwrap());
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
     }
@@ -93,16 +88,12 @@ mod tests {
         let block_size = BlockSize::new(1).unwrap();
 
         let mut nlms = Nlms::new(1.0, 1e-8, window_size).unwrap();
-        let e_n = {
-            let mut e_n = ErrorBuffer::new(block_size);
-            e_n.push(OutputSample(1.0));
-            e_n
-        };
+        let e_n = 1.0;
         let x_n = NoiseBuffer::from_slice(&[5.0, 2.0], window_size, block_size);
         let expected = [(5.0 / (29.0 + nlms.eps)), (2.0 / (29.0 + nlms.eps))];
         let mut weights = FilterWeights::new(window_size);
 
-        nlms.update_block(&mut weights, &e_n, &x_n, block_size);
+        nlms.update_step(&mut weights, e_n, x_n.window(0).unwrap());
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
     }

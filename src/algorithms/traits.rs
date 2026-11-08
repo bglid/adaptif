@@ -1,5 +1,5 @@
-use crate::types::buffers::{ErrorBuffer, NoiseBuffer, NoiseWindow};
-use crate::types::{BlockSize, FilterWeights, Float, WindowSize};
+use crate::types::buffers::NoiseWindow;
+use crate::types::{Float, WindowSize};
 
 /// Trait used for implementing algorithms with block-based processing used in conjuction with
 /// `FilterBase`.
@@ -12,31 +12,4 @@ pub trait Algorithm<F: Float> {
 
     /// Window size used by the algorithm.
     fn window_size(&self) -> WindowSize;
-
-    // TODO: make this private (i.e. move it out of the trait) because we don't want
-    // the caller to use it directly
-    fn update_block(
-        &mut self,
-        weights: &mut FilterWeights<F>,
-        error: &ErrorBuffer<F>,
-        noise_ref: &NoiseBuffer<F>,
-        // This parameter exists so we can call this method even if the final block
-        // has fewer than ``error.len()`` samples. In that case, ``error`` contains
-        // elements that overlap with the previous block. ``block_size`` lets us
-        // process only the new ones.
-        block_size: BlockSize,
-    ) {
-        // take() iterates over min(block_size, error.len()) elements, so we never take
-        // more elements than the filter's canonical block size (which determines
-        // error.len()), even if the block_size parameter is higher.
-        for (window_start, window_error) in error.iter().take(*block_size).copied().enumerate() {
-            #[allow(clippy::missing_panics_doc, reason = "failure independent of fn input")]
-            let current_window = noise_ref.window(window_start).expect(
-                "window() should only fail if window_start >= noise_ref.block_size.
-                error.len() == block_size, so window_start is always < block_size",
-            );
-
-            self.update_step(weights, window_error, current_window);
-        }
-    }
 }

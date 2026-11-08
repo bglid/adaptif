@@ -131,12 +131,7 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
                 &mut cleaned_signal,
             );
 
-            self.algorithm.update_block(
-                &mut self.weights,
-                &error_buffer,
-                &noise_buffer,
-                block_size,
-            );
+            self.update_weights(&error_buffer, &noise_buffer, block_size);
         }
 
         Ok(cleaned_signal.into())
@@ -154,6 +149,32 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
         noise_ref: &NoiseReference<F>,
     ) -> Result<Vec<F>> {
         filter_impl(&self.weights, input_signal, noise_ref, self.block_size)
+    }
+
+    /// Updates the weights for the current block.
+    fn update_weights(
+        &mut self,
+        errors: &ErrorBuffer<F>,
+        noise_ref: &NoiseBuffer<F>,
+        // This parameter exists so we can call this method even if the final block
+        // has fewer than ``error.len()`` samples. In that case, ``error`` contains
+        // elements that overlap with the previous block. ``block_size`` lets us
+        // process only the new ones.
+        block_size: BlockSize,
+    ) {
+        // take() iterates over min(block_size, errors.len()) elements, so we never take
+        // more elements than the filter's canonical block size (which determines
+        // errors.len()), even if the block_size parameter is higher.
+        for (window_start, window_error) in errors.iter().take(*block_size).copied().enumerate() {
+            #[allow(clippy::missing_panics_doc, reason = "failure independent of fn input")]
+            let current_window = noise_ref.window(window_start).expect(
+                "window() should only fail if window_start >= noise_ref.block_size.
+                error.len() == block_size, so window_start is always < block_size",
+            );
+
+            self.algorithm
+                .update_step(&mut self.weights, window_error, current_window);
+        }
     }
 }
 
@@ -245,7 +266,7 @@ fn process_block<F>(
     }
 }
 
-pub fn compute_error<F>(
+fn compute_error<F>(
     input_sample: InputSample<F>,
     noise_estimate: NoiseEstimate<F>,
 ) -> OutputSample<F>
@@ -261,7 +282,7 @@ where
 /// # Errors
 ///
 /// Returns an error if `input_signal.len() > noise_ref.len()`.
-pub fn check_signal_lengths<F>(
+fn check_signal_lengths<F>(
     input_signal: &InputSignal<F>,
     noise_ref: &NoiseReference<F>,
 ) -> Result<()>
@@ -441,6 +462,44 @@ mod tests {
         assert!(!all_approx_equal(
             filter.weights.iter(),
             weights_before.iter()
+        ));
+    }
+
+    #[test]
+    fn adapt_deterministic() {
+        let mut filter_1 = testing_filter();
+        let mut filter_2 = testing_filter();
+
+        let input = InputSignal::new(vec![5.0, 3.5, 2.6, -8.4]).unwrap();
+        let noise = NoiseReference::new(vec![3.0, 2.8, -1.7, 2.24]).unwrap();
+
+        filter_1.adapt(&input, &noise).unwrap();
+        filter_2.adapt(&input, &noise).unwrap();
+
+        assert!(all_approx_equal(
+            filter_1.weights.iter(),
+            filter_2.weights.iter()
+        ));
+    }
+
+    #[test]
+    fn sample_and_block_processing_yield_different_weights() {
+        let window_size = WindowSize::new(3).unwrap();
+
+        let lms = Lms::new(1.0, window_size).unwrap();
+
+        let mut sample_filter = FilterBase::new(lms.clone(), BlockSize::new(1).unwrap());
+        let mut block_filter = FilterBase::new(lms, BlockSize::new(2).unwrap());
+
+        let input = InputSignal::new(vec![5.0, 3.5, 2.6, -8.4]).unwrap();
+        let noise = NoiseReference::new(vec![3.0, 2.8, -1.7, 2.24]).unwrap();
+
+        sample_filter.adapt(&input, &noise).unwrap();
+        block_filter.adapt(&input, &noise).unwrap();
+
+        assert!(!all_approx_equal(
+            sample_filter.weights.iter(),
+            block_filter.weights.iter()
         ));
     }
 
