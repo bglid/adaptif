@@ -299,7 +299,7 @@ mod tests {
         let expected = [0.8, -0.8];
         let mut weights = FilterWeights::new(window_size);
 
-        rls.update_block(&mut weights, &e_n, &x_n);
+        rls.update_block(&mut weights, &e_n, &x_n, block_size);
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
     }
@@ -319,7 +319,7 @@ mod tests {
         let expected = [5.0 / 30.0, 2.0 / 30.0];
         let mut weights = FilterWeights::new(WindowSize::new(2).unwrap());
 
-        rls.update_block(&mut weights, &e_n, &x_n);
+        rls.update_block(&mut weights, &e_n, &x_n, block_size);
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
     }

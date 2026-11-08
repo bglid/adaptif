@@ -62,7 +62,7 @@ mod tests {
         let expected = [1.0, -1.0];
         let mut weights = FilterWeights::new(window_size);
 
-        lms.update_block(&mut weights, &e_n, &x_n);
+        lms.update_block(&mut weights, &e_n, &x_n, block_size);
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
     }
@@ -78,7 +78,7 @@ mod tests {
         let expected = [5.0, 2.0];
         let mut weights = FilterWeights::new(window_size);
 
-        lms.update_block(&mut weights, &e_n, &x_n);
+        lms.update_block(&mut weights, &e_n, &x_n, block_size);
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
     }
@@ -96,7 +96,7 @@ mod tests {
         let expected = [19.0, -28.0];
         let mut weights = FilterWeights::new(window_size);
 
-        lms.update_block(&mut weights, &e_n, &x_n);
+        lms.update_block(&mut weights, &e_n, &x_n, block_size);
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
     }
@@ -113,7 +113,7 @@ mod tests {
         let expected = [7.5, -11.0, 14.5];
         let mut weights = FilterWeights::new(window_size);
 
-        lms.update_block(&mut weights, &e_n, &x_n);
+        lms.update_block(&mut weights, &e_n, &x_n, block_size);
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
     }

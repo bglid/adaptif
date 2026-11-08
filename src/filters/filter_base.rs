@@ -106,50 +106,37 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
         let n_samples = input_signal.len();
 
         for block_start in (0..n_samples).step_by(*self.block_size) {
-            let block_end = block_start + *self.block_size;
-
-            if block_end <= n_samples {
-                process_block(
-                    block_start..block_end,
-                    &self.weights,
-                    input_signal,
-                    noise_ref,
-                    &mut noise_buffer,
-                    &mut error_buffer,
-                    &mut cleaned_signal,
-                );
-
-                self.algorithm
-                    .update_block(&mut self.weights, &error_buffer, &noise_buffer);
+            let (block_size, block_end) = if block_start + *self.block_size <= n_samples {
+                (self.block_size, block_start + *self.block_size)
             } else {
-                // last block: finish off remaining samples w/o updating the weights
-                process_block(
-                    block_start..n_samples,
-                    &self.weights,
-                    input_signal,
-                    noise_ref,
-                    &mut noise_buffer,
-                    &mut error_buffer,
-                    &mut cleaned_signal,
-                );
+                // truncate the block if there are not enough samples left
+                #[allow(
+                    clippy::unwrap_in_result,
+                    clippy::missing_panics_doc,
+                    reason = "failure independent of fn input"
+                )]
+                let truncated = BlockSize::new(n_samples - block_start)
+                    .expect("for loop should guarantee block_start < n_samples.");
 
-                // TODO: try to find a solution so that update_step() _can_ be called here
-                // We intentionally don't call update_step() here:
-                //
-                // Using a fixed-size buffer for the noise reference instead of
-                // constructing the full noise matrix X_n is efficient, but it also
-                // means the dimensions for the approximated matrix are fixed.
-                // If the final block is shorter than the rest, we don't have enough
-                // samples to fill this matrix without overlapping with the previous block.
-                //
-                // The simplest solution is to not update the weights.
-                // Since there are no blocks after this one, not updating the
-                // weights changes doesn't really matter.
-                //
-                // (The only case where it changes anything is when calling filter()
-                // using the adapted weights, but as long as the input signal used for
-                // adaptation is long enough the final update step changes very little.)
-            }
+                (truncated, n_samples)
+            };
+
+            process_block(
+                block_start..block_end,
+                &self.weights,
+                input_signal,
+                noise_ref,
+                &mut noise_buffer,
+                &mut error_buffer,
+                &mut cleaned_signal,
+            );
+
+            self.algorithm.update_block(
+                &mut self.weights,
+                &error_buffer,
+                &noise_buffer,
+                block_size,
+            );
         }
 
         Ok(cleaned_signal.into())
@@ -525,37 +512,25 @@ mod tests {
     }
 
     #[test]
-    /// checks that if the end of the final block falls on
-    /// the final sample, the update step is still called.
-    fn n_samples_multiple_of_block_size() {
+    fn blocks_truncated_correctly() {
         let window_size = WindowSize::new(3).unwrap();
         let block_size = BlockSize::new(2).unwrap();
-        let mut filter = FilterBase::new(UpdateCallCounter::new(window_size), block_size);
 
-        let input = InputSignal::new(vec![1.0, 2.0, 3.0, 4.0]).unwrap();
-        let noise = NoiseReference::new(vec![4.0, 5.0, 6.0, 7.0]).unwrap();
+        // len not divisible by block_size -> final block truncated
+        let input_1 = InputSignal::new(vec![1.0, 2.0, 3.0, 4.0, 5.0]).unwrap();
+        let noise_1 = NoiseReference::new(vec![4.0, 5.0, 6.0, 7.0, 8.0]).unwrap();
+        // len divisible by block_size -> no truncation
+        let input_2 = InputSignal::new(vec![1.0, 2.0, 3.0, 4.0]).unwrap();
+        let noise_2 = NoiseReference::new(vec![4.0, 5.0, 6.0, 7.0]).unwrap();
 
-        filter.adapt(&input, &noise).unwrap();
-        assert_eq!(filter.algorithm.call_count(), 2 * (*block_size));
+        for (input, noise) in [(input_1, noise_1), (input_2, noise_2)] {
+            let mut filter = FilterBase::new(UpdateCallCounter::new(window_size), block_size);
 
-        filter.filter(&input, &noise).unwrap();
-    }
+            filter.adapt(&input, &noise).unwrap();
+            // update_step() should be called for every sample, even when block_size > 1
+            assert_eq!(filter.algorithm.call_count(), input.len());
 
-    #[test]
-    /// checks that if the end of the final block doesn't align
-    /// with the final sample, the update step is NOT called.
-    fn n_samples_not_multiple_of_block_size() {
-        let window_size = WindowSize::new(3).unwrap();
-        let block_size = BlockSize::new(2).unwrap();
-        let mut filter = FilterBase::new(UpdateCallCounter::new(window_size), block_size);
-
-        let input = InputSignal::new(vec![1.0, 2.0, 3.0, 4.0, 5.0]).unwrap();
-        let noise = NoiseReference::new(vec![4.0, 5.0, 6.0, 7.0, 8.0]).unwrap();
-
-        filter.adapt(&input, &noise).unwrap();
-        // update not called on final block because the shapes don't match
-        assert_eq!(filter.algorithm.call_count(), 2 * (*block_size));
-
-        filter.filter(&input, &noise).unwrap();
+            filter.filter(&input, &noise).unwrap();
+        }
     }
 }

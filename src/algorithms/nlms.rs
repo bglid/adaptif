@@ -82,7 +82,7 @@ mod tests {
         let expected = [1.0 / (2.0 + nlms.eps), -1.0 / (2.0 + nlms.eps)];
         let mut weights = FilterWeights::new(window_size);
 
-        nlms.update_block(&mut weights, &e_n, &x_n);
+        nlms.update_block(&mut weights, &e_n, &x_n, block_size);
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
     }
@@ -102,7 +102,7 @@ mod tests {
         let expected = [(5.0 / (29.0 + nlms.eps)), (2.0 / (29.0 + nlms.eps))];
         let mut weights = FilterWeights::new(window_size);
 
-        nlms.update_block(&mut weights, &e_n, &x_n);
+        nlms.update_block(&mut weights, &e_n, &x_n, block_size);
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
     }

@@ -82,10 +82,6 @@ impl<F: Float> DerefMut for NoiseBuffer<F> {
     }
 }
 
-#[allow(
-    clippy::len_without_is_empty,
-    reason = "Buffer has a fixed size and can't be empty"
-)]
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct NoiseWindow<'a, F: Float> {
     buffer: &'a NoiseBuffer<F>,
@@ -100,6 +96,10 @@ impl<F: Float> NoiseWindow<'_, F> {
         }
     }
 
+    #[allow(
+        clippy::len_without_is_empty,
+        reason = "Buffer has a fixed size and can't be empty"
+    )]
     pub fn len(&self) -> usize {
         *self.buffer.window_size
     }

@@ -6,10 +6,6 @@ use crate::types::Float;
 /// Fixed-size ring buffer for processing samples.
 /// Functions must ensure that `samples.len()` is the same before and after function calls
 /// to enforce the invariant it is the same as the number of weights, and equal to the filter's window size.
-#[allow(
-    clippy::len_without_is_empty,
-    reason = "Buffer has a fixed size and can't be empty"
-)]
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct SampleBuffer<F: Float> {
     samples: VecDeque<F>,
@@ -46,6 +42,10 @@ impl<F: Float> SampleBuffer<F> {
         self.samples.get(index)
     }
 
+    #[allow(
+        clippy::len_without_is_empty,
+        reason = "Buffer has a fixed size and can't be empty"
+    )]
     pub fn len(&self) -> usize {
         self.capacity.into()
     }
