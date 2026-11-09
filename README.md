@@ -28,6 +28,13 @@ We're currently working towards a first full release, which will include the fol
 
 The projects currently supports Rust stable and Python 3.11 - 3.15.
 
+#### Rust crate
+Via crates.io:
+
+```bash
+cargo add adaptif
+```
+
 #### Python bindings
 Via PyPI:
 
@@ -39,12 +46,6 @@ uv add adaptif
 ```bash
 # With pip.
 pip install adaptif
-```
-
-#### Rust crate
-
-```bash
-cargo add adaptif
 ```
 
 #### Development setup
