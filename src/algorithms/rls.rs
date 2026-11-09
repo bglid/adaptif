@@ -1,14 +1,13 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::types::buffers::NoiseWindow;
-use crate::types::signals::OutputSample;
-use crate::types::{FilterWeights, Float, WindowSize};
+use crate::types::buffers::NoiseWindowView;
+use crate::types::{Float, WindowSize};
 use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
 
-#[derive(Debug, Clone, PartialEq)]
 /// Recursive least squares algorithm.
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Rls<F: Float> {
     /// Forgetting factor, often referred to as `lambda`, used for weight updates.
     forgetting_factor: F,
@@ -68,12 +67,7 @@ impl<F: Float> Rls<F> {
 /// and $``x_n``$ is a vector of length `window_size` of the
 /// most recent noise reference samples.
 impl<F: Float> Algorithm<F> for Rls<F> {
-    fn update_step(
-        &mut self,
-        weights: &mut FilterWeights<F>,
-        error: OutputSample<F>,
-        noise_window: NoiseWindow<F>,
-    ) {
+    fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindowView<F>) {
         self.kalman_gain.update(
             &self.inverse_corr_matrix,
             &noise_window,
@@ -81,7 +75,7 @@ impl<F: Float> Algorithm<F> for Rls<F> {
         );
 
         for (w, k) in weights.iter_mut().zip(self.kalman_gain.iter().copied()) {
-            *w += k * (*error);
+            *w += k * error;
         }
 
         self.inverse_corr_matrix
@@ -93,8 +87,8 @@ impl<F: Float> Algorithm<F> for Rls<F> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
 /// M-dimensional vector of Kalman gains, where M is the filter's window size.
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 struct KalmanGain<F: Float> {
     inner: Box<[F]>,
 }
@@ -117,7 +111,7 @@ impl<F: Float> KalmanGain<F> {
     fn update(
         &mut self,
         inverse_corr_matrix: &InverseCorrMatrix<F>,
-        noise_ref: &NoiseWindow<F>,
+        noise_ref: &NoiseWindowView<F>,
         lambda: F,
     ) {
         // reusing kalman buffer for getting numerator to avoid clone of numerator
@@ -158,8 +152,8 @@ impl<F: Float> DerefMut for KalmanGain<F> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
 /// Inverse Correlation Matrix with shape M * M, where M is the filter's window size.
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 struct InverseCorrMatrix<F: Float> {
     inner: Box<[F]>,
 }
@@ -189,7 +183,7 @@ impl<F: Float> InverseCorrMatrix<F> {
     /// \left(P_{n-1} - ``k_n`` ``x_n^T`` P_{n-1}\right)$.
     ///
     /// The matrix is stored as a flat buffer and updated in place.
-    fn update(&mut self, kalman_gain: &KalmanGain<F>, noise_ref: &NoiseWindow<F>, lambda: F) {
+    fn update(&mut self, kalman_gain: &KalmanGain<F>, noise_ref: &NoiseWindowView<F>, lambda: F) {
         // We calculate [x^T P] by computing the dot product of
         // noise_ref (x) with each column in inverse_corr_matrix (P),
         // then update the values for that column in place.
@@ -230,8 +224,9 @@ impl<F: Float> DerefMut for InverseCorrMatrix<F> {
 mod tests {
     use super::*;
     use crate::{
-        test_utils::{all_approx_equal, block_noise_buffer_from},
-        types::{BlockSize, FilterWeights, WindowSize, buffers::BlockError},
+        test_utils::all_approx_equal,
+        types::buffers::NoiseBuffer,
+        types::{BlockSize, FilterWeights, WindowSize},
     };
 
     #[test]
@@ -252,13 +247,13 @@ mod tests {
         let p = InverseCorrMatrix {
             inner: vec![1.0, 0.0, 0.0, 1.0].into_boxed_slice(),
         };
-        let x_n = block_noise_buffer_from(
+        let x_n = NoiseBuffer::from_slice(
             &[1.0, 2.0],
             WindowSize::new(2).unwrap(),
             BlockSize::new(1).unwrap(),
         );
 
-        k.update(&p, &x_n.get_window(0).unwrap(), 1.0);
+        k.update(&p, &x_n.window(0).unwrap(), 1.0);
 
         let expected = [1.0 / 6.0, 1.0 / 3.0];
 
@@ -273,13 +268,13 @@ mod tests {
         let k = KalmanGain {
             inner: vec![1.0 / 6.0, 1.0 / 3.0].into_boxed_slice(),
         };
-        let x_n = block_noise_buffer_from(
+        let x_n = NoiseBuffer::from_slice(
             &[1.0, 2.0],
             WindowSize::new(2).unwrap(),
             BlockSize::new(1).unwrap(),
         );
 
-        p.update(&k, &x_n.get_window(0).unwrap(), 1.0);
+        p.update(&k, &x_n.window(0).unwrap(), 1.0);
 
         let expected = InverseCorrMatrix {
             inner: vec![5.0 / 6.0, -1.0 / 3.0, -1.0 / 3.0, 1.0 / 3.0].into_boxed_slice(),
@@ -294,16 +289,12 @@ mod tests {
         let block_size = BlockSize::new(1).unwrap();
 
         let mut rls = Rls::new(0.5, 1.0, window_size).unwrap();
-        let e_n = {
-            let mut e_n = BlockError::new(block_size);
-            e_n.push(OutputSample(2.0));
-            e_n
-        };
-        let x_n = block_noise_buffer_from(&[1.0, -1.0], window_size, block_size);
+        let e_n = 2.0;
+        let x_n = NoiseBuffer::from_slice(&[1.0, -1.0], window_size, block_size);
         let expected = [0.8, -0.8];
         let mut weights = FilterWeights::new(window_size);
 
-        rls.update_block(&mut weights, &e_n, &x_n);
+        rls.update_step(&mut weights, e_n, x_n.window(0).unwrap());
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
     }
@@ -314,16 +305,12 @@ mod tests {
         let block_size = BlockSize::new(1).unwrap();
 
         let mut rls = Rls::new(1.0, 1.0, window_size).unwrap();
-        let e_n = {
-            let mut e_n = BlockError::new(block_size);
-            e_n.push(OutputSample(1.0));
-            e_n
-        };
-        let x_n = block_noise_buffer_from(&[5.0, 2.0], window_size, block_size);
+        let e_n = 1.0;
+        let x_n = NoiseBuffer::from_slice(&[5.0, 2.0], window_size, block_size);
         let expected = [5.0 / 30.0, 2.0 / 30.0];
         let mut weights = FilterWeights::new(WindowSize::new(2).unwrap());
 
-        rls.update_block(&mut weights, &e_n, &x_n);
+        rls.update_step(&mut weights, e_n, x_n.window(0).unwrap());
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
     }

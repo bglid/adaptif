@@ -6,11 +6,7 @@ use crate::types::Float;
 /// Fixed-size ring buffer for processing samples.
 /// Functions must ensure that `samples.len()` is the same before and after function calls
 /// to enforce the invariant it is the same as the number of weights, and equal to the filter's window size.
-#[allow(
-    clippy::len_without_is_empty,
-    reason = "Buffer has a fixed size and can't be empty"
-)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct SampleBuffer<F: Float> {
     samples: VecDeque<F>,
     capacity: NonZeroUsize,
@@ -46,12 +42,16 @@ impl<F: Float> SampleBuffer<F> {
         self.samples.get(index)
     }
 
+    #[allow(
+        clippy::len_without_is_empty,
+        reason = "Buffer has a fixed size and can't be empty"
+    )]
     pub fn len(&self) -> usize {
         self.capacity.into()
     }
 
-    pub fn iter(&self) -> SampleIter<'_, F> {
-        SampleIter {
+    pub fn iter(&self) -> Iter<'_, F> {
+        Iter {
             buffer: self,
             next_idx: 0,
         }
@@ -59,18 +59,18 @@ impl<F: Float> SampleBuffer<F> {
 }
 impl<'a, F: Float> IntoIterator for &'a SampleBuffer<F> {
     type Item = &'a F;
-    type IntoIter = SampleIter<'a, F>;
+    type IntoIter = Iter<'a, F>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
 }
 
-pub struct SampleIter<'a, F: Float> {
+pub struct Iter<'a, F: Float> {
     buffer: &'a SampleBuffer<F>,
     next_idx: usize,
 }
-impl<'a, F: Float> Iterator for SampleIter<'a, F> {
+impl<'a, F: Float> Iterator for Iter<'a, F> {
     type Item = &'a F;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -79,7 +79,7 @@ impl<'a, F: Float> Iterator for SampleIter<'a, F> {
         item
     }
 }
-impl<F: Float> ExactSizeIterator for SampleIter<'_, F> {
+impl<F: Float> ExactSizeIterator for Iter<'_, F> {
     fn len(&self) -> usize {
         self.buffer.len()
     }

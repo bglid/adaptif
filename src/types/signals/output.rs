@@ -4,29 +4,24 @@ use crate::types::Float;
 
 use super::InputSignal;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct OutputSignal<F: Float> {
-    inner: Vec<F>,
+    samples: Vec<F>,
 }
 impl<F: Float> OutputSignal<F> {
     pub fn new(input_signal: &InputSignal<F>) -> Self {
         OutputSignal {
-            inner: Vec::with_capacity(input_signal.len()),
+            samples: Vec::with_capacity(input_signal.len()),
         }
     }
 
     pub fn push(&mut self, error: OutputSample<F>) {
-        self.inner.push(*error);
-    }
-
-    pub fn into_inner(self) -> Vec<F> {
-        self.inner
+        self.samples.push(*error);
     }
 }
-impl<F: Float> Deref for OutputSignal<F> {
-    type Target = Vec<F>;
-    fn deref(&self) -> &Self::Target {
-        &self.inner
+impl<F: Float> From<OutputSignal<F>> for Vec<F> {
+    fn from(value: OutputSignal<F>) -> Self {
+        value.samples
     }
 }
 

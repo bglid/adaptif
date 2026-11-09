@@ -3,15 +3,9 @@ use std::ops::Deref;
 use crate::error::{Error, Result};
 use crate::types::Float;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct NoiseReference<F: Float> {
-    inner: Vec<F>,
-}
-impl<F: Float> Deref for NoiseReference<F> {
-    type Target = [F];
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
+    samples: Vec<F>,
 }
 impl<F: Float> NoiseReference<F> {
     /// # Errors
@@ -20,12 +14,30 @@ impl<F: Float> NoiseReference<F> {
         if noise_ref.is_empty() {
             Err(Error::EmptyInputArr)
         } else {
-            Ok(NoiseReference { inner: noise_ref })
+            Ok(NoiseReference { samples: noise_ref })
         }
     }
 
-    pub fn get_sample(&self, n: usize) -> Option<NoiseSample<F>> {
-        Some(NoiseSample(*self.inner.get(n)?))
+    pub fn get(&self, n: usize) -> Option<NoiseSample<F>> {
+        Some(NoiseSample(*self.samples.get(n)?))
+    }
+
+    #[allow(
+        clippy::len_without_is_empty,
+        reason = "NoiseReference can't be empty (see new())"
+    )]
+    pub fn len(&self) -> usize {
+        self.samples.len()
+    }
+}
+impl<F: Float> AsRef<[F]> for NoiseReference<F> {
+    fn as_ref(&self) -> &[F] {
+        &self.samples
+    }
+}
+impl<F: Float> From<NoiseReference<F>> for Vec<F> {
+    fn from(value: NoiseReference<F>) -> Self {
+        value.samples
     }
 }
 

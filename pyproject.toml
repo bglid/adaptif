@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "adaptif"
-version = "0.2.0"
+version = "0.1.0"
 description = "DSP adaptive filters for Python, built with Rust."
 readme = "README.md"
 authors = [

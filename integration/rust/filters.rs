@@ -1,10 +1,11 @@
+#![cfg(not(tarpaulin_include))]
 #![allow(
     clippy::tests_outside_test_module,
     reason = "This crate is exclusively an integration test target"
 )]
 #![allow(clippy::unwrap_used, reason = "Integration test")]
 
-use adaptif::algorithms::Algorithm;
+use adaptif::Algorithm;
 use adaptif::filters::{
     FilterBase, LmsFilter, LmsOptions, NlmsFilter, NlmsOptions, ProcessingMode, RlsFilter,
     RlsOptions,
@@ -28,11 +29,11 @@ where
         assert_eq!(cleaned_signal.len(), batch.noisy_signal.len());
         assert!(cleaned_signal.iter().all(|sample| sample.is_finite()));
 
-        let before_mse = mse(&batch.clean_signal, &batch.noisy_signal);
+        let before_mse = mse(&batch.clean_signal, batch.noisy_signal.as_ref());
         let after_mse = mse(&batch.clean_signal, &cleaned_signal);
         assert!(after_mse < before_mse);
 
-        let before_snr = snr(&batch.clean_signal, &batch.noisy_signal);
+        let before_snr = snr(&batch.clean_signal, batch.noisy_signal.as_ref());
         let after_snr = snr(&batch.clean_signal, &cleaned_signal);
         assert!(after_snr > before_snr);
     }

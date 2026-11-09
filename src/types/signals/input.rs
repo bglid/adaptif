@@ -3,15 +3,9 @@ use std::ops::Deref;
 use crate::error::{Error, Result};
 use crate::types::Float;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct InputSignal<F: Float> {
-    inner: Vec<F>,
-}
-impl<F: Float> Deref for InputSignal<F> {
-    type Target = [F];
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
+    samples: Vec<F>,
 }
 impl<F: Float> InputSignal<F> {
     /// # Errors
@@ -21,13 +15,31 @@ impl<F: Float> InputSignal<F> {
             Err(Error::EmptyInputArr)
         } else {
             Ok(InputSignal {
-                inner: input_signal,
+                samples: input_signal,
             })
         }
     }
 
-    pub fn get_sample(&self, n: usize) -> Option<InputSample<F>> {
-        Some(InputSample(*self.inner.get(n)?))
+    pub fn get(&self, n: usize) -> Option<InputSample<F>> {
+        Some(InputSample(*self.samples.get(n)?))
+    }
+
+    #[allow(
+        clippy::len_without_is_empty,
+        reason = "InputSignal can't be empty (see new())"
+    )]
+    pub fn len(&self) -> usize {
+        self.samples.len()
+    }
+}
+impl<F: Float> AsRef<[F]> for InputSignal<F> {
+    fn as_ref(&self) -> &[F] {
+        &self.samples
+    }
+}
+impl<F: Float> From<InputSignal<F>> for Vec<F> {
+    fn from(value: InputSignal<F>) -> Self {
+        value.samples
     }
 }
 

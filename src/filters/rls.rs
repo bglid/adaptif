@@ -7,7 +7,7 @@ use crate::algorithms::Rls;
 use crate::filters::ProcessingMode;
 use crate::types::{Float, WindowSize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct RlsOptions<F: Float> {
     pub forgetting_factor: F,
     pub p_init_scale: F,
@@ -28,7 +28,7 @@ impl<F: Float> Default for RlsOptions<F> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct RlsFilter<F: Float> {
     inner: FilterBase<F, Rls<F>>,
 }
@@ -96,7 +96,7 @@ mod tests {
     }
 
     #[test]
-    fn from_weights_works() {
+    fn load_weights_works() {
         let forgetting_factor = 0.999;
         let p_init_scale = 1e-4;
         let weights = vec![1.0, 2.0, 3.0];

@@ -1,12 +1,11 @@
-use crate::types::buffers::NoiseWindow;
-use crate::types::signals::OutputSample;
-use crate::types::{FilterWeights, Float, WindowSize};
+use crate::types::buffers::NoiseWindowView;
+use crate::types::{Float, WindowSize};
 use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
 
-#[derive(Debug, Clone, PartialEq)]
 /// Normalized least mean squares algorithm.
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Nlms<F: Float> {
     /// Step size for weight updates.
     mu: F,
@@ -43,17 +42,12 @@ impl<F: Float> Algorithm<F> for Nlms<F> {
     /// where $``e_n``$ is the scalar error for the current sample,
     /// and $``x_n``$ is a vector of length `window_size` of the
     /// most recent noise reference samples.
-    fn update_step(
-        &mut self,
-        weights: &mut FilterWeights<F>,
-        error: OutputSample<F>,
-        noise_window: NoiseWindow<F>,
-    ) {
+    fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindowView<F>) {
         let norm_squared = noise_window.iter().map(|x| x * x).sum();
         let mu_normalized = self.mu / (self.eps + norm_squared);
 
         for (w, x) in weights.iter_mut().zip(noise_window.iter()) {
-            *w += mu_normalized * (*error) * x;
+            *w += mu_normalized * error * x;
         }
     }
 
@@ -67,8 +61,8 @@ impl<F: Float> Algorithm<F> for Nlms<F> {
 mod tests {
     use super::*;
     use crate::{
-        test_utils::{all_approx_equal, block_noise_buffer_from},
-        types::buffers::BlockError,
+        test_utils::all_approx_equal,
+        types::buffers::NoiseBuffer,
         types::{BlockSize, FilterWeights, WindowSize},
     };
 
@@ -78,16 +72,12 @@ mod tests {
         let block_size = BlockSize::new(1).unwrap();
 
         let mut nlms = Nlms::new(0.5, 1e-8, window_size).unwrap();
-        let e_n = {
-            let mut e_n = BlockError::new(block_size);
-            e_n.push(OutputSample(2.0));
-            e_n
-        };
-        let x_n = block_noise_buffer_from(&[1.0, -1.0], window_size, block_size);
+        let e_n = 2.0;
+        let x_n = NoiseBuffer::from_slice(&[1.0, -1.0], window_size, block_size);
         let expected = [1.0 / (2.0 + nlms.eps), -1.0 / (2.0 + nlms.eps)];
         let mut weights = FilterWeights::new(window_size);
 
-        nlms.update_block(&mut weights, &e_n, &x_n);
+        nlms.update_step(&mut weights, e_n, x_n.window(0).unwrap());
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
     }
@@ -98,16 +88,12 @@ mod tests {
         let block_size = BlockSize::new(1).unwrap();
 
         let mut nlms = Nlms::new(1.0, 1e-8, window_size).unwrap();
-        let e_n = {
-            let mut e_n = BlockError::new(block_size);
-            e_n.push(OutputSample(1.0));
-            e_n
-        };
-        let x_n = block_noise_buffer_from(&[5.0, 2.0], window_size, block_size);
+        let e_n = 1.0;
+        let x_n = NoiseBuffer::from_slice(&[5.0, 2.0], window_size, block_size);
         let expected = [(5.0 / (29.0 + nlms.eps)), (2.0 / (29.0 + nlms.eps))];
         let mut weights = FilterWeights::new(window_size);
 
-        nlms.update_block(&mut weights, &e_n, &x_n);
+        nlms.update_step(&mut weights, e_n, x_n.window(0).unwrap());
 
         assert!(all_approx_equal(weights.iter(), expected.iter()));
     }

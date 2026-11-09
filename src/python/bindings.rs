@@ -39,18 +39,6 @@ impl TryFrom<&PyReadonlyArray1<'_, f64>> for InputSignal<f64> {
         // the input or use references (if we copy the input can be non-contiguous,
         // but it's more costly)
 
-        // NOTE: references must be contiguous (leaving old comments/code in here
-        // in case we later want to go back to references instead of copies):
-        //
-        // In Python, we use NumPy arrays as inputs, so we have to convert them to the Rust input types.
-        // Because we're using slices in Rust, the input NumPy arrays need to be contiguous.
-        // Strided slices like x[::2] or x[:, 0] are not allowed, and need to be made contiguous first.
-        // let input_signal = input_signal.as_slice().map_err(|_e| {
-        //     PyValueError::new_err(
-        //         "input_signal must be a contiguous NumPy array; use numpy.ascontiguousarray().",
-        //     )
-        // })?;
-
         let input_signal = value.as_array().iter().copied().collect::<Vec<f64>>();
 
         let input_signal = InputSignal::new(input_signal).map_err(PyErr::from)?;
@@ -61,11 +49,6 @@ impl TryFrom<&PyReadonlyArray1<'_, f64>> for InputSignal<f64> {
 impl TryFrom<&PyReadonlyArray1<'_, f64>> for NoiseReference<f64> {
     type Error = PyErr;
     fn try_from(value: &PyReadonlyArray1<f64>) -> Result<Self, Self::Error> {
-        // let noise_ref = noise_ref.as_slice().map_err(|_e| {
-        //     PyValueError::new_err(
-        //         "noise_ref must be a contiguous NumPy array; use numpy.ascontiguousarray().",
-        //     )
-        // })?;
         let noise_ref = value.as_array().iter().copied().collect::<Vec<f64>>();
 
         let noise_ref = NoiseReference::new(noise_ref).map_err(PyErr::from)?;

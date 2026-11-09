@@ -1,8 +1,12 @@
 mod input;
-pub use input::{InputSample, InputSignal};
-
 mod noise;
-pub use noise::{NoiseReference, NoiseSample};
-
 mod output;
-pub use output::{OutputSample, OutputSignal};
+
+pub use input::InputSignal;
+pub use noise::NoiseReference;
+
+pub(crate) use output::OutputSignal;
+
+pub(crate) use input::InputSample;
+pub(crate) use noise::NoiseSample;
+pub(crate) use output::OutputSample;

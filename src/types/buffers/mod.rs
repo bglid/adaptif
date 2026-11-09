@@ -1,8 +1,10 @@
 mod error;
-pub use error::BlockError;
-
 mod noise;
-pub use noise::{BlockNoiseBuffer, NoiseBuffer, NoiseWindow};
-
 mod sample_buffer;
-pub use sample_buffer::SampleBuffer;
+
+pub use noise::NoiseWindowView;
+
+pub(crate) use error::ErrorBuffer;
+pub(crate) use noise::NoiseBuffer;
+
+use sample_buffer::SampleBuffer;

@@ -7,7 +7,7 @@ use crate::algorithms::Nlms;
 use crate::filters::ProcessingMode;
 use crate::types::{Float, WindowSize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct NlmsOptions<F: Float> {
     pub mu: F,
     pub eps: F,
@@ -28,7 +28,7 @@ impl<F: Float> Default for NlmsOptions<F> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct NlmsFilter<F: Float> {
     inner: FilterBase<F, Nlms<F>>,
 }
@@ -94,7 +94,7 @@ mod tests {
     }
 
     #[test]
-    fn from_weights_works() {
+    fn load_weights_works() {
         let mu = 0.1;
         let eps = 1e-8;
         let weights = vec![1.0, 2.0, 3.0];

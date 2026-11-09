@@ -1,6 +1,6 @@
 [package]
 name = "adaptif"
-version = "0.2.0"
+version = "0.1.0"
 edition = "2024"
 
 [dependencies]
@@ -16,13 +16,14 @@ crate-type = ["cdylib", "rlib"]
 default = []
 python = ["dep:pyo3", "dep:numpy"]
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"]}
 
 [lints.clippy]
 pedantic = {level = "warn", priority = -1}
 restriction = {level = "warn", priority = -1}
 blanket_clippy_restriction_lints = "allow"
 allow_attributes = "allow"
-
 
 # no-brainers
 arithmetic_side_effects = "allow" # otherwise we get warnings about potential overflows on _every_ arithmetic op
@@ -32,7 +33,6 @@ must_use_candidate = "allow" # just shows where #[must_use] can be used
 single_call_fn = "allow" # functions are useful for code organization and self-documentation
 question_mark_used = "allow" # greatly simplifies error handling
 absolute_paths = "allow" # fine if used within reason
-arbitrary_source_item_ordering = "allow" # conflicts with optimizing structs for cache locality
 missing_trait_methods = "allow" # should only be used on individual trait implementations, not globally
 single_char_lifetime_names = "allow" # idiomatic
 
@@ -41,6 +41,7 @@ std_instead_of_alloc = "allow"
 std_instead_of_core = "allow"
 
 # good to have
+arbitrary_source_item_ordering = "allow" # items should be ordered by importance
 min_ident_chars = "allow" # to represent single-character variables used in literature
 shadow_reuse = "allow" # variable shadowing is useful
 default_numeric_fallback = "allow" # many false positives
@@ -61,9 +62,6 @@ expect_used = "allow" # reason is already provided, so allow macro is superfluou
 # This may be worth considering for the pure Rust API, but for PyO3 it's irrelevant.
 # Since inlining is done at the call site, this only applies to public functions anyway.
 missing_inline_in_public_items = "allow" 
-
-# This one is supposed to skip test modules (#[cfg(test)]), but as of 1.98.0 it only works on nightly.
-inline_modules = "allow"
 
 [[test]]
 name = "rust"
