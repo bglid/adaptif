@@ -1,6 +1,6 @@
 [package]
 name = "adaptif"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Ben Glidden <benjamin.h.glidden@gmail.com>", "Elias Naske <naske.elias@outlook.com>"]
 edition = "2024"
 description = "Adaptive filters for digital signal processing."
