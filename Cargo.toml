@@ -9,7 +9,7 @@ repository = "github.com/bglid/adaptif"
 license = "MIT OR Apache-2.0"
 keywords = ["signal-processing", "dsp", "audio"]
 categories = ["Algorithms", "Mathematics"]
-include = ["/src", "/examples", "/README.md"]
+include = ["/src", "/examples", "/README.md", "/CONTRIBUTING.md"]
 
 [lib]
 name = "adaptif"
