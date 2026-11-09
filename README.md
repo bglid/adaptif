@@ -3,13 +3,10 @@
 [![Actions status](https://github.com/bglid/adaptif/workflows/build/badge.svg)](https://github.com/bglid/adaptif/actions)
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![License](https://img.shields.io/github/license/bglid/adaptif)](https://github.com/bglid/adaptif/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/bglid/adaptif)](https://github.com/bglid/adaptif/blob/main/LICENSE)
 
 #### Rust crate for DSP Adaptive Filters with Python bindings. 
 
----
-
-_Project is still WIP. Going through massive refactor to Rust [pyo3](https://github.com/pyo3/pyo3) internals_
 
 ---
 
@@ -30,6 +27,27 @@ We're currently working towards a first full release, which will include the fol
 ## Installation
 
 The projects currently supports Rust stable and Python 3.11 - 3.15.
+
+#### Python bindings
+Via PyPI:
+
+```bash
+# With uv (preferred).
+uv add adaptif
+```
+
+```bash
+# With pip.
+pip install adaptif
+```
+
+#### Rust crate
+
+```bash
+cargo add adaptif
+```
+
+#### Development setup
 
 Cloning the repo:
 
@@ -75,16 +93,16 @@ LMS adaptive filter example:
 from adaptif import LMSFilter
 
 # setting up filter
-lms_af = LMSFilter(mu=0.001, n=32)
+lms_af = LMSFilter(mu=0.001, window_size=32)
 
 # Assuming signals are already present and named accordingly
-cleaned_signal = lms_af.adapt(d=noisy_signal, x=noise)
+cleaned_signal = lms_af.adapt(input_signal=noisy_signal, noise_ref=noise)
 ```
 
 Here:
 
-- `d` is the desired/noisy signal.
-- `x` is the reference noise signal.
+- `input_signal` is the desired/noisy signal, AKA the mixed noisy signal containing the clean signal to extract.
+- `noise_ref` is the reference noise signal. The noise which you wish to remove from the input signal.
 
 ---
 

@@ -83,7 +83,7 @@ To generate the Python bindings:
 make python
 ```
 
-The generated `.so` file will be placed in `adaptif/`
+The generated `.so` file will be placed in `python/adaptif/`
 
 Note that `make check-py` and `make test-py` will build the bindings automatically if necessary,
 no need to run `make python`.
