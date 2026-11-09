@@ -9,6 +9,7 @@
 !python/adaptif/
 !python/adaptif/*.py
 !python/adaptif/*.pyi
+!python/adaptif/py.typed
 
 # python unit tests
 !python/tests/
