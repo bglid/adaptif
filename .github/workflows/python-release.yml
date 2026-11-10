@@ -19,7 +19,7 @@ jobs:
       TAG: ${{ github.ref_name }}
     steps:
       - name: Checkout repository
-      - uses: actions/checkout@v7
+        uses: actions/checkout@v7
 
       - name: Compare versions
         run: |
@@ -32,7 +32,7 @@ jobs:
     needs: [check-package, check-tag]
     steps:
       - name: Checkout repository
-      - uses: actions/checkout@v7
+        uses: actions/checkout@v7
 
       - name: Build SDist
         uses: PyO3/maturin-action@v1.51.0
@@ -80,7 +80,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-      - uses: actions/checkout@v7
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
