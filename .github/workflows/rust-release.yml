@@ -11,25 +11,25 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  check:
-    name: check
+  check-crate:
+    name: Pre-publish checks
     uses: ./.github/workflows/rust-ci.yml
 
   publish:
-    name: publish
-    needs: check
+    name: Publish crate
+    needs: check-crate
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - name: Checkout repository
+        uses: actions/checkout@v7
 
       - name: Install Rust
         run: |
           rustup toolchain install
           rustup component add rustfmt
 
-      - name: Compare release tag with Cargo.toml version
+      - name: Check that release tag matches Cargo.toml version
         env:
           TAG: ${{ github.ref_name }}
         run: |
