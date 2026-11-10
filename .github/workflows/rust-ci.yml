@@ -17,6 +17,7 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "rust-toolchain.toml"
+  workflow_call:
 
 env:
   CARGO_TERM_COLOR: always
@@ -32,7 +33,7 @@ jobs:
 
       - name: Install Rust
         run: |
-          rustup toolchain install 
+          rustup toolchain install
           rustup component add rustfmt clippy
 
       - name: rust-cache
@@ -43,9 +44,6 @@ jobs:
 
       - name: Install cargo audit
         run: cargo binstall cargo-audit --no-confirm
-
-      - name: Format code
-        run: cargo fmt --all
 
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features -- -Dwarnings
