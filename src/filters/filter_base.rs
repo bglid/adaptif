@@ -1,3 +1,5 @@
+// TODO: module docs
+
 use std::ops::Range;
 
 use crate::algorithms::Algorithm;
@@ -9,15 +11,31 @@ use crate::types::{BlockSize, FilterWeights, Float, NoiseEstimate};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[non_exhaustive]
+// TODO: links to other crate items (types, etc.)
+// TODO: replace references to "filter coefficients" with "weights"
+/// Used as an input parameter to filter types like `LmsFilter` to specify the
+/// filter's processing mode. The processing mode defines how many samples
+/// are processed at a time, and, by extension, how often the filter's weights
+/// are updated.
+///
+/// `ProcessingMode::Sample` means that the filter processes one sample at a time.
+/// With this setting, the filter's weights are updated after each sample.
+///
+/// `ProcessingMode::Block{ block_size }` means that the filter processes `block_size`
+/// samples at a time. The same weights are used for processing all of these samples,
+/// as they are only updated after the whole block is processed.
+///
+/// Importantly, `block_size` cannot be zero, and will result in the filter's `new()`
+/// method returning an error.
+///
+/// Note also that `ProcessingMode::Block{ block_size: 1}` is functionally equivalent
+/// to `ProcessingMode::Sample`.
 pub enum ProcessingMode {
     Sample,
     Block { block_size: usize },
 }
 impl ProcessingMode {
-    /// # Errors
-    ///
-    /// Returns an error for ``ProcessingMode::Block{ block_size: 0 }``.
-    pub fn block_size(&self) -> Result<BlockSize> {
+    pub(crate) fn block_size(&self) -> Result<BlockSize> {
         let block_size = match *self {
             ProcessingMode::Sample => 1,
             ProcessingMode::Block { block_size } => block_size,
@@ -27,16 +45,27 @@ impl ProcessingMode {
 }
 
 /// Underlying, algorithm-agnostic filter implementation.
+///
+/// This type implements the core filter logic, while delegating
+/// the updating of the weights to a type that implements the `Algorithm` trait.
+///
+/// `FilterBase` should only be used for custom structs that `impl Algorithm`.
+/// For algorithms included in the crate, use the filter types in `adaptif::filters`,
+/// e.g. `LmsFilter` for a least mean squares filter.
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct FilterBase<F: Float, A: Algorithm<F>> {
+    /// Implements the update logic for the filter's weights.
     algorithm: A,
+    /// Weights used by the filter when processing input signals. These weights
+    /// are updated based on the rules defined by `algorithm` to adapt the filter
+    /// to a signal. The number of weights (`weights.len()`) is determined by
+    /// the algorithm's window size.
     weights: FilterWeights<F>,
+    /// How many samples are processed at once.
     block_size: BlockSize,
 }
 impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
-    /// Initializes a filter using the provided algorithm configuration, window size,
-    /// and block size.
-    /// The weights are intialized to zero.
+    /// Initializes a filter with weights set to zero.
     pub fn new(algorithm: A, block_size: BlockSize) -> Self {
         let weights = FilterWeights::new(algorithm.window_size());
 
@@ -47,12 +76,15 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
         }
     }
 
+    /// Replaces the filter's current weights with the input `Vec`.
     /// This method is intended for loading previously adapted weights
-    /// or for non-zero weight initialization, e.g. from a sampled distribution.
+    /// or for non-zero weight initialization, e.g. to initialize weights
+    /// from a sampled distribution.
     ///
     /// # Errors
     ///
-    /// Returns an error if `weights.len() != self.window_size`.
+    /// Returns an error if the length of the input `Vec` doesn't match
+    /// the number of filter coefficients, i.e. `weights.len() != self.window_size()`.
     pub fn load_weights(&mut self, weights: Vec<F>) -> Result<()> {
         if weights.len() == self.window_size() {
             self.weights = FilterWeights::try_from(weights)?;
@@ -75,7 +107,7 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
         *self.block_size
     }
 
-    /// Returns a reference to the filter's weights.
+    /// Returns a shared reference to the filter's weights.
     pub fn weights(&self) -> &[F] {
         // Returning a slice so that FilterWeights doesn't have to part of the public API
         &self.weights
@@ -91,7 +123,9 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
     ///
     /// # Errors
     ///
-    /// Returns an error if `input_signal.len() > noise_ref.len()`.
+    /// TODO: why?
+    /// Returns an error if the noise reference is shorter than the input signal,
+    /// i.e.,`noise_ref.len() < input_signal.len()`.
     pub fn adapt(
         &mut self,
         input_signal: &InputSignal<F>,
@@ -137,12 +171,14 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
         Ok(cleaned_signal.into())
     }
 
-    /// Applies the filter to the input signal without updating the filter coefficients.
+    /// Applies the filter to the input signal without updating its weights.
     /// This method should be called after adapting the filter to the inputs using `adapt()`.
     ///
     /// # Errors
     ///
-    /// Returns an error if `input_signal.len() > noise_ref.len()`.
+    /// TODO: why?
+    /// Returns an error if the noise reference is shorter than the input signal,
+    /// i.e.,`noise_ref.len() < input_signal.len()`.
     pub fn filter(
         &self,
         input_signal: &InputSignal<F>,

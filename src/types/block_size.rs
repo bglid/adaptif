@@ -5,10 +5,16 @@ use std::ops::Deref;
 use crate::{Error, Result};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
+/// The number of input samples processed at once.
+/// The filter's weights are updated after each block, meaning that the same weights
+/// are used for the entire block.
 pub struct BlockSize {
     inner: usize,
 }
 impl BlockSize {
+    /// Creates a new `BlockSize` from a `usize`.
+    /// The window size must be greater than zero.
+    ///
     /// # Errors
     ///
     /// Returns an error if `block_size == 0`.

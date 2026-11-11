@@ -4,11 +4,17 @@ use crate::error::{Error, Result};
 use crate::types::Float;
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+/// Input signal to the filter. In mathematical notation, this signal
+/// is commonly represented as a vector `x(n)`.
 pub struct InputSignal<F: Float> {
     samples: Vec<F>,
 }
 impl<F: Float> InputSignal<F> {
+    /// Creates a new `InputSignal` from a `Vec`.
+    /// The input `Vec` cannot be empty.
+    ///
     /// # Errors
+    ///
     /// Returns an error if `input_signal` is empty.
     pub fn new(input_signal: Vec<F>) -> Result<Self> {
         if input_signal.is_empty() {
@@ -20,7 +26,8 @@ impl<F: Float> InputSignal<F> {
         }
     }
 
-    pub fn get(&self, n: usize) -> Option<InputSample<F>> {
+    // TODO: should this be `pub` ? that would require making `InputSample` pub too
+    pub(crate) fn get(&self, n: usize) -> Option<InputSample<F>> {
         Some(InputSample(*self.samples.get(n)?))
     }
 

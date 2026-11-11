@@ -7,6 +7,8 @@ use crate::algorithms::Lms;
 use crate::filters::ProcessingMode;
 use crate::types::{Float, WindowSize};
 
+// TODO: rename `mu` to "step_size"
+
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct LmsOptions<F: Float> {
     pub mu: F,
