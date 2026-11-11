@@ -13,5 +13,6 @@ pub(crate) use noise_estimate::NoiseEstimate;
 mod float;
 pub(crate) use float::Float;
 
+// TODO: re-export buffers and signals
 pub mod buffers;
 pub mod signals;

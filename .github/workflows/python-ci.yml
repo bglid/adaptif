@@ -15,6 +15,7 @@ on:
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/python-ci.yml"
+  workflow_call:
 
 jobs:
   build:
@@ -24,8 +25,8 @@ jobs:
         python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v7
 
       - name: Install uv and Python
         uses: astral-sh/setup-uv@v10.3.0
