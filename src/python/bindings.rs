@@ -92,6 +92,15 @@ mod adaptif {
     use super::{LMSFilter, NLMSFilter, RLSFilter};
 }
 
+/// Least Mean Squares (LMS) adaptive filter.
+///
+/// Args:
+///     ``mu``: Step size. Must be greater than 0.0.
+///         Defaults to 0.1.
+///     ``window_size``: Number of filter coefficients. Must be greater than 0.
+///         Defaults to 16.
+///     ``block_size``: Number of samples processed per block. Must be greater than 0.
+///         Defaults to 1.
 #[pyclass]
 pub struct LMSFilter {
     inner: LmsFilter<f64>,
@@ -114,6 +123,17 @@ impl LMSFilter {
 
 generate_filter_bindings!(LMSFilter);
 
+/// Normalized Least Mean Squares (NLMS) adaptive filter.
+///
+/// Args:
+///     ``mu``: Step size. Must be greater than 0.0.
+///         Defaults to 0.1.
+///     ``eps``: Normalization epsilon. Must be greater than 0.0
+///         Defaults to 1e-8.
+///     ``window_size``: Number of filter coefficients. Must be greater than 0.
+///         Defaults to 16.
+///     ``block_size``: Number of samples processed per block. Must be greater than 0.
+///         Defaults to 1.
 #[pyclass]
 pub struct NLMSFilter {
     inner: NlmsFilter<f64>,
@@ -139,6 +159,17 @@ impl NLMSFilter {
 
 generate_filter_bindings!(NLMSFilter);
 
+/// Recursive Least Squares (RLS) adaptive filter.
+///
+/// Args:
+///     ``forgetting_factor``: RLS Forgetting factor. Must be greter than 0.0 and less-than or equal to 1.0.
+///         Defaults to 0.999.
+///     ``p_init_scale``: Scalar value used in initializing the inverse correlation matrix. Must be greater than 0.0.
+///         Defaults to 0.001.
+///     ``window_size``: Number of filter coefficients. Must be greater than 0.
+///         Defaults to 8.
+///     ``block_size``: Number of samples processed per block. Must be greater than 0.
+///         Defaults to 1.
 #[pyclass]
 pub struct RLSFilter {
     inner: RlsFilter<f64>,
