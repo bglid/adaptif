@@ -47,36 +47,7 @@ uv add adaptif
 # With pip.
 pip install adaptif
 ```
-
-#### Development setup
-
-Cloning the repo:
-
-```bash
-git clone https://github.com/bglid/adaptif.git
-```
-
-Then use Make to set up the dev environment:
-```bash
-make setup-rust # Install/update the Rust toolchain through Rustup
-make setup-uv # Install and setup uv for Python dependency management
-# or
-make setup # Run both of the above
-```
-
-All development processes (running checks, test, etc.) are codified in the project's Makefile.
-See [CONTRIBUTING.md](https://github.com/bglid/adaptif/blob/main/CONTRIBUTING.md) for a quick reference on the available commands.
-
-#### Contributing
-
-See [CONTRIBUTING.md](https://github.com/bglid/adaptif/blob/main/CONTRIBUTING.md) for setup and contribution guidelines.
-
-In short,
-
-- Open an issue for a discussion. We will likely handle it.
-- Undisclosed AI PRs will be closed and no further PRs from said user will be considered.
-
----
+- - - 
 
 ## Usage
 
@@ -104,6 +75,16 @@ Here:
 
 - `input_signal` is the desired/noisy signal, AKA the mixed noisy signal containing the clean signal to extract.
 - `noise_ref` is the reference noise signal. The noise which you wish to remove from the input signal.
+
+---
+## Contributing
+
+See [CONTRIBUTING.md](https://github.com/bglid/adaptif/blob/main/CONTRIBUTING.md) for setup and contribution guidelines.
+
+In short,
+
+- Open an issue for a discussion. We will likely handle it.
+- Undisclosed AI PRs will be closed and no further PRs from said user will be considered.
 
 ---
 
