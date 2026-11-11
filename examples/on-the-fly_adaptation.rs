@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use adaptif::filters::{LmsFilter, LmsOptions, ProcessingMode};
-use adaptif::types::signals::{InputSignal, NoiseReference};
+use adaptif::types::{InputSignal, NoiseReference};
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Sample inputs
