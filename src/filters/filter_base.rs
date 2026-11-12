@@ -14,9 +14,10 @@ use crate::types::{BlockSize, FilterWeights, Float, NoiseEstimate};
 // TODO: links to other crate items (types, etc.)
 // TODO: replace references to "filter coefficients" with "weights"
 /// Used as an input parameter to filter types like `LmsFilter` to specify the
-/// filter's processing mode. The processing mode defines how many samples
-/// are processed at a time, and, by extension, how often the filter's weights
-/// are updated.
+/// filter's processing mode.
+///
+/// The processing mode defines how many samples are processed at a time,
+/// and, by extension, how often the filter's weights are updated.
 ///
 /// `ProcessingMode::Sample` means that the filter processes one sample at a time.
 /// With this setting, the filter's weights are updated after each sample.
@@ -79,43 +80,6 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
             weights,
             block_size,
         }
-    }
-
-    /// Replaces the filter's current weights with the input `Vec`.
-    /// This method is intended for loading previously adapted weights
-    /// or for non-zero weight initialization, e.g. to initialize weights
-    /// from a sampled distribution.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the length of the input `Vec` doesn't match
-    /// the number of filter coefficients, i.e. `weights.len() != self.window_size()`.
-    pub fn load_weights(&mut self, weights: Vec<F>) -> Result<()> {
-        if weights.len() == self.window_size() {
-            self.weights = FilterWeights::try_from(weights)?;
-            Ok(())
-        } else {
-            Err(Error::WeightsDontMatchWindowSize {
-                n_weights: weights.len(),
-                window_size: self.window_size(),
-            })
-        }
-    }
-
-    /// Returns the filter's window size. This number is equal to the number of weights.
-    pub fn window_size(&self) -> usize {
-        *self.algorithm.window_size()
-    }
-
-    /// Returns the filter's block size.
-    pub fn block_size(&self) -> usize {
-        *self.block_size
-    }
-
-    /// Returns a shared reference to the filter's weights.
-    pub fn weights(&self) -> &[F] {
-        // Returning a slice so that FilterWeights doesn't have to part of the public API
-        &self.weights
     }
 
     /// Iteratively adapts the filter to the input signal and noise reference
@@ -190,6 +154,43 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
         noise_ref: &NoiseReference<F>,
     ) -> Result<Vec<F>> {
         filter_impl(&self.weights, input_signal, noise_ref, self.block_size)
+    }
+
+    /// Replaces the filter's current weights with the input `Vec`.
+    /// This method is intended for loading previously adapted weights
+    /// or for non-zero weight initialization, e.g. to initialize weights
+    /// from a sampled distribution.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the length of the input `Vec` doesn't match
+    /// the number of filter coefficients, i.e. `weights.len() != self.window_size()`.
+    pub fn load_weights(&mut self, weights: Vec<F>) -> Result<()> {
+        if weights.len() == self.window_size() {
+            self.weights = FilterWeights::try_from(weights)?;
+            Ok(())
+        } else {
+            Err(Error::WeightsDontMatchWindowSize {
+                n_weights: weights.len(),
+                window_size: self.window_size(),
+            })
+        }
+    }
+
+    /// Returns the filter's window size. This number is equal to the number of weights.
+    pub fn window_size(&self) -> usize {
+        *self.algorithm.window_size()
+    }
+
+    /// Returns the filter's block size.
+    pub fn block_size(&self) -> usize {
+        *self.block_size
+    }
+
+    /// Returns a shared reference to the filter's weights.
+    pub fn weights(&self) -> &[F] {
+        // Returning a slice so that FilterWeights doesn't have to part of the public API
+        &self.weights
     }
 
     /// Updates the weights for the current block.

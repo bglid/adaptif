@@ -6,6 +6,7 @@ use crate::{Error, Result};
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 /// The number of past noise reference samples used when processing
 /// each input sample.
+///
 /// Also determines the number of weights used by the filter.
 pub struct WindowSize {
     inner: usize,
