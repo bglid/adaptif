@@ -49,10 +49,10 @@ macro_rules! generate_filter_bindings {
             ///         containing the reference noise signal.
             ///
             /// Returns:
-            ///     A ``NumPy`` array containing the filtered output.
+            ///     A one-dimensional ``NumPy`` array containing the error signal.
             ///
             /// Raises:
-            ///     ``ValueError``: If the inputs violate filter constraints.
+            ///     ``ValueError``: If either signal is empty or ``noise_ref`` is shorter than ``input_signal``
             fn adapt<'py>(
                 &mut self,
                 py: Python<'py>,

@@ -42,10 +42,10 @@ class LMSFilter:
                 containing the reference noise signal.
 
         Returns:
-            A NumPy array containing the filtered output.
+            A one-dimensional NumPy array containing the error signal.
 
         Raises:
-            ValueError: If the inputs violate filter constraints.
+            ValueError: If either signal is empty or noise_ref is shorter than input_signal.
         """
     def filter(self, input_signal: NDArray, noise_ref: NDArray) -> NDArray:
         """Filter the input signal without updating filter weights.
@@ -61,10 +61,10 @@ class LMSFilter:
                 containing the reference noise signal.
 
         Returns:
-            A NumPy array containing the filtered output.
+            A one-dimensional NumPy array containing the error signal.
 
         Raises:
-            ValueError: If the inputs violate filter constraints.
+            ValueError: If either signal is empty or noise_ref is shorter than input_signal.
         """
 
 class NLMSFilter:
@@ -72,8 +72,8 @@ class NLMSFilter:
 
     Args:
         mu: Step size. Must be greater than 0.0.
-            Defaults to 0.1.
-        eps: Normalization epsilon. Must be greater than 0.0
+            Defaults to 0.01.
+        eps: Normalization epsilon. Must be greater than 0.0.
             Defaults to 1e-8.
         window_size: Number of filter weights. Must be greater than 0.
             Defaults to 16.
@@ -113,10 +113,10 @@ class NLMSFilter:
                 containing the reference noise signal.
 
         Returns:
-            A NumPy array containing the filtered output.
+            A one-dimensional NumPy array containing the error signal.
 
         Raises:
-            ValueError: If the inputs violate filter constraints.
+            ValueError: If either signal is empty or noise_ref is shorter than input_signal.
         """
     def filter(self, input_signal: NDArray, noise_ref: NDArray) -> NDArray:
         """Filter the input signal without updating filter weights.
@@ -132,17 +132,17 @@ class NLMSFilter:
                 containing the reference noise signal.
 
         Returns:
-            A NumPy array containing the filtered output.
+            A one-dimensional NumPy array containing the error signal.
 
         Raises:
-            ValueError: If the inputs violate filter constraints.
+            ValueError: If either signal is empty or noise_ref is shorter than input_signal.
         """
 
 class RLSFilter:
     """Recursive Least Squares (RLS) adaptive filter.
 
     Args:
-        forgetting_factor: RLS Forgetting factor. Must be greter than 0.0 and less-than or equal to 1.0.
+        forgetting_factor: RLS Forgetting factor. Must be greater than 0.0 and less-than or equal to 1.0.
             Defaults to 0.999.
         p_init_scale: Scalar value used in initializing the inverse correlation matrix. Must be greater than 0.0.
             Defaults to 0.001.
@@ -188,10 +188,10 @@ class RLSFilter:
                 containing the reference noise signal.
 
         Returns:
-            A NumPy array containing the filtered output.
+            A one-dimensional NumPy array containing the error signal.
 
         Raises:
-            ValueError: If the inputs violate filter constraints.
+            ValueError: If either signal is empty or noise_ref is shorter than input_signal.
         """
     def filter(self, input_signal: NDArray, noise_ref: NDArray) -> NDArray:
         """Filter the input signal without updating filter weights.
@@ -207,8 +207,8 @@ class RLSFilter:
                 containing the reference noise signal.
 
         Returns:
-            A NumPy array containing the filtered output.
+            A one-dimensional NumPy array containing the error signal.
 
         Raises:
-            ValueError: If the inputs violate filter constraints.
+            ValueError: If either signal is empty or noise_ref is shorter than input_signal.
         """

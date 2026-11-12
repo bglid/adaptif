@@ -127,8 +127,8 @@ generate_filter_bindings!(LMSFilter);
 ///
 /// Args:
 ///     ``mu``: Step size. Must be greater than 0.0.
-///         Defaults to 0.1.
-///     ``eps``: Normalization epsilon. Must be greater than 0.0
+///         Defaults to 0.01.
+///     ``eps``: Normalization epsilon. Must be greater than 0.0.
 ///         Defaults to 1e-8.
 ///     ``window_size``: Number of filter weights. Must be greater than 0.
 ///         Defaults to 16.
@@ -162,7 +162,7 @@ generate_filter_bindings!(NLMSFilter);
 /// Recursive Least Squares (RLS) adaptive filter.
 ///
 /// Args:
-///     ``forgetting_factor``: RLS Forgetting factor. Must be greter than 0.0 and less-than or equal to 1.0.
+///     ``forgetting_factor``: RLS Forgetting factor. Must be greater than 0.0 and less-than or equal to 1.0.
 ///         Defaults to 0.999.
 ///     ``p_init_scale``: Scalar value used in initializing the inverse correlation matrix. Must be greater than 0.0.
 ///         Defaults to 0.001.
