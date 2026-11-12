@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Initialize the filter
     let mut lms = LmsFilter::new(
         LmsOptions {
-            mu: 0.1,         // The filter's step size
+            step_size: 0.1,  // How fast the filter adapts
             window_size: 16, // How many samples we process at a time
         },
         ProcessingMode::Sample,

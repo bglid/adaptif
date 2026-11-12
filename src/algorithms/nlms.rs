@@ -8,7 +8,7 @@ use crate::algorithms::Algorithm;
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Nlms<F: Float> {
     /// Step size for weight updates.
-    mu: F,
+    step_size: F,
     /// Regularization term to avoid division by zero.
     eps: F,
     /// Number of noise samples processed at a time.
@@ -17,10 +17,10 @@ pub struct Nlms<F: Float> {
 impl<F: Float> Nlms<F> {
     /// # Errors
     ///
-    /// Returns an error if mu <= 0.0.
-    /// Returns an error if eps <= 0.0.
-    pub fn new(mu: F, eps: F, window_size: WindowSize) -> Result<Self> {
-        if mu <= F::zero() {
+    /// Returns an error if `step_size` <= 0.0.
+    /// Returns an error if `eps` <= 0.0.
+    pub fn new(step_size: F, eps: F, window_size: WindowSize) -> Result<Self> {
+        if step_size <= F::zero() {
             return Err(Error::NonPositiveStepSize);
         }
 
@@ -29,7 +29,7 @@ impl<F: Float> Nlms<F> {
         }
 
         Ok(Nlms {
-            mu,
+            step_size,
             eps,
             window_size,
         })
@@ -44,10 +44,10 @@ impl<F: Float> Algorithm<F> for Nlms<F> {
     /// most recent noise reference samples.
     fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindowView<F>) {
         let norm_squared = noise_window.iter().map(|x| x * x).sum();
-        let mu_normalized = self.mu / (self.eps + norm_squared);
+        let step_size_normalized = self.step_size / (self.eps + norm_squared);
 
         for (w, x) in weights.iter_mut().zip(noise_window.iter()) {
-            *w += mu_normalized * error * x;
+            *w += step_size_normalized * error * x;
         }
     }
 

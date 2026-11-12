@@ -37,8 +37,8 @@ impl Display for Error {
                 f,
                 "length of the noise reference ({noise_len}) must be equal to or greater than that of the input signal ({input_len})."
             ),
-            Self::NonPositiveStepSize => write!(f, "step size (mu) must be greater than 0.0"),
-            Self::NonPositiveEpsilon => write!(f, "epsilon (eps) must be greater than 0.0"),
+            Self::NonPositiveStepSize => write!(f, "step size must be greater than 0.0"),
+            Self::NonPositiveEpsilon => write!(f, "epsilon value must be greater than 0.0"),
             Self::InvalidForgettingFactorRange => {
                 write!(f, "forgetting factor (lambda) must be > 0.0 and <= 1.0")
             }

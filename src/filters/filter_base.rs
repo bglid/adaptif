@@ -35,6 +35,11 @@ pub enum ProcessingMode {
     Block { block_size: usize },
 }
 impl ProcessingMode {
+    /// Returns the effective block size for the given mode.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for ``ProcessingMode::Block{ block_size: 0 }``.
     pub(crate) fn block_size(&self) -> Result<BlockSize> {
         let block_size = match *self {
             ProcessingMode::Sample => 1,

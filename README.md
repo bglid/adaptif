@@ -65,7 +65,7 @@ LMS adaptive filter example:
 from adaptif import LMSFilter
 
 # setting up filter
-lms_af = LMSFilter(mu=0.001, window_size=32)
+lms_af = LMSFilter(step_size=0.001, window_size=32)
 
 # Assuming signals are already present and named accordingly
 cleaned_signal = lms_af.adapt(input_signal=noisy_signal, noise_ref=noise)
