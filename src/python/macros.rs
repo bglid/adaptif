@@ -3,7 +3,7 @@ macro_rules! generate_filter_bindings {
     ($name: ident) => {
         #[pymethods]
         impl $name {
-            /// Return the ``window_size`` of a filter.
+            /// Return the ``window_size`` of a filter. This is also the number of filter weights.
             #[getter]
             fn window_size(&self) -> usize {
                 self.inner.window_size()
@@ -21,17 +21,14 @@ macro_rules! generate_filter_bindings {
                 Ok(PyArray1::from_vec(py, Vec::from(self.inner.weights())))
             }
 
-            /// Initialize a filter based on previously learned ``weights``.
+            /// Replace the filter's weights with previously learned ``weights``.
             ///
             /// Args:
             ///     ``weights``: One-dimensional float64 ``NumPy`` array
-            ///         containing the previously learned weights.
-            ///
-            /// Returns:
-            ///     A ``NumPy`` array containing the filtered output.
+            ///         containing the previously learned weights. Length must match ``window_size``.
             ///
             /// Raises:
-            ///     TODO. check
+            ///     ``ValueError``: If the number of weights doesn't match the ``window_size``.
             fn load_weights(&mut self, weights: PyReadonlyArray1<f64>) -> PyResult<()> {
                 // TODO: like with signals, decide whether weights should be copied or referenced
                 let weights = weights.as_array().iter().copied().collect::<Vec<f64>>();
@@ -41,7 +38,7 @@ macro_rules! generate_filter_bindings {
                 Ok(())
             }
 
-            /// Adapt the filter coefficients using an input and reference signal.
+            /// Adapt the filter weights using an input and reference signal.
             ///
             /// Updates the filter weights while processing the signals.
             ///
@@ -71,7 +68,7 @@ macro_rules! generate_filter_bindings {
                 )
             }
 
-            /// Filter the input signal without updating filter coefficients.
+            /// Filter the input signal without updating filter weights.
             ///
             /// Uses the current filter weights to process the input
             /// and reference signals. Unlike ``adapt()``, this method

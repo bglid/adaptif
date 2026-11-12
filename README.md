@@ -73,8 +73,9 @@ cleaned_signal = lms_af.adapt(input_signal=noisy_signal, noise_ref=noise)
 
 Here:
 
-- `input_signal` is the desired/noisy signal, AKA the mixed noisy signal containing the clean signal to extract.
-- `noise_ref` is the reference noise signal. The noise which you wish to remove from the input signal.
+- `input_signal` is the desired/noisy signal. Commonly referred to as `d(n)` in mathematical notation. 
+
+- `noise_ref` is the reference noise signal. Commonly referred to as `x(n)` in mathematical notation. 
 
 ---
 ## Contributing
