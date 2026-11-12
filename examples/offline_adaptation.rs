@@ -25,21 +25,5 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Apply the learned filter without updating it
     let _cleaned_signal = lms.filter(&input_signal, &noise_ref)?;
 
-    // `filter()` doesn't require the filter to be mutable, so we can also do this:
-    let lms_adapted = {
-        let mut lms = LmsFilter::new(
-            LmsOptions {
-                step_size: 0.1,
-                window_size: 16,
-            },
-            ProcessingMode::Sample,
-        )?;
-        lms.adapt(&input_signal, &noise_ref)?;
-        lms
-    };
-
-    // ... then call `filter()` on the immutable filter
-    let _cleaned_signal = lms_adapted.filter(&input_signal, &noise_ref)?;
-
     Ok(())
 }
