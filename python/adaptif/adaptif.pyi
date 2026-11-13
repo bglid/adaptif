@@ -4,7 +4,7 @@ class LMSFilter:
     """Least Mean Squares (LMS) adaptive filter.
 
     Args:
-        ``step_size``: Step size. Must be greater than 0.0.
+        step_size: Step size. Must be greater than 0.0.
             Defaults to 0.1.
         window_size: Number of filter weights. Must be greater than 0.
             Defaults to 16.
@@ -71,9 +71,9 @@ class NLMSFilter:
     """Normalized Least Mean Squares (NLMS) adaptive filter.
 
     Args:
-        ``step_size``: Step size. Must be greater than 0.0.
+        step_size: Step size. Must be greater than 0.0.
             Defaults to 0.1.
-        ``eps``: Normalization epsilon. Must be greater than 0.0
+        eps: Normalization epsilon. Must be greater than 0.0
             Defaults to 1e-8.
         window_size: Number of filter weights. Must be greater than 0.
             Defaults to 16.
