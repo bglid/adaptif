@@ -50,5 +50,8 @@
 !.github/**/*.md
 !.pre-commit-config.yaml
 
+# math rendering
+!katex-header.html
+
 # explicit excludes
 **/__pycache__/

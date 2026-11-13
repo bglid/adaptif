@@ -38,6 +38,9 @@ rand_distr = "0.6.0"
 name = "rust"
 path = "integration/rust.rs"
 
+[package.metadata.docs.rs]
+rustdoc-args = ["--html-in-header", "katex-header.html"]
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"]}
 
