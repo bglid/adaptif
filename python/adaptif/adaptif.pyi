@@ -4,14 +4,14 @@ class LMSFilter:
     """Least Mean Squares (LMS) adaptive filter.
 
     Args:
-        mu: Step size. Must be greater than 0.0.
+        ``step_size``: Step size. Must be greater than 0.0.
             Defaults to 0.1.
         window_size: Number of filter weights. Must be greater than 0.
             Defaults to 16.
         block_size: Number of samples processed per block. Must be greater than 0.
             Defaults to 1.
     """
-    def __init__(self, mu: float, window_size: int, block_size: int) -> None: ...
+    def __init__(self, step_size: float, window_size: int, block_size: int) -> None: ...
     @property
     def window_size(self) -> int:
         """Return the window size of a filter. This is also the number of filter weights."""
@@ -71,9 +71,9 @@ class NLMSFilter:
     """Normalized Least Mean Squares (NLMS) adaptive filter.
 
     Args:
-        mu: Step size. Must be greater than 0.0.
-            Defaults to 0.01.
-        eps: Normalization epsilon. Must be greater than 0.0.
+        ``step_size``: Step size. Must be greater than 0.0.
+            Defaults to 0.1.
+        ``eps``: Normalization epsilon. Must be greater than 0.0
             Defaults to 1e-8.
         window_size: Number of filter weights. Must be greater than 0.
             Defaults to 16.
@@ -81,7 +81,7 @@ class NLMSFilter:
             Defaults to 1.
     """
     def __init__(
-        self, mu: float, eps: float, window_size: int, block_size: int
+        self, step_size: float, eps: float, window_size: int, block_size: int
     ) -> None: ...
     @property
     def window_size(self) -> int:

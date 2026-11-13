@@ -8,17 +8,20 @@ use crate::algorithms::Algorithm;
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Lms<F: Float> {
     /// Step size for weight updates.
-    mu: F,
+    step_size: F,
     /// Number of noise samples processed at a time.
     window_size: WindowSize,
 }
 impl<F: Float> Lms<F> {
     /// # Errors
     ///
-    /// Returns an error if mu <= 0.0.
-    pub fn new(mu: F, window_size: WindowSize) -> Result<Self> {
-        if mu > F::zero() {
-            Ok(Lms { mu, window_size })
+    /// Returns an error if `step_size` <= 0.0.
+    pub fn new(step_size: F, window_size: WindowSize) -> Result<Self> {
+        if step_size > F::zero() {
+            Ok(Lms {
+                step_size,
+                window_size,
+            })
         } else {
             Err(Error::NonPositiveStepSize)
         }
@@ -32,7 +35,7 @@ impl<F: Float> Algorithm<F> for Lms<F> {
     /// and $``e_n``$ is a vector of length `block_size`.
     fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindowView<F>) {
         for (w, x) in weights.iter_mut().zip(noise_window.iter()) {
-            *w += self.mu * error * x;
+            *w += self.step_size * error * x;
         }
     }
 

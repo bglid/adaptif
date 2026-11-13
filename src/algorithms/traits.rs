@@ -1,8 +1,7 @@
 use crate::types::buffers::NoiseWindowView;
 use crate::types::{Float, WindowSize};
 
-/// Trait used for implementing algorithms with block-based processing used in conjuction with
-/// `FilterBase`.
+/// Trait used for implementing algorithms.
 pub trait Algorithm<F: Float> {
     /// Updates the weights for the next block based on the algorithm's update rules.
     /// This function is called for every processing block by the filter during adapation.

@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use adaptif::filters::{LmsFilter, LmsOptions, ProcessingMode};
-use adaptif::types::signals::{InputSignal, NoiseReference};
+use adaptif::types::{InputSignal, NoiseReference};
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Sample inputs
@@ -11,8 +11,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Initialize the filter
     let mut lms = LmsFilter::new(
         LmsOptions {
-            mu: 0.1,         // The filter's step size
-            window_size: 16, // How many samples we process at a time
+            step_size: 0.1,  // How fast the filter adapts
+            window_size: 16, // How many samples the filter processes at a time
         },
         ProcessingMode::Sample,
     )?;

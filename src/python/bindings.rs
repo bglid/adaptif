@@ -95,7 +95,7 @@ mod adaptif {
 /// Least Mean Squares (LMS) adaptive filter.
 ///
 /// Args:
-///     ``mu``: Step size. Must be greater than 0.0.
+///     ``step_size``: Step size. Must be greater than 0.0.
 ///         Defaults to 0.1.
 ///     ``window_size``: Number of filter weights. Must be greater than 0.
 ///         Defaults to 16.
@@ -108,10 +108,13 @@ pub struct LMSFilter {
 #[pymethods]
 impl LMSFilter {
     #[new]
-    #[pyo3(signature = (mu=0.1, window_size=16, block_size=1))]
-    fn new(mu: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
+    #[pyo3(signature = (step_size=0.1, window_size=16, block_size=1))]
+    fn new(step_size: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
         let filter = LmsFilter::new(
-            LmsOptions { mu, window_size },
+            LmsOptions {
+                step_size,
+                window_size,
+            },
             ProcessingMode::Block { block_size }, // Note that block_size: 1 is functionally
                                                   // equivalent to ProcessingMode::Sample
         )
@@ -126,9 +129,9 @@ generate_filter_bindings!(LMSFilter);
 /// Normalized Least Mean Squares (NLMS) adaptive filter.
 ///
 /// Args:
-///     ``mu``: Step size. Must be greater than 0.0.
-///         Defaults to 0.01.
-///     ``eps``: Normalization epsilon. Must be greater than 0.0.
+///     ``step_size``: Step size. Must be greater than 0.0.
+///         Defaults to 0.1.
+///     ``eps``: Normalization epsilon. Must be greater than 0.0
 ///         Defaults to 1e-8.
 ///     ``window_size``: Number of filter weights. Must be greater than 0.
 ///         Defaults to 16.
@@ -141,11 +144,11 @@ pub struct NLMSFilter {
 #[pymethods]
 impl NLMSFilter {
     #[new]
-    #[pyo3(signature = (mu=0.01, eps=1e-8, window_size=16, block_size=1))]
-    fn new(mu: f64, eps: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
+    #[pyo3(signature = (step_size=0.01, eps=1e-8, window_size=16, block_size=1))]
+    fn new(step_size: f64, eps: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
         let filter = NlmsFilter::new(
             NlmsOptions {
-                mu,
+                step_size,
                 eps,
                 window_size,
             },
