@@ -28,6 +28,27 @@ impl<F: Float> Default for LmsOptions<F> {
     }
 }
 
+#[allow(clippy::doc_paragraphs_missing_punctuation, reason = "maths")]
+/// Least Mean Squares (LMS) adaptive filter.
+///
+/// Updates the filter weights using the [least mean squares] algorithm.
+/// The LMS algorithm uses stochastic gradient descent to minimize
+/// the mean squared error between the reference input signal
+/// and the filter output.
+///
+/// # Update Rule
+///
+/// The weights are updated at each sample according to:
+///
+/// $$\mathbf{w}(n+1) = \mathbf{w}(n) + \mu \mathbf{e}(n)\mathbf{x}(n)$$
+///
+/// Where:
+/// - $\mathbf{w}(n)$ is the filter weight vector.
+/// - $μ$ is the adaptation step size.
+/// - $\mathbf{e}(n)$ is the scalar error.
+/// - $\mathbf{x}(n)$ is the reference input vector.
+///
+/// [least mean squares]: `https://en.wikipedia.org/wiki/Least_mean_squares_filter`
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct LmsFilter<F: Float> {
     inner: FilterBase<F, Lms<F>>,

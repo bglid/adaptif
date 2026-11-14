@@ -17,8 +17,8 @@ pub struct Nlms<F: Float> {
 impl<F: Float> Nlms<F> {
     /// # Errors
     ///
-    /// Returns an error if `step_size` <= 0.0.
-    /// Returns an error if `eps` <= 0.0.
+    /// Returns an error if `step_size <= 0.0`.
+    /// Returns an error if `eps <= 0.0`.
     pub fn new(step_size: F, eps: F, window_size: WindowSize) -> Result<Self> {
         if step_size <= F::zero() {
             return Err(Error::NonPositiveStepSize);
