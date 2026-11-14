@@ -4,7 +4,7 @@ use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
 
-/// Normalized Least Mean Squares (NLMS) adaptive filter.
+/// Normalized Least Mean Squares (NLMS) algorithm.
 ///
 /// Updates the filter weights using the [normalized least mean squares] algorithm.
 /// The NLMS algorithm uses a stochastic gradient descent approach similar to the LMS algorithm.
@@ -13,6 +13,8 @@ use crate::algorithms::Algorithm;
 ///
 /// The NLMS algorithm normalizes with the power of the input to solve this problem, providing
 /// a more stable step size range.
+///
+/// [normalized least mean squares]: https://en.wikipedia.org/wiki/Least_mean_squares_filter#Normalized_least_mean_squares_filter_(NLMS)
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Nlms<F: Float> {
     /// Step size for weight updates.

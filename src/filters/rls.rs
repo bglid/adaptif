@@ -28,6 +28,51 @@ impl<F: Float> Default for RlsOptions<F> {
     }
 }
 
+#[allow(clippy::doc_paragraphs_missing_punctuation, reason = "maths")]
+/// Recursive Least Squares (RLS) adaptive filter.
+///
+/// Updates the filter weights using the [recursive least squares] algorithm.
+/// RLS recursively finds the coefficients that
+/// minimize an exponentially weighted sum of
+/// squared errors to adapt the filter weights.
+///
+/// Unlike [least mean squares], which uses stochastic gradient
+/// descent, RLS uses a deterministic least-squares approach.
+///
+/// RLS has fast convergence, at the cost of high computational complexity.
+/// For computationally constrained applications,
+/// LMS-family algorithms may be preferable.
+///
+/// # Update Rule
+///
+/// The weights are updated at every step according to:
+///
+/// $$\mathbf{w}(n) = \mathbf{w}(n-1) + \mathbf{k}(n)e(n)$$
+///
+/// The Kalman gain vector is calculated as:
+///
+/// $$\mathbf{k}(n) = \frac{\mathbf{P}(n-1)\mathbf{x}(n)}{\lambda + \mathbf{x}^{T}(n)\mathbf{P}(n-1)\mathbf{x}(n)}$$
+///
+/// The inverse correlation matrix is then updated as:
+///
+/// $$\mathbf{P}(n) = \frac{1}{\lambda}\left(\mathbf{P}(n-1) - \mathbf{k}(n)\mathbf{x}^{T}(n)\mathbf{P}(n-1)\right)$$
+///
+/// The inverse correlation matrix is initialized as:
+///
+/// $$\mathbf{P}(0) = \delta\mathbf{I}$$
+///
+/// Where:
+/// - $\mathbf{w}(n)$ is the filter weight vector.
+/// - $\mathbf{x}(n)$ is the reference input vector.
+/// - $e(n)$ is the scalar error for the current sample.
+/// - $\mathbf{k}(n)$ is the Kalman gain vector.
+/// - $\mathbf{P}(n)$ is the inverse correlation matrix.
+/// - $\lambda$ is the forgetting factor, with $0 < \lambda \leq 1$.
+/// - $\delta$ is  a positive initialization scalar.
+/// - $\mathbf{I}$ is the identity matrix.
+///
+/// [recursive least squares]: https://en.wikipedia.org/wiki/Recursive_least_squares_filter
+/// [least mean squares]: `https://en.wikipedia.org/wiki/Least_mean_squares_filter`
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct RlsFilter<F: Float> {
     inner: FilterBase<F, Rls<F>>,

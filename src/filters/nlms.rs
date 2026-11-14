@@ -59,7 +59,6 @@ impl<F: Float> Default for NlmsOptions<F> {
 /// - $\|\|\mathbf{x}(n)\|\|^2$ is the squared Euclidean norm of the input vector.
 ///
 /// [normalized least mean squares]: https://en.wikipedia.org/wiki/Least_mean_squares_filter#Normalized_least_mean_squares_filter_(NLMS)
-
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct NlmsFilter<F: Float> {
     inner: FilterBase<F, Nlms<F>>,

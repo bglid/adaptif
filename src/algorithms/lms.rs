@@ -4,12 +4,14 @@ use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
 
-/// Least Mean Squares (LMS) adaptive filter.
+/// Least Mean Squares (LMS) algorithm.
 ///
 /// Updates the filter weights using the [least mean squares] algorithm.
 /// The LMS algorithm uses stochastic gradient descent to minimize
 /// the mean squared error between the reference input signal
 /// and the filter output.
+///
+/// [least mean squares]: `https://en.wikipedia.org/wiki/Least_mean_squares_filter`
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Lms<F: Float> {
     /// Step size for weight updates.
