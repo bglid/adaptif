@@ -28,6 +28,38 @@ impl<F: Float> Default for NlmsOptions<F> {
     }
 }
 
+#[allow(clippy::doc_paragraphs_missing_punctuation, reason = "maths")]
+/// Normalized Least Mean Squares (NLMS) adaptive filter.
+///
+/// Updates the filter weights using the [normalized least mean squares] algorithm.
+/// The NLMS algorithm uses a stochastic gradient descent approach similar to the LMS algorithm.
+/// However, with the "pure" LMS algorithm, it can be difficult to choose a step size $\mu$
+/// that isn't sensitive to the scaling of input $x(n)$.
+///
+/// The NLMS algorithm normalizes with the power of the input to solve this problem, providing
+/// a more stable step size range.
+///
+/// # Update Rule
+///
+///
+/// The weights are updated at each sample according to:
+///
+/// $$
+/// \mathbf{w}(n+1) = \mathbf{w}(n) +\mu \mathbf{e}(n)
+/// \frac{\mathbf{x}(n)}
+/// {\epsilon + \|\|\mathbf{x}(n)\|\|^2}
+/// $$
+///
+/// Where:
+/// - $\mathbf{w}(n)$ is the filter weight vector.
+/// - $μ$ is the adaptation step size.
+/// - $\mathbf{e}(n)$ is the scalar error.
+/// - $\mathbf{x}(n)$ is the reference input vector.
+/// - $\epsilon$ is the normalization regularization term that prevents division by 0.
+/// - $\|\|\mathbf{x}(n)\|\|^2$ is the squared Euclidean norm of the input vector.
+///
+/// [normalized least mean squares]: https://en.wikipedia.org/wiki/Least_mean_squares_filter#Normalized_least_mean_squares_filter_(NLMS)
+
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct NlmsFilter<F: Float> {
     inner: FilterBase<F, Nlms<F>>,
