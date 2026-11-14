@@ -1,6 +1,7 @@
 RUST_SRC = src/*
 PY_BINDINGS = python/adaptif/adaptif.cpython*.so
 CARGO_FLAGS = --all-features --all-targets
+RUSTDOCFLAGS := --html-in-header $(CURDIR)/katex-header.html
 
 ##################################################
 # ENVIRONMENT SETUP
@@ -89,6 +90,18 @@ test-all: test-rs test-py
 audit: check-rust-install check-uv-install
 	cargo audit
 	uv audit
+
+##################################################
+# DOCS
+##################################################
+
+# Rust docs for development
+.PHONY: docs-pub docs-priv
+docs-pub: 
+	RUSTDOCFLAGS="$(RUSTDOCFLAGS)" cargo doc --open
+# shows docs for private items too. Development purpose.
+docs-priv: 
+	RUSTDOCFLAGS="$(RUSTDOCFLAGS)" cargo doc --no-deps --document-private-items --open 
 
 
 # Remove build artifacts and bindings
