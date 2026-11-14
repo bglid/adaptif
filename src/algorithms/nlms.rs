@@ -47,7 +47,7 @@ impl<F: Float> Nlms<F> {
 impl<F: Float> Algorithm<F> for Nlms<F> {
     /// Updates the filter weights using the NLMS algorithm.
     ///
-    /// The weights are updated at each sample according to:
+    /// The weights are updated at every step according to:
     ///
     /// $$
     /// \mathbf{w}(n+1) = \mathbf{w}(n) +\mu e(n)

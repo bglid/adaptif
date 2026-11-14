@@ -38,7 +38,7 @@ impl<F: Float> Default for LmsOptions<F> {
 ///
 /// # Update Rule
 ///
-/// The weights are updated at each sample according to:
+/// The weights are updated at every step according to:
 ///
 /// $$\mathbf{w}(n+1) = \mathbf{w}(n) + \mu \mathbf{e}(n)\mathbf{x}(n)$$
 ///

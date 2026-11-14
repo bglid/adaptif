@@ -36,7 +36,7 @@ impl<F: Float> Lms<F> {
 impl<F: Float> Algorithm<F> for Lms<F> {
     /// Updates the filter weights using the LMS algorithm.
     ///
-    /// The weights are updated at each sample according to:
+    /// The weights are updated at every step according to:
     ///
     /// $$\mathbf{w}(n+1) = \mathbf{w}(n) + \mu e(n)\mathbf{x}(n)$$
     ///
