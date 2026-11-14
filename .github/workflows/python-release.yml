@@ -1,17 +1,38 @@
 name: Wheels
 
 on:
-  workflow_dispatch:
-  release:
-    types:
-      - published
+  push:
+    tags:
+      # NOTE: this doesn't match all of semver (e.g. pre-releases),
+      # but should be enough for our purposes
+      - 'v[0-9]*.[0-9]*.[0-9]*'
 
 jobs:
+  check-package:
+    name: Pre-publish checks
+    uses: ./.github/workflows/python-ci.yml
+
+  check-tag:
+    name: Check that release tag matches pyproject.toml version
+    runs-on: ubuntu-24.04
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Compare versions
+        run: |
+          VERSION=$(uv version --short)
+          test "$TAG" = "v$VERSION"
+
   sdist:
     name: sdist
     runs-on: ubuntu-24.04
+    needs: [check-package, check-tag]
     steps:
-      - uses: actions/checkout@v7
+      - name: Checkout repository
+        uses: actions/checkout@v7
 
       - name: Build SDist
         uses: PyO3/maturin-action@v1.51.0
@@ -45,6 +66,7 @@ jobs:
   build_wheels:
     name: Wheel on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    needs: [check-package, check-tag]
     strategy:
       fail-fast: false
       matrix:
@@ -57,7 +79,8 @@ jobs:
           - macos-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - name: Checkout repository
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 

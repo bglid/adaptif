@@ -9,7 +9,7 @@ use crate::types::{Float, WindowSize};
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct NlmsOptions<F: Float> {
-    pub mu: F,
+    pub step_size: F,
     pub eps: F,
     pub window_size: usize,
 }
@@ -21,7 +21,7 @@ impl<F: Float> Default for NlmsOptions<F> {
             reason = "Trivial conversions"
         )]
         Self {
-            mu: F::from(0.01).unwrap(),
+            step_size: F::from(0.01).unwrap(),
             eps: F::from(1e-8).unwrap(),
             window_size: 16,
         }
@@ -35,13 +35,13 @@ pub struct NlmsFilter<F: Float> {
 impl<F: Float> NlmsFilter<F> {
     /// # Errors
     ///
-    /// Returns an error if options.mu or options.eps <= 0.0.
+    /// Returns an error if `options.step_size <= 0.0` or `options.eps <= 0.0`.
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn new(options: NlmsOptions<F>, mode: ProcessingMode) -> Result<Self> {
         let window_size = WindowSize::new(options.window_size)?;
         let block_size = mode.block_size()?;
 
-        let nlms = Nlms::new(options.mu, options.eps, window_size)?;
+        let nlms = Nlms::new(options.step_size, options.eps, window_size)?;
         let filter = FilterBase::new(nlms, block_size);
 
         Ok(Self { inner: filter })
@@ -69,13 +69,13 @@ mod tests {
 
     #[test]
     fn new_works() {
-        let mu = 0.1;
+        let step_size = 0.1;
         let eps = 1e-8;
         let window_size = 16;
 
         let filter = NlmsFilter::new(
             NlmsOptions {
-                mu,
+                step_size,
                 eps,
                 window_size,
             },
@@ -85,7 +85,7 @@ mod tests {
 
         let window_size = WindowSize::new(window_size).unwrap();
         let expected_inner = FilterBase::new(
-            Nlms::new(mu, eps, window_size).unwrap(),
+            Nlms::new(step_size, eps, window_size).unwrap(),
             BlockSize::new(1).unwrap(),
         );
 
@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn load_weights_works() {
-        let mu = 0.1;
+        let step_size = 0.1;
         let eps = 1e-8;
         let weights = vec![1.0, 2.0, 3.0];
         let window_size = WindowSize::new(weights.len()).unwrap();
@@ -103,7 +103,7 @@ mod tests {
         let filter = {
             let mut filter = NlmsFilter::new(
                 NlmsOptions {
-                    mu,
+                    step_size,
                     eps,
                     window_size: *window_size,
                 },
@@ -116,7 +116,7 @@ mod tests {
 
         let expected_inner = {
             let mut expected_inner = FilterBase::new(
-                Nlms::new(mu, eps, window_size).unwrap(),
+                Nlms::new(step_size, eps, window_size).unwrap(),
                 BlockSize::new(1).unwrap(),
             );
             expected_inner.load_weights(weights.clone()).unwrap();

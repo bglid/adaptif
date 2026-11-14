@@ -92,6 +92,15 @@ mod adaptif {
     use super::{LMSFilter, NLMSFilter, RLSFilter};
 }
 
+/// Least Mean Squares (LMS) adaptive filter.
+///
+/// Args:
+///     `step_size`: Step size. Must be greater than 0.0.
+///         Defaults to 0.1.
+///     `window_size`: Number of filter weights. Must be greater than 0.
+///         Defaults to 16.
+///     `block_size`: Number of samples processed per block. Must be greater than 0.
+///         Defaults to 1.
 #[pyclass]
 pub struct LMSFilter {
     inner: LmsFilter<f64>,
@@ -99,10 +108,13 @@ pub struct LMSFilter {
 #[pymethods]
 impl LMSFilter {
     #[new]
-    #[pyo3(signature = (mu=0.1, window_size=16, block_size=1))]
-    fn new(mu: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
+    #[pyo3(signature = (step_size=0.1, window_size=16, block_size=1))]
+    fn new(step_size: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
         let filter = LmsFilter::new(
-            LmsOptions { mu, window_size },
+            LmsOptions {
+                step_size,
+                window_size,
+            },
             ProcessingMode::Block { block_size }, // Note that block_size: 1 is functionally
                                                   // equivalent to ProcessingMode::Sample
         )
@@ -114,6 +126,17 @@ impl LMSFilter {
 
 generate_filter_bindings!(LMSFilter);
 
+/// Normalized Least Mean Squares (NLMS) adaptive filter.
+///
+/// Args:
+///     `step_size`: Step size. Must be greater than 0.0.
+///         Defaults to 0.1.
+///     `eps`: Normalization epsilon. Must be greater than 0.0
+///         Defaults to 1e-8.
+///     `window_size`: Number of filter weights. Must be greater than 0.
+///         Defaults to 16.
+///     `block_size`: Number of samples processed per block. Must be greater than 0.
+///         Defaults to 1.
 #[pyclass]
 pub struct NLMSFilter {
     inner: NlmsFilter<f64>,
@@ -121,11 +144,11 @@ pub struct NLMSFilter {
 #[pymethods]
 impl NLMSFilter {
     #[new]
-    #[pyo3(signature = (mu=0.01, eps=1e-8, window_size=16, block_size=1))]
-    fn new(mu: f64, eps: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
+    #[pyo3(signature = (step_size=0.01, eps=1e-8, window_size=16, block_size=1))]
+    fn new(step_size: f64, eps: f64, window_size: usize, block_size: usize) -> PyResult<Self> {
         let filter = NlmsFilter::new(
             NlmsOptions {
-                mu,
+                step_size,
                 eps,
                 window_size,
             },
@@ -139,6 +162,17 @@ impl NLMSFilter {
 
 generate_filter_bindings!(NLMSFilter);
 
+/// Recursive Least Squares (RLS) adaptive filter.
+///
+/// Args:
+///     `forgetting_factor`: RLS Forgetting factor. Must be greater than 0.0 and less-than or equal to 1.0.
+///         Defaults to 0.999.
+///     `p_init_scale`: Scalar value used in initializing the inverse correlation matrix. Must be greater than 0.0.
+///         Defaults to 0.001.
+///     `window_size`: Number of filter weights. Must be greater than 0.
+///         Defaults to 8.
+///     `block_size`: Number of samples processed per block. Must be greater than 0.
+///         Defaults to 1.
 #[pyclass]
 pub struct RLSFilter {
     inner: RlsFilter<f64>,

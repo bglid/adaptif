@@ -2,9 +2,9 @@ use std::error::Error;
 
 use adaptif::Algorithm;
 use adaptif::filters::FilterBase;
-use adaptif::types::buffers::NoiseWindowView;
-use adaptif::types::signals::{InputSignal, NoiseReference};
+use adaptif::types::NoiseWindowView;
 use adaptif::types::{BlockSize, WindowSize};
+use adaptif::types::{InputSignal, NoiseReference};
 
 // Create a struct to hold any required parameters or state
 pub struct MyAlgorithm {

@@ -3,13 +3,10 @@
 [![Actions status](https://github.com/bglid/adaptif/workflows/build/badge.svg)](https://github.com/bglid/adaptif/actions)
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![License](https://img.shields.io/github/license/bglid/adaptif)](https://github.com/bglid/adaptif/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/bglid/adaptif)](https://github.com/bglid/adaptif/blob/main/LICENSE)
 
 #### Rust crate for DSP Adaptive Filters with Python bindings. 
 
----
-
-_Project is still WIP. Going through massive refactor to Rust [pyo3](https://github.com/pyo3/pyo3) internals_
 
 ---
 
@@ -31,33 +28,26 @@ We're currently working towards a first full release, which will include the fol
 
 The projects currently supports Rust stable and Python 3.11 - 3.15.
 
-Cloning the repo:
+#### Rust crate
+Via crates.io:
 
 ```bash
-git clone https://github.com/bglid/adaptif.git
+cargo add adaptif
 ```
 
-Then use Make to set up the dev environment:
+#### Python bindings
+Via PyPI:
+
 ```bash
-make setup-rust # Install/update the Rust toolchain through Rustup
-make setup-uv # Install and setup uv for Python dependency management
-# or
-make setup # Run both of the above
+# With uv (preferred).
+uv add adaptif
 ```
 
-All development processes (running checks, test, etc.) are codified in the project's Makefile.
-See [CONTRIBUTING.md](https://github.com/bglid/adaptif/blob/main/CONTRIBUTING.md) for a quick reference on the available commands.
-
-#### Contributing
-
-See [CONTRIBUTING.md](https://github.com/bglid/adaptif/blob/main/CONTRIBUTING.md) for setup and contribution guidelines.
-
-In short,
-
-- Open an issue for a discussion. We will likely handle it.
-- Undisclosed AI PRs will be closed and no further PRs from said user will be considered.
-
----
+```bash
+# With pip.
+pip install adaptif
+```
+- - - 
 
 ## Usage
 
@@ -75,16 +65,27 @@ LMS adaptive filter example:
 from adaptif import LMSFilter
 
 # setting up filter
-lms_af = LMSFilter(mu=0.001, n=32)
+lms_af = LMSFilter(step_size=0.001, window_size=32)
 
 # Assuming signals are already present and named accordingly
-cleaned_signal = lms_af.adapt(d=noisy_signal, x=noise)
+cleaned_signal = lms_af.adapt(input_signal=noisy_signal, noise_ref=noise)
 ```
 
 Here:
 
-- `d` is the desired/noisy signal.
-- `x` is the reference noise signal.
+- `input_signal` is the desired/noisy signal. Commonly referred to as `d(n)` in mathematical notation. 
+
+- `noise_ref` is the reference noise signal. Commonly referred to as `x(n)` in mathematical notation. 
+
+---
+## Contributing
+
+See [CONTRIBUTING.md](https://github.com/bglid/adaptif/blob/main/CONTRIBUTING.md) for setup and contribution guidelines.
+
+In short,
+
+- Open an issue for a discussion. We will likely handle it.
+- Undisclosed AI PRs will be closed and no further PRs from said user will be considered.
 
 ---
 

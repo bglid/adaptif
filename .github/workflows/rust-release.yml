@@ -1,0 +1,48 @@
+name: Publish to crates.io
+
+on:
+  push:
+    tags:
+      # NOTE: this doesn't match all of semver (e.g. pre-releases),
+      # but should be enough for our purposes
+      - 'v[0-9]*.[0-9]*.[0-9]*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check-crate:
+    name: Pre-publish checks
+    uses: ./.github/workflows/rust-ci.yml
+
+  publish:
+    name: Publish crate
+    needs: check-crate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install
+          rustup component add rustfmt
+
+      - name: Check that release tag matches Cargo.toml version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSION=$(cargo metadata --no-deps --format-version 1 \
+            | jq -er '.packages[] | select(.name == "adaptif") | .version')
+
+          test "$TAG" = "v$VERSION"
+
+      - name: Format Code
+        run: cargo fmt --all
+
+      - name: Cargo Publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p adaptif
+

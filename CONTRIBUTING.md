@@ -83,15 +83,15 @@ To generate the Python bindings:
 make python
 ```
 
-The generated `.so` file will be placed in `adaptif/`
+The generated `.so` file will be placed in `python/adaptif/`
 
 Note that `make check-py` and `make test-py` will build the bindings automatically if necessary,
 no need to run `make python`.
 
 ### Adding new bindings
 
-New bindings should be imported in `adaptif/__init__.py`.
-In order for `ty` to resolve imports correctly, you also have to add any new functions/classes to the stub file (`adaptif/adaptif.pyi`).
+New bindings should be imported in `python/adaptif/__init__.py`.
+In order for `ty` to resolve imports correctly, you also have to add any new functions/classes to the stub file (`python/adaptif/adaptif.pyi`).
 
 ## Codestyle
 

@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used, reason = "tests utils")]
 use adaptif::{
     Result,
-    types::signals::{InputSignal, NoiseReference},
+    types::{InputSignal, NoiseReference},
 };
 use core::f64;
 use hound;

@@ -4,35 +4,50 @@ use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
 
-/// Least mean squares algorithm.
+/// Least Mean Squares (LMS) adaptive filter.
+///
+/// Updates the filter weights using the [least mean squares] algorithm.
+/// The LMS algorithm uses stochastic gradient descent to minimize
+/// the mean squared error between the reference input signal
+/// and the filter output.
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Lms<F: Float> {
     /// Step size for weight updates.
-    mu: F,
-    /// Number of noise samples processed at a time.
+    step_size: F,
+    /// Number of samples processed at a time.
     window_size: WindowSize,
 }
 impl<F: Float> Lms<F> {
     /// # Errors
     ///
-    /// Returns an error if mu <= 0.0.
-    pub fn new(mu: F, window_size: WindowSize) -> Result<Self> {
-        if mu > F::zero() {
-            Ok(Lms { mu, window_size })
+    /// Returns an error if `step_size <= 0.0`.
+    pub fn new(step_size: F, window_size: WindowSize) -> Result<Self> {
+        if step_size > F::zero() {
+            Ok(Lms {
+                step_size,
+                window_size,
+            })
         } else {
             Err(Error::NonPositiveStepSize)
         }
     }
 }
+#[allow(clippy::doc_paragraphs_missing_punctuation, reason = "maths")]
 impl<F: Float> Algorithm<F> for Lms<F> {
-    /// Updates the filter weights using the following equation:
+    /// Updates the filter weights using the LMS algorithm.
     ///
-    /// $w_{n+1} = ``w_n`` + \mu ``e_n``^T ``X_n``$
-    /// where $``X_n``$ is a matrix with shape `(block_size, window_size)`,
-    /// and $``e_n``$ is a vector of length `block_size`.
+    /// The weights are updated at each sample according to:
+    ///
+    /// $$\mathbf{w}(n+1) = \mathbf{w}(n) + \mu e(n)\mathbf{x}(n)$$
+    ///
+    /// Where:
+    /// - $\mathbf{w}(n)$ is the filter weight vector.
+    /// - $μ$ is the adaptation step size.
+    /// - $e(n)$ is the scalar error.
+    /// - $\mathbf{x}(n)$ is the reference input vector.
     fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindowView<F>) {
         for (w, x) in weights.iter_mut().zip(noise_window.iter()) {
-            *w += self.mu * error * x;
+            *w += self.step_size * error * x;
         }
     }
 

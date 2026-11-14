@@ -9,6 +9,7 @@
 !python/adaptif/
 !python/adaptif/*.py
 !python/adaptif/*.pyi
+!python/adaptif/py.typed
 
 # python unit tests
 !python/tests/
@@ -48,6 +49,9 @@
 !.github/**/*.yml
 !.github/**/*.md
 !.pre-commit-config.yaml
+
+# math rendering
+!katex-header.html
 
 # explicit excludes
 **/__pycache__/

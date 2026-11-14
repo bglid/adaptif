@@ -8,6 +8,16 @@ def filter(request):
     return request.param()
 
 
+@pytest.mark.parametrize(
+    "filter_class, window_size",
+    [(LMSFilter, 16), (NLMSFilter, 16), (RLSFilter, 8)],
+)
+def test_default_init(filter_class, window_size) -> None:
+    filter = filter_class()
+    assert filter.window_size == window_size
+    assert filter.block_size == 1
+
+
 @pytest.mark.parametrize("filter_class", [LMSFilter, NLMSFilter, RLSFilter])
 @pytest.mark.parametrize("block_size", [1, 4])
 def test_window_size(filter_class, block_size):
