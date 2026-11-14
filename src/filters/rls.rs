@@ -43,6 +43,33 @@ impl<F: Float> Default for RlsOptions<F> {
 /// For computationally constrained applications,
 /// LMS-family algorithms may be preferable.
 ///
+/// ### Example usage
+///
+///```rust
+/// # use adaptif::Error;
+/// use adaptif::filters::{RlsFilter, RlsOptions, ProcessingMode};
+/// use adaptif::types::{InputSignal, NoiseReference};
+///
+/// // Initialize the filter
+/// let mut rls= RlsFilter::new(
+///     RlsOptions {
+///         forgetting_factor: 0.999, // How much data the filter forgets
+///         window_size: 8,           // How many samples the filter processes at a time
+///         p_init_scale: 0.001,      // Value of initialization scalar for algorithm
+///     },
+///     ProcessingMode::Sample,
+/// )?;
+///
+/// // Sample inputs
+/// let input_signal = InputSignal::new(vec![1.0, -2.5, 3.0])?;
+/// let noise_ref = NoiseReference::new(vec![2.0, -1.2, -3.8])?;
+///
+/// // Adapt the filter to the inputs.
+/// let cleaned_signal = rls.adapt(&input_signal, &noise_ref)?;
+///
+/// # Ok::<(), Error>(())
+///```
+///
 /// # Update Rule
 ///
 /// The weights are updated at every step according to:

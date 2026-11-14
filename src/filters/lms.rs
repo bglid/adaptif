@@ -36,6 +36,32 @@ impl<F: Float> Default for LmsOptions<F> {
 /// the mean squared error between the reference input signal
 /// and the filter output.
 ///
+/// ### Example usage
+///
+///```rust
+/// # use adaptif::Error;
+/// use adaptif::filters::{LmsFilter, LmsOptions, ProcessingMode};
+/// use adaptif::types::{InputSignal, NoiseReference};
+///
+/// // Initialize the filter
+/// let mut lms = LmsFilter::new(
+///     LmsOptions {
+///         step_size: 0.1,  // How fast the filter adapts
+///         window_size: 16, // How many samples the filter processes at a time
+///     },
+///     ProcessingMode::Sample,
+/// )?;
+///
+/// // Sample inputs
+/// let input_signal = InputSignal::new(vec![1.0, -2.5, 3.0])?;
+/// let noise_ref = NoiseReference::new(vec![2.0, -1.2, -3.8])?;
+///
+/// // Adapt the filter to the inputs.
+/// let cleaned_signal = lms.adapt(&input_signal, &noise_ref)?;
+///
+/// # Ok::<(), Error>(())
+///```
+///
 /// # Update Rule
 ///
 /// The weights are updated at every step according to:

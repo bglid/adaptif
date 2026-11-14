@@ -39,6 +39,34 @@ impl<F: Float> Default for NlmsOptions<F> {
 /// The NLMS algorithm normalizes with the power of the input to solve this problem, providing
 /// a more stable step size range.
 ///
+/// TODO: Question, should the examples be the default, or explicit like below?
+/// ### Example usage
+///
+///```rust
+/// # use adaptif::Error;
+/// use adaptif::filters::{NlmsFilter, NlmsOptions, ProcessingMode};
+/// use adaptif::types::{InputSignal, NoiseReference};
+///
+/// // Initialize the filter
+/// let mut nlms = NlmsFilter::new(
+///     NlmsOptions {
+///         step_size: 0.01, // How fast the filter adapts
+///         window_size: 16, // How many samples the filter processes at a time
+///         eps: 1e-8,       // Normalization regularization term
+///     },
+///     ProcessingMode::Sample,
+/// )?;
+///
+/// // Sample inputs
+/// let input_signal = InputSignal::new(vec![1.0, -2.5, 3.0])?;
+/// let noise_ref = NoiseReference::new(vec![2.0, -1.2, -3.8])?;
+///
+/// // Adapt the filter to the inputs.
+/// let cleaned_signal = nlms.adapt(&input_signal, &noise_ref)?;
+///
+/// # Ok::<(), Error>(())
+///```
+///
 /// # Update Rule
 ///
 ///

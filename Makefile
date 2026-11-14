@@ -76,6 +76,7 @@ test-rs: check-rust-install
 	# Since we don't have any tests in the Python features, leaving it out for now.
 	cargo tarpaulin --lib --frozen --skip-clean
 	cargo test --test rust --frozen
+	cargo test --doc --frozen
 
 # Python 
 test-py: $(PY_BINDINGS) 
@@ -96,12 +97,9 @@ audit: check-rust-install check-uv-install
 ##################################################
 
 # Rust docs for development
-.PHONY: docs-pub docs-priv
-docs-pub: 
+.PHONY: docs
+docs: 
 	RUSTDOCFLAGS="$(RUSTDOCFLAGS)" cargo doc --open
-# shows docs for private items too. Development purpose.
-docs-priv: 
-	RUSTDOCFLAGS="$(RUSTDOCFLAGS)" cargo doc --no-deps --document-private-items --open 
 
 
 # Remove build artifacts and bindings
