@@ -108,24 +108,31 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
 
         let n_samples = input_signal.len();
 
-        for block_start in (0..n_samples).step_by(*self.block_size) {
-            let (block_size, block_end) = if block_start + *self.block_size <= n_samples {
-                (self.block_size, block_start + *self.block_size)
-            } else {
-                // truncate the block if there are not enough samples left
-                #[allow(
-                    clippy::unwrap_in_result,
-                    clippy::missing_panics_doc,
-                    reason = "failure independent of fn input"
-                )]
-                let truncated = BlockSize::new(n_samples - block_start)
-                    .expect("for loop should guarantee block_start < n_samples.");
+        // Processing the whole blocks first and then the remaining samples
+        // allows us to avoid a branch in a hot loop.
+        let remainder = n_samples % *self.block_size;
+        let whole_blocks_end = n_samples - remainder;
 
-                (truncated, n_samples)
-            };
+        for block_start in (0..whole_blocks_end).step_by(*self.block_size) {
+            let block_end = block_start + *self.block_size;
 
             process_block(
                 block_start..block_end,
+                &self.weights,
+                input_signal,
+                noise_ref,
+                &mut noise_buffer,
+                &mut error_buffer,
+                &mut cleaned_signal,
+            );
+
+            self.update_weights(&error_buffer, &noise_buffer, self.block_size);
+        }
+
+        // Process remaining samples that don't form a whole block, if there are any
+        if let Ok(block_size) = BlockSize::new(remainder) {
+            process_block(
+                whole_blocks_end..n_samples,
                 &self.weights,
                 input_signal,
                 noise_ref,

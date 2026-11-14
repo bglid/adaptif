@@ -53,6 +53,7 @@ allow_attributes = "allow"
 # no-brainers
 arithmetic_side_effects = "allow" # otherwise we get warnings about potential overflows on _every_ arithmetic op
 float_arithmetic = "allow" # used by algorithms
+integer-division-remainder-used = "allow" # this lint is for cryptography
 implicit_return = "allow" # leaving out the `return` keyword is idiomatic
 must_use_candidate = "allow" # just shows where #[must_use] can be used
 single_call_fn = "allow" # functions are useful for code organization and self-documentation
