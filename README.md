@@ -7,13 +7,12 @@
 
 #### Rust crate for DSP Adaptive Filters with Python bindings. 
 
-
 ---
 
-## Filters:
+## Overview
 
-This project contains Rust implementations of Adaptive filtering algorithms, with bindings for Python.
-We're currently working towards a first full release, which will include the following algorithms:
+This project contains Rust implementations of [adaptive filtering](https://en.wikipedia.org/wiki/Adaptive_filter) algorithms, with bindings for Python.
+Currently, the following algorithms are supported:
 
 | Adaptive Filter Algorithm            |    Status     |
 | ------------------------------------ | :-----------: |
@@ -22,11 +21,13 @@ We're currently working towards a first full release, which will include the fol
 | Recursive Least Squares (RLS)        |       ✔       |
 | Affine Projection Algorithm (APA)    | _in progress_ |
 
+We're also working on real-time processing and `no_std` functionality for use in embedded systems, which are planned for the next major release.
+
 ---
 
 ## Installation
 
-The projects currently supports Rust stable and Python 3.11 - 3.15.
+The projects currently supports Rust stable (no MSRV) and Python 3.11 - 3.15.
 
 #### Rust crate
 Via crates.io:
@@ -51,31 +52,52 @@ pip install adaptif
 
 ## Usage
 
+This section shows basic examples for a least mean squares (LMS) filter in Rust and Python.
+
+Here:
+
+- `input_signal` is the desired/noisy signal. Commonly referred to as `d(n)` in mathematical notation.
+
+- `noise_ref` is the reference noise signal. Commonly referred to as `x(n)` in mathematical notation. 
+
+More examples can be found in `examples/`.
+
 ### Rust
 
-See the examples in `examples/`.
+```rust
+use adaptif::filters::{LmsFilter, LmsOptions, ProcessingMode};
+use adaptif::types::{InputSignal, NoiseReference};
+
+// Sample inputs
+let input_signal = InputSignal::new(vec![1.0, -2.5, 3.0])?;
+let noise_ref = NoiseReference::new(vec![2.0, -1.2, -3.8])?;
+
+// Initialize the filter
+let mut lms = LmsFilter::new(
+    LmsOptions {
+        step_size: 0.1,  // How fast the filter adapts
+        window_size: 16, // How many samples the filter processes at a time
+    },
+    ProcessingMode::Sample,
+)?;
+
+// Adapt the filter to the inputs and get the iteratively cleaned signal.
+let cleaned_signal = lms.adapt(&input_signal, &noise_ref)?;
+
+Ok(())
+```
 
 ### Python
-
-Filters can be imported from the `adaptif` package.
-
-LMS adaptive filter example:
 
 ```python
 from adaptif import LMSFilter
 
 # setting up filter
-lms_af = LMSFilter(step_size=0.001, window_size=32)
+lms = LMSFilter(step_size=0.001, window_size=32)
 
 # Assuming signals are already present and named accordingly
-cleaned_signal = lms_af.adapt(input_signal=noisy_signal, noise_ref=noise)
+cleaned_signal = lms.adapt(input_signal=noisy_signal, noise_ref=noise)
 ```
-
-Here:
-
-- `input_signal` is the desired/noisy signal. Commonly referred to as `d(n)` in mathematical notation. 
-
-- `noise_ref` is the reference noise signal. Commonly referred to as `x(n)` in mathematical notation. 
 
 ---
 ## Contributing
