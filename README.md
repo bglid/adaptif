@@ -93,7 +93,7 @@ Ok(())
 from adaptif import LMSFilter
 
 # setting up filter
-lms = LMSFilter(step_size=0.001, window_size=32)
+lms = LMSFilter(step_size=0.1, window_size=16)
 
 # Assuming signals are already present and named accordingly
 cleaned_signal = lms.adapt(input_signal=noisy_signal, noise_ref=noise)

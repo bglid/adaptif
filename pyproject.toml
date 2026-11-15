@@ -49,6 +49,7 @@ dev = [
     "ty>=0.0.75",
     "maturin>=1.15.0",
     "soundfile>=0.14.0",
+    "jupyterlab>=4.6.6",
 ]
 
 [tool.maturin]

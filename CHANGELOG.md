@@ -14,6 +14,7 @@ Initial release of Python package & Rust crate.
 ### Added
 
 * LMS, NLMS, & RLS implementations.
+* `Algorithm` trait and `FilterBase` type for implementing custom filters.
 * `src/python`: Python FFI via Py03.
 * `integration/`: Integration tests for Python & Rust APIs.
 * `examples/`: Examples of how to use Rust crate and Python package.
