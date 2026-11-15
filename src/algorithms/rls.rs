@@ -21,7 +21,7 @@ use crate::algorithms::Algorithm;
 /// LMS-family algorithms may be preferable.
 ///
 /// [recursive least squares]: https://en.wikipedia.org/wiki/Recursive_least_squares_filter
-/// [least mean squares]: `https://en.wikipedia.org/wiki/Least_mean_squares_filter`
+/// [least mean squares]: https://en.wikipedia.org/wiki/Least_mean_squares_filter
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Rls<F: Float> {
@@ -222,10 +222,11 @@ impl<F: Float> InverseCorrMatrix<F> {
                 // index is into a flat buffer, so row * n gives us the start of each row
                 let index = row * noise_ref.len() + col;
 
+                // matrix is allocated as M x M elements, so index is valid
+                // since kalman gain and noise_ref.len() have length M.
                 let p_i = self
                     .get_mut(index)
-                    // TODO(ben): How is this enforced?
-                    .expect("Index should always be valid based on the type invariants");
+                    .expect("Inverse corr matrix dimensions must match the reference window size");
                 *p_i = (*p_i - k_i * xt_p_col) / lambda;
             }
         }

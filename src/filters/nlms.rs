@@ -55,7 +55,7 @@ impl<F: Float> Default for NlmsOptions<F> {
 /// let mut nlms = NlmsFilter::new(
 ///     NlmsOptions {
 ///         step_size: 0.01, // How fast the filter adapts
-///         window_size: 16, // How many samples the filter processes at a time
+///         window_size: 16, // How many samples the filter processes at each step
 ///         eps: 1e-8,       // Normalization regularization term
 ///     },
 ///     ProcessingMode::Sample,
@@ -73,19 +73,28 @@ impl<F: Float> Default for NlmsOptions<F> {
 ///
 /// # Update Rule
 ///
+/// The filter output is calculated at every step as:
+///
+/// $$y(n) = \mathbf{w}^{T}(n)\mathbf{x}(n)$$
+///
+/// The error signal is calculated at every step as:
+///
+/// $$e(n) = d(n) - y(n)$$
 ///
 /// The weights are updated at every step according to:
 ///
 /// $$
-/// \mathbf{w}(n+1) = \mathbf{w}(n) +\mu \mathbf{e}(n)
+/// \mathbf{w}(n+1) = \mathbf{w}(n) +\mu e(n)
 /// \frac{\mathbf{x}(n)}
 /// {\epsilon + \|\|\mathbf{x}(n)\|\|^2}
 /// $$
 ///
 /// Where:
+/// - $d(n)$ is the primary input signal.
+/// - $y(n)$ is the estimated noise (filter output).
 /// - $\mathbf{w}(n)$ is the filter weight vector.
 /// - $μ$ is the adaptation step size.
-/// - $\mathbf{e}(n)$ is the scalar error.
+/// - $e(n)$ is the scalar error.
 /// - $\mathbf{x}(n)$ is the reference input vector.
 /// - $\epsilon$ is the normalization regularization term that prevents division by 0.
 /// - $\|\|\mathbf{x}(n)\|\|^2$ is the squared Euclidean norm of the input vector.

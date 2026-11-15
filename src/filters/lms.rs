@@ -37,7 +37,7 @@ impl<F: Float> Default for LmsOptions<F> {
 ///
 /// Updates the filter weights using the [least mean squares] algorithm.
 /// The LMS algorithm uses stochastic gradient descent to minimize
-/// the mean squared error between the reference input signal
+/// the mean squared error between the desired response signal
 /// and the filter output.
 ///
 /// ### Example usage
@@ -51,7 +51,7 @@ impl<F: Float> Default for LmsOptions<F> {
 /// let mut lms = LmsFilter::new(
 ///     LmsOptions {
 ///         step_size: 0.1,  // How fast the filter adapts
-///         window_size: 16, // How many samples the filter processes at a time
+///         window_size: 16, // How many samples the filter processes at each step
 ///     },
 ///     ProcessingMode::Sample,
 /// )?;
@@ -68,17 +68,27 @@ impl<F: Float> Default for LmsOptions<F> {
 ///
 /// # Update Rule
 ///
+/// The filter output is calculated at every step as:
+///
+/// $$y(n) = \mathbf{w}^{T}(n)\mathbf{x}(n)$$
+///
+/// The error signal is calculated at every step as:
+///
+/// $$e(n) = d(n) - y(n)$$
+///
 /// The weights are updated at every step according to:
 ///
-/// $$\mathbf{w}(n+1) = \mathbf{w}(n) + \mu \mathbf{e}(n)\mathbf{x}(n)$$
+/// $$\mathbf{w}(n+1) = \mathbf{w}(n) + \mu e(n)\mathbf{x}(n)$$
 ///
 /// Where:
+/// - $d(n)$ is the primary input signal.
+/// - $y(n)$ is the estimated noise (filter output).
 /// - $\mathbf{w}(n)$ is the filter weight vector.
 /// - $μ$ is the adaptation step size.
-/// - $\mathbf{e}(n)$ is the scalar error.
+/// - $e(n)$ is the scalar error.
 /// - $\mathbf{x}(n)$ is the reference input vector.
 ///
-/// [least mean squares]: `https://en.wikipedia.org/wiki/Least_mean_squares_filter`
+/// [least mean squares]: https://en.wikipedia.org/wiki/Least_mean_squares_filter
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LmsFilter<F: Float> {

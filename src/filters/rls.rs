@@ -61,7 +61,7 @@ impl<F: Float> Default for RlsOptions<F> {
 /// // Initialize the filter
 /// let mut rls = RlsFilter::new(
 ///     RlsOptions {
-///         forgetting_factor: 0.999, // How much data the filter forgets
+///         forgetting_factor: 0.999, // How much weight is given to past observations
 ///         window_size: 8,           // How many samples the filter processes at a time
 ///         p_init_scale: 0.001,      // Value of initialization scalar for algorithm
 ///     },
@@ -80,6 +80,14 @@ impl<F: Float> Default for RlsOptions<F> {
 ///
 /// # Update Rule
 ///
+/// The filter output is calculated at every step as:
+///
+/// $$y(n) = \mathbf{w}^{T}(n)\mathbf{x}(n)$$
+///
+/// The error signal is calculated at every step as:
+///
+/// $$e(n) = d(n) - y(n)$$
+///
 /// The weights are updated at every step according to:
 ///
 /// $$\mathbf{w}(n) = \mathbf{w}(n-1) + \mathbf{k}(n)e(n)$$
@@ -97,6 +105,8 @@ impl<F: Float> Default for RlsOptions<F> {
 /// $$\mathbf{P}(0) = \delta\mathbf{I}$$
 ///
 /// Where:
+/// - $d(n)$ is the primary input signal.
+/// - $y(n)$ is the estimated noise (filter output).
 /// - $\mathbf{w}(n)$ is the filter weight vector.
 /// - $\mathbf{x}(n)$ is the reference input vector.
 /// - $e(n)$ is the scalar error for the current sample.
