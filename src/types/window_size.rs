@@ -4,6 +4,7 @@ use std::{fmt::Display, num::NonZero};
 use crate::{Error, Result};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// The number of past noise reference samples used when processing
 /// each input sample.
 ///

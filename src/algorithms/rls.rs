@@ -23,18 +23,19 @@ use crate::algorithms::Algorithm;
 /// [recursive least squares]: https://en.wikipedia.org/wiki/Recursive_least_squares_filter
 /// [least mean squares]: https://en.wikipedia.org/wiki/Least_mean_squares_filter
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Rls<F: Float> {
-    /// Forgetting factor, often referred to as `lambda`, used for weight updates.
+    /// Forgetting factor, often denoted with $\lambda$, used for weight updates.
     forgetting_factor: F,
-    /// Positive scalar value, often referred to as `delta`, used for initalizing the inverse correlation `p_matrix`.
+    /// Positive scalar value, often denoted with $\delta$, used for initalizing the inverse correlation matrix $P\[n\]$.
     p_init_scale: F,
     /// Window size of the filter.
     /// Determines the size of the inverse correlation matrix and the kalman gain vector.
     window_size: WindowSize,
-    /// Inverse correlation matrix, referred to as P[n], for RLS updates.
+    /// Inverse correlation matrix, referred to as $P\[n\]$, for RLS updates.
     /// Its dimensions are (M, M), where M is the filter's window size.
     inverse_corr_matrix: InverseCorrMatrix<F>,
-    /// Kalman Gain vector used in updating filter weights.
+    /// Kalman Gain vector used in updating the filter's weights.
     /// Its length is equal to the filter's window size.
     kalman_gain: KalmanGain<F>,
 }
@@ -111,6 +112,7 @@ impl<F: Float> Algorithm<F> for Rls<F> {
 
 /// M-dimensional vector of Kalman gains, where M is the filter's window size.
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct KalmanGain<F: Float> {
     inner: Box<[F]>,
 }
@@ -125,8 +127,8 @@ impl<F: Float> KalmanGain<F> {
     ///
     /// Kalman gain vector update calculated as:
     ///
-    /// $``k_n`` = \frac{P_{n-1} ``x_n``}
-    /// {\lambda + ``x_n^T`` P_{n-1} ``x_n``}$.
+    /// $`k_n` = \frac{P_{n-1} `x_n`}
+    /// {\lambda + `x_n^T` P_{n-1} `x_n`}$.
     ///
     /// Existing Kalman gain buffer gets reused to store the numerator
     /// value in update calculation to avoid reallocating a new vector.
@@ -176,6 +178,7 @@ impl<F: Float> DerefMut for KalmanGain<F> {
 
 /// Inverse Correlation Matrix with shape M * M, where M is the filter's window size.
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct InverseCorrMatrix<F: Float> {
     inner: Box<[F]>,
 }
@@ -197,12 +200,12 @@ impl<F: Float> InverseCorrMatrix<F> {
     }
 
     /// Updates the inverse correlation matrix used in the RLS weight update.
-    /// Utilizes current Kalman gain ``k_n``.
+    /// Utilizes current Kalman gain `k_n`.
     ///
     /// Inverse correlation matrix update calculated as:
     ///
-    /// $``P_n`` = \frac{1}{\lambda}
-    /// \left(P_{n-1} - ``k_n`` ``x_n^T`` P_{n-1}\right)$.
+    /// $`P_n` = \frac{1}{\lambda}
+    /// \left(P_{n-1} - `k_n` `x_n^T` P_{n-1}\right)$.
     ///
     /// The matrix is stored as a flat buffer and updated in place.
     fn update(&mut self, kalman_gain: &KalmanGain<F>, noise_ref: &NoiseWindowView<F>, lambda: F) {

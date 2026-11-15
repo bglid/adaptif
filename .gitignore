@@ -27,6 +27,7 @@
 !examples/
 !examples/**/
 !examples/**/*.rs
+!examples/**/*.ipynb
 
 !Cargo.toml
 !Cargo.lock
@@ -42,6 +43,8 @@
 !*.md
 !LICENSE-APACHE
 !LICENSE-MIT
+# math rendering
+!katex-header.html
 
 # ci/cd
 !.github/
@@ -50,8 +53,6 @@
 !.github/**/*.md
 !.pre-commit-config.yaml
 
-# math rendering
-!katex-header.html
-
 # explicit excludes
 **/__pycache__/
+**/.ipynb_checkpoints

@@ -40,7 +40,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     let block_size = BlockSize::new(1)?;
 
-    // Instantiate the filter using SampleFilterBase and our custom algorithm
+    // Instantiate the filter using FilterBase and our custom algorithm
     let mut filter = FilterBase::new(algorithm_cfg, block_size);
 
     // Adapt the filter using our algorithm's update rules

@@ -52,7 +52,7 @@ class LMSFilter:
 
         Uses the current filter weights to process the input
         and reference signals. Unlike `adapt()`, this method
-        does not perform filter weight adaptation.
+        does not perform weight adaptation.
 
         Args:
             input_signal: One-dimensional float64 NumPy array
@@ -123,7 +123,7 @@ class NLMSFilter:
 
         Uses the current filter weights to process the input
         and reference signals. Unlike `adapt()`, this method
-        does not perform filter weight adaptation.
+        does not perform weight adaptation.
 
         Args:
             input_signal: One-dimensional float64 NumPy array
@@ -198,7 +198,7 @@ class RLSFilter:
 
         Uses the current filter weights to process the input
         and reference signals. Unlike `adapt()`, this method
-        does not perform filter weight adaptation.
+        does not perform weight adaptation.
 
         Args:
             input_signal: One-dimensional float64 NumPy array

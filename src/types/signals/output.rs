@@ -5,6 +5,7 @@ use crate::types::Float;
 use super::InputSignal;
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct OutputSignal<F: Float> {
     samples: Vec<F>,
 }
@@ -26,6 +27,7 @@ impl<F: Float> From<OutputSignal<F>> for Vec<F> {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct OutputSample<F: Float>(pub F);
 impl<F: Float> Deref for OutputSample<F> {
     type Target = F;

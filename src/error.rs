@@ -5,6 +5,7 @@ use std::result;
 pub type Result<T> = result::Result<T, Error>;
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]
 /// Error type used by the `adaptif` crate.
 pub enum Error {

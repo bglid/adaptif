@@ -16,6 +16,7 @@ use crate::algorithms::Algorithm;
 ///
 /// [normalized least mean squares]: https://en.wikipedia.org/wiki/Least_mean_squares_filter#Normalized_least_mean_squares_filter_(NLMS)
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Nlms<F: Float> {
     /// Step size for weight updates.
     step_size: F,
