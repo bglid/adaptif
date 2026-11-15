@@ -21,7 +21,7 @@ use crate::algorithms::Algorithm;
 /// LMS-family algorithms may be preferable.
 ///
 /// [recursive least squares]: https://en.wikipedia.org/wiki/Recursive_least_squares_filter
-/// [least mean squares]: `https://en.wikipedia.org/wiki/Least_mean_squares_filter`
+/// [least mean squares]: https://en.wikipedia.org/wiki/Least_mean_squares_filter
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Rls<F: Float> {
     /// Forgetting factor, often referred to as `lambda`, used for weight updates.
