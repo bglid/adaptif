@@ -4,11 +4,19 @@ use crate::error::{Error, Result};
 use crate::types::Float;
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+/// Reference noise signal that the filter adapts to.
+///
+/// In mathematical notation, this signal is commonly represented as $x(n)$.
 pub struct NoiseReference<F: Float> {
     samples: Vec<F>,
 }
 impl<F: Float> NoiseReference<F> {
+    /// Creates a new `NoiseReference` from a `Vec`.
+    /// The input `Vec` cannot be empty.
+    ///
     /// # Errors
+    ///
     /// Returns an error if `noise_ref` is empty.
     pub fn new(noise_ref: Vec<F>) -> Result<Self> {
         if noise_ref.is_empty() {
@@ -18,7 +26,7 @@ impl<F: Float> NoiseReference<F> {
         }
     }
 
-    pub fn get(&self, n: usize) -> Option<NoiseSample<F>> {
+    pub(crate) fn get(&self, n: usize) -> Option<NoiseSample<F>> {
         Some(NoiseSample(*self.samples.get(n)?))
     }
 
@@ -42,6 +50,7 @@ impl<F: Float> From<NoiseReference<F>> for Vec<F> {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NoiseSample<F: Float>(pub F);
 impl<F: Float> Deref for NoiseSample<F> {
     type Target = F;

@@ -7,6 +7,7 @@ use crate::types::Float;
 /// Functions must ensure that `samples.len()` is the same before and after function calls
 /// to enforce the invariant it is the same as the number of weights, and equal to the filter's window size.
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SampleBuffer<F: Float> {
     samples: VecDeque<F>,
     capacity: NonZeroUsize,

@@ -6,20 +6,36 @@ use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
 
-/// Recursive least squares algorithm.
+/// Recursive Least Squares (RLS) algorithm.
+///
+/// Updates the filter weights using the [recursive least squares] algorithm.
+/// RLS recursively finds the coefficients that
+/// minimize an exponentially weighted sum of
+/// squared errors to adapt the filter weights.
+///
+/// Unlike [least mean squares], which uses stochastic gradient
+/// descent, RLS uses a deterministic least-squares approach.
+///
+/// RLS has fast convergence, at the cost of high computational complexity.
+/// For computationally constrained applications,
+/// LMS-family algorithms may be preferable.
+///
+/// [recursive least squares]: https://en.wikipedia.org/wiki/Recursive_least_squares_filter
+/// [least mean squares]: https://en.wikipedia.org/wiki/Least_mean_squares_filter
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Rls<F: Float> {
-    /// Forgetting factor, often referred to as `lambda`, used for weight updates.
+    /// Forgetting factor, often denoted with $\lambda$, used for weight updates.
     forgetting_factor: F,
-    /// Positive scalar value, often referred to as `delta`, used for initalizing the inverse correlation `p_matrix`.
+    /// Positive scalar value, often denoted with $\delta$, used for initalizing the inverse correlation matrix $P\[n\]$.
     p_init_scale: F,
     /// Window size of the filter.
     /// Determines the size of the inverse correlation matrix and the kalman gain vector.
     window_size: WindowSize,
-    /// Inverse correlation matrix, referred to as P[n], for RLS updates.
+    /// Inverse correlation matrix, referred to as $P\[n\]$, for RLS updates.
     /// Its dimensions are (M, M), where M is the filter's window size.
     inverse_corr_matrix: InverseCorrMatrix<F>,
-    /// Kalman Gain vector used in updating filter coefficients.
+    /// Kalman Gain vector used in updating the filter's weights.
     /// Its length is equal to the filter's window size.
     kalman_gain: KalmanGain<F>,
 }
@@ -47,25 +63,32 @@ impl<F: Float> Rls<F> {
     }
 }
 
-/// Updates the filter weights using the following algorithm.
+#[allow(clippy::doc_paragraphs_missing_punctuation, reason = "maths")]
+/// The weights are updated at every step according to:
 ///
-/// The Kalman gain vector, ``k_n`` is calculated as:
+/// $$\mathbf{w}(n) = \mathbf{w}(n-1) + \mathbf{k}(n)e(n)$$
 ///
-/// $``k_n`` = \frac{P_{n-1} ``x_n``}
-/// {\lambda + ``x_n^T`` P_{n-1} ``x_n``}$.
+/// The Kalman gain vector is calculated as:
 ///
-/// The filter weights are updated as:
+/// $$\mathbf{k}(n) = \frac{\mathbf{P}(n-1)\mathbf{x}(n)}{\lambda + \mathbf{x}^{T}(n)\mathbf{P}(n-1)\mathbf{x}(n)}$$
 ///
-/// $``w_n`` = w_{n-1} + ``k_n`` ``e_n``$.
+/// The inverse correlation matrix is then updated as:
 ///
-/// The inverse correlation matrix is updated as:
+/// $$\mathbf{P}(n) = \frac{1}{\lambda}\left(\mathbf{P}(n-1) - \mathbf{k}(n)\mathbf{x}^{T}(n)\mathbf{P}(n-1)\right)$$
 ///
-/// $``P_n`` = \frac{1}{\lambda}
-/// \left(P_{n-1} - ``k_n`` ``x_n^T`` P_{n-1}\right)$.
+/// The inverse correlation matrix is initialized as:
 ///
-/// where `e_n` is the scalar error for the current sample,
-/// and $``x_n``$ is a vector of length `window_size` of the
-/// most recent noise reference samples.
+/// $$\mathbf{P}(0) = \delta\mathbf{I}$$
+///
+/// Where:
+/// - $\mathbf{w}(n)$ is the filter weight vector.
+/// - $\mathbf{x}(n)$ is the reference input vector.
+/// - $e(n)$ is the scalar error for the current sample.
+/// - $\mathbf{k}(n)$ is the Kalman gain vector.
+/// - $\mathbf{P}(n)$ is the inverse correlation matrix.
+/// - $\lambda$ is the forgetting factor, with $0 < \lambda \leq 1$.
+/// - $\delta$ is  a positive initialization scalar.
+/// - $\mathbf{I}$ is the identity matrix.
 impl<F: Float> Algorithm<F> for Rls<F> {
     fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindowView<F>) {
         self.kalman_gain.update(
@@ -89,6 +112,7 @@ impl<F: Float> Algorithm<F> for Rls<F> {
 
 /// M-dimensional vector of Kalman gains, where M is the filter's window size.
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct KalmanGain<F: Float> {
     inner: Box<[F]>,
 }
@@ -103,8 +127,8 @@ impl<F: Float> KalmanGain<F> {
     ///
     /// Kalman gain vector update calculated as:
     ///
-    /// $``k_n`` = \frac{P_{n-1} ``x_n``}
-    /// {\lambda + ``x_n^T`` P_{n-1} ``x_n``}$.
+    /// $`k_n` = \frac{P_{n-1} `x_n`}
+    /// {\lambda + `x_n^T` P_{n-1} `x_n`}$.
     ///
     /// Existing Kalman gain buffer gets reused to store the numerator
     /// value in update calculation to avoid reallocating a new vector.
@@ -154,6 +178,7 @@ impl<F: Float> DerefMut for KalmanGain<F> {
 
 /// Inverse Correlation Matrix with shape M * M, where M is the filter's window size.
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct InverseCorrMatrix<F: Float> {
     inner: Box<[F]>,
 }
@@ -175,12 +200,12 @@ impl<F: Float> InverseCorrMatrix<F> {
     }
 
     /// Updates the inverse correlation matrix used in the RLS weight update.
-    /// Utilizes current Kalman gain ``k_n``.
+    /// Utilizes current Kalman gain `k_n`.
     ///
     /// Inverse correlation matrix update calculated as:
     ///
-    /// $``P_n`` = \frac{1}{\lambda}
-    /// \left(P_{n-1} - ``k_n`` ``x_n^T`` P_{n-1}\right)$.
+    /// $`P_n` = \frac{1}{\lambda}
+    /// \left(P_{n-1} - `k_n` `x_n^T` P_{n-1}\right)$.
     ///
     /// The matrix is stored as a flat buffer and updated in place.
     fn update(&mut self, kalman_gain: &KalmanGain<F>, noise_ref: &NoiseWindowView<F>, lambda: F) {
@@ -197,10 +222,11 @@ impl<F: Float> InverseCorrMatrix<F> {
                 // index is into a flat buffer, so row * n gives us the start of each row
                 let index = row * noise_ref.len() + col;
 
+                // matrix is allocated as M x M elements, so index is valid
+                // since kalman gain and noise_ref.len() have length M.
                 let p_i = self
                     .get_mut(index)
-                    // TODO(ben): How is this enforced?
-                    .expect("Index should always be valid based on the type invariants");
+                    .expect("Inverse corr matrix dimensions must match the reference window size");
                 *p_i = (*p_i - k_i * xt_p_col) / lambda;
             }
         }

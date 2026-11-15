@@ -9,6 +9,7 @@
 !python/adaptif/
 !python/adaptif/*.py
 !python/adaptif/*.pyi
+!python/adaptif/py.typed
 
 # python unit tests
 !python/tests/
@@ -26,6 +27,7 @@
 !examples/
 !examples/**/
 !examples/**/*.rs
+!examples/**/*.ipynb
 
 !Cargo.toml
 !Cargo.lock
@@ -41,6 +43,8 @@
 !*.md
 !LICENSE-APACHE
 !LICENSE-MIT
+# math rendering
+!katex-header.html
 
 # ci/cd
 !.github/
@@ -51,3 +55,4 @@
 
 # explicit excludes
 **/__pycache__/
+**/.ipynb_checkpoints

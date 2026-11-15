@@ -4,11 +4,19 @@ use crate::error::{Error, Result};
 use crate::types::Float;
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+/// Input signal to the filter, also referred to as the 'desired signal'.
+///
+/// In mathematical notation, this signal is commonly represented as a vector $d(n)$.
 pub struct InputSignal<F: Float> {
     samples: Vec<F>,
 }
 impl<F: Float> InputSignal<F> {
+    /// Creates a new `InputSignal` from a `Vec`.
+    /// The input `Vec` cannot be empty.
+    ///
     /// # Errors
+    ///
     /// Returns an error if `input_signal` is empty.
     pub fn new(input_signal: Vec<F>) -> Result<Self> {
         if input_signal.is_empty() {
@@ -20,7 +28,7 @@ impl<F: Float> InputSignal<F> {
         }
     }
 
-    pub fn get(&self, n: usize) -> Option<InputSample<F>> {
+    pub(crate) fn get(&self, n: usize) -> Option<InputSample<F>> {
         Some(InputSample(*self.samples.get(n)?))
     }
 
@@ -44,6 +52,7 @@ impl<F: Float> From<InputSignal<F>> for Vec<F> {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct InputSample<F: Float>(pub F);
 impl<F: Float> Deref for InputSample<F> {
     type Target = F;

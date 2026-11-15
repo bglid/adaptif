@@ -1,6 +1,7 @@
 RUST_SRC = src/*
 PY_BINDINGS = python/adaptif/adaptif.cpython*.so
 CARGO_FLAGS = --all-features --all-targets
+RUSTDOCFLAGS := --html-in-header $(CURDIR)/katex-header.html
 
 ##################################################
 # ENVIRONMENT SETUP
@@ -75,6 +76,7 @@ test-rs: check-rust-install
 	# Since we don't have any tests in the Python features, leaving it out for now.
 	cargo tarpaulin --lib --frozen --skip-clean
 	cargo test --test rust --frozen
+	cargo test --doc --frozen
 
 # Python 
 test-py: $(PY_BINDINGS) 
@@ -89,6 +91,15 @@ test-all: test-rs test-py
 audit: check-rust-install check-uv-install
 	cargo audit
 	uv audit
+
+##################################################
+# DOCS
+##################################################
+
+# Rust docs for development
+.PHONY: docs
+docs: 
+	RUSTDOCFLAGS="$(RUSTDOCFLAGS)" cargo doc --open
 
 
 # Remove build artifacts and bindings
