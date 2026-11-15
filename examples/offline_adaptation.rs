@@ -1,14 +1,27 @@
 #![allow(clippy::shadow_unrelated, reason = "Examples")]
 
-use std::error::Error;
+use std::{error::Error, path::PathBuf};
 
 use adaptif::filters::{LmsFilter, LmsOptions, ProcessingMode};
 use adaptif::types::{InputSignal, NoiseReference};
 
+mod common;
+use common::load_signals::load_signals;
+
 fn main() -> Result<(), Box<dyn Error>> {
-    // Sample inputs
-    let input_signal = InputSignal::new(vec![1.0, -2.5, 3.0])?;
-    let noise_ref = NoiseReference::new(vec![2.0, -1.2, -3.8])?;
+    // getting path for wav fixtures
+    let clean_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("integration")
+        .join("fixtures");
+    let wav_path = std::fs::read_dir(clean_dir)?
+        .next()
+        .ok_or("No WAV fixtures")??
+        .path();
+
+    // loading the wav files into Vec<f64> and injecting white noise
+    let (noisy_signal, noise) = load_signals(wav_path)?;
+    let input_signal = InputSignal::new(noisy_signal)?;
+    let noise_ref = NoiseReference::new(noise)?;
 
     // Initialize the filter
     let mut lms = LmsFilter::new(
