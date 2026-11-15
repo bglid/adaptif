@@ -8,9 +8,13 @@ use crate::filters::ProcessingMode;
 use crate::types::{Float, WindowSize};
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+/// Used to specify the filter and algorithm parameters for [`NlmsFilter`].
 pub struct NlmsOptions<F: Float> {
+    /// Step size for weight updates.
     pub step_size: F,
+    /// Small decimal value to avoid division by zero.
     pub eps: F,
+    /// Number of past noise samples processed by the filter at each time step.
     pub window_size: usize,
 }
 impl<F: Float> Default for NlmsOptions<F> {
@@ -39,7 +43,6 @@ impl<F: Float> Default for NlmsOptions<F> {
 /// The NLMS algorithm normalizes with the power of the input to solve this problem, providing
 /// a more stable step size range.
 ///
-/// TODO: Question, should the examples be the default, or explicit like below?
 /// ### Example usage
 ///
 ///```rust
@@ -92,6 +95,8 @@ pub struct NlmsFilter<F: Float> {
     inner: FilterBase<F, Nlms<F>>,
 }
 impl<F: Float> NlmsFilter<F> {
+    /// Initializes a new NLMS filter.
+    ///
     /// # Errors
     ///
     /// Returns an error if `options.step_size <= 0.0` or `options.eps <= 0.0`.

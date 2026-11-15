@@ -8,9 +8,13 @@ use crate::filters::ProcessingMode;
 use crate::types::{Float, WindowSize};
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+/// Used to specify the filter and algorithm parameters for [`RlsFilter`].
 pub struct RlsOptions<F: Float> {
+    /// Forgetting factor, often denoted with $\lambda$, used for weight updates.
     pub forgetting_factor: F,
+    /// Positive scalar value, often denoted with $\delta$, used for initalizing the inverse correlation matrix $P\[n\]$.
     pub p_init_scale: F,
+    /// Number of past noise samples processed by the filter at each time step.
     pub window_size: usize,
 }
 impl<F: Float> Default for RlsOptions<F> {
@@ -43,6 +47,9 @@ impl<F: Float> Default for RlsOptions<F> {
 /// For computationally constrained applications,
 /// LMS-family algorithms may be preferable.
 ///
+/// [recursive least squares]: https://en.wikipedia.org/wiki/Recursive_least_squares_filter
+/// [least mean squares]: https://en.wikipedia.org/wiki/Least_mean_squares_filter
+///
 /// ### Example usage
 ///
 ///```rust
@@ -51,7 +58,7 @@ impl<F: Float> Default for RlsOptions<F> {
 /// use adaptif::types::{InputSignal, NoiseReference};
 ///
 /// // Initialize the filter
-/// let mut rls= RlsFilter::new(
+/// let mut rls = RlsFilter::new(
 ///     RlsOptions {
 ///         forgetting_factor: 0.999, // How much data the filter forgets
 ///         window_size: 8,           // How many samples the filter processes at a time
@@ -97,17 +104,16 @@ impl<F: Float> Default for RlsOptions<F> {
 /// - $\lambda$ is the forgetting factor, with $0 < \lambda \leq 1$.
 /// - $\delta$ is  a positive initialization scalar.
 /// - $\mathbf{I}$ is the identity matrix.
-///
-/// [recursive least squares]: https://en.wikipedia.org/wiki/Recursive_least_squares_filter
-/// [least mean squares]: `https://en.wikipedia.org/wiki/Least_mean_squares_filter`
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct RlsFilter<F: Float> {
     inner: FilterBase<F, Rls<F>>,
 }
 impl<F: Float> RlsFilter<F> {
+    /// Initializes a new RLS filter.
+    ///
     /// # Errors
     ///
-    /// Returns an error if options.forgetting factor <= 0.0 or > 1.0, or if init scale <= 0.0.
+    /// Returns an error if `options.forgetting factor <= 0.0` or `> 1.0`, or if `options.p_init_scale <= 0.0`.
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn new(options: RlsOptions<F>, mode: ProcessingMode) -> Result<Self> {
         let window_size = WindowSize::new(options.window_size)?;

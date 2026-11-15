@@ -8,8 +8,11 @@ use crate::filters::ProcessingMode;
 use crate::types::{Float, WindowSize};
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+/// Used to specify the filter and algorithm parameters for [`LmsFilter`].
 pub struct LmsOptions<F: Float> {
+    /// Step size for weight updates.
     pub step_size: F,
+    /// Number of past noise samples processed by the filter at each time step.
     pub window_size: usize,
 }
 impl<F: Float> Default for LmsOptions<F> {
@@ -80,9 +83,11 @@ pub struct LmsFilter<F: Float> {
     inner: FilterBase<F, Lms<F>>,
 }
 impl<F: Float> LmsFilter<F> {
+    /// Initializes a new LMS filter.
+    ///
     /// # Errors
     ///
-    /// Returns an error if ``options.step_size <= 0.0`` or ``options.window_size == 0``.
+    /// Returns an error if `options.step_size <= 0.0` or `options.window_size == 0`.
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn new(options: LmsOptions<F>, mode: ProcessingMode) -> Result<Self> {
         let window_size = WindowSize::new(options.window_size)?;

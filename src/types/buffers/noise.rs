@@ -83,12 +83,29 @@ impl<F: Float> DerefMut for NoiseBuffer<F> {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
-// TODO: docs
+/// A window of past reference noise samples.
+///
+/// This type presents an immutable reference to the past
+/// $k$ noise samples from the current time step, where $k$
+/// is the window size. In mathematical notation, this can
+/// be represented as $\[x(n), x(n-1), ..., x(n-k)\]$.
+///
+/// Samples are ordered from from most to least recent,
+/// i.e., [`get(0)`] returns the newest sample, and
+/// the iterator produced by [`iter()`] iterates over
+/// samples from most to least recent.
+///
+/// [`get(0)`]: #method.get
+/// [`iter()`]: #method.iter
 pub struct NoiseWindowView<'a, F: Float> {
     buffer: &'a NoiseBuffer<F>,
     start_idx: usize,
 }
 impl<F: Float> NoiseWindowView<'_, F> {
+    /// Returns a sample from the window.
+    ///
+    /// Samples are ordered from from most to least recent,
+    /// i.e., `get(0)` returns the newest sample.
     pub fn get(&self, index: usize) -> Option<&F> {
         if index >= *self.buffer.window_size {
             None
@@ -101,10 +118,17 @@ impl<F: Float> NoiseWindowView<'_, F> {
         clippy::len_without_is_empty,
         reason = "Buffer has a fixed size and can't be empty"
     )]
+    /// The size of the window.
+    /// This number is equal to the filter's window size.
     pub fn len(&self) -> usize {
         *self.buffer.window_size
     }
 
+    /// Produces an iterator over the samples in the window.
+    ///
+    /// Samples are returned in reverse-chronological order,
+    /// i.e., the first item will be the most recent sample,
+    /// and the last will be the least recent.
     pub fn iter(&self) -> impl Iterator<Item = F> {
         self.buffer
             .iter()
