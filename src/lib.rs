@@ -91,7 +91,7 @@
 //!     // The algorithm's window size
 //!     pub window_size: WindowSize,
 //! }
-//! // Implement the Algorithm trait so the algorithm can be used with SampleFilterBase
+//! // Implement the Algorithm trait so the algorithm can be used with FilterBase
 //! impl Algorithm<f64> for MyAlgorithm {
 //!     // This function is called every iteration during adaptation to update the weights
 //!     fn update_step(&mut self, weights: &mut [f64], error: f64, noise_window: NoiseWindowView<f64>) {
