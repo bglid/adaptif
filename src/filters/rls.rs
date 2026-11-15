@@ -72,19 +72,13 @@ impl<F: Float> Default for RlsOptions<F> {
 ///
 /// # Update Rule
 ///
-/// ### Filter Output
-///
 /// The filter output is calculated at every step as:
 ///
 /// $$y(n) = \mathbf{w}^{T}(n)\mathbf{x}(n)$$
 ///
-/// ### Error Signal
-///
 /// The error signal is calculated at every step as:
 ///
 /// $$e(n) = d(n) - y(n)$$
-///
-/// ### Weight Update
 ///
 /// The weights are updated at every step according to:
 ///
