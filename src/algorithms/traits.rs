@@ -40,8 +40,9 @@ use crate::types::{Float, WindowSize};
 pub trait Algorithm<F: Float> {
     /// Updates the weights for the next block based on the algorithm's update rules.
     /// This function is called for every processing block by the filter during adapation.
-    /// `error` are the cleaned samples from the current block.
-    /// `noise_ref` is the noise reference signal within the current processing window (the $k$ most recent samples).
+    /// `error` is the output sample for the current time step.
+    /// `noise_window` is the part of the noise reference signal within the current processing
+    /// window (the $k$ most recent samples).
     fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindowView<F>);
 
     /// Window size used by the algorithm.

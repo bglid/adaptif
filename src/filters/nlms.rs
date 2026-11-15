@@ -110,7 +110,8 @@ impl<F: Float> NlmsFilter<F> {
     ///
     /// # Errors
     ///
-    /// Returns an error if `options.step_size <= 0.0` or `options.eps <= 0.0`.
+    /// Returns an error if `options.step_size <= 0.0`, `options.eps <= 0.0`,
+    /// or `options.window_size == 0`.
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn new(options: NlmsOptions<F>, mode: ProcessingMode) -> Result<Self> {
         let window_size = WindowSize::new(options.window_size)?;
