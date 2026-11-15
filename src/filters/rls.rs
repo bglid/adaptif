@@ -37,9 +37,8 @@ impl<F: Float> Default for RlsOptions<F> {
 /// Recursive Least Squares (RLS) adaptive filter.
 ///
 /// Updates the filter weights using the [recursive least squares] algorithm.
-/// RLS recursively finds the coefficients that
-/// minimize an exponentially weighted sum of
-/// squared errors to adapt the filter weights.
+/// RLS recursively finds the weights that minimize an exponentially weighted
+/// sum of squared errors.
 ///
 /// Unlike [least mean squares], which uses stochastic gradient
 /// descent, RLS uses a deterministic least-squares approach.
@@ -125,7 +124,8 @@ impl<F: Float> RlsFilter<F> {
     ///
     /// # Errors
     ///
-    /// Returns an error if `options.forgetting factor <= 0.0` or `> 1.0`, or if `options.p_init_scale <= 0.0`.
+    /// Returns an error if `options.forgetting factor <= 0.0` or `> 1.0`, if `options.p_init_scale <= 0.0`,
+    /// or if `options.window_size == 0`.
     #[allow(clippy::needless_pass_by_value, reason = "All fields are moved")]
     pub fn new(options: RlsOptions<F>, mode: ProcessingMode) -> Result<Self> {
         let window_size = WindowSize::new(options.window_size)?;

@@ -132,7 +132,7 @@ impl<F: Float, A: Algorithm<F>> FilterBase<F, A> {
     /// using the chosen algorithm, and returns the denoised signal.
     ///
     /// Because the filter estimates the noise for each input sample
-    /// from past noise reference samples, the noise reference must be as long
+    /// from past noise reference samples, the noise reference must be as long as
     /// or longer than the input signal.
     ///
     /// Since adaptation is performed "on-the-fly", the output signal will start noisy

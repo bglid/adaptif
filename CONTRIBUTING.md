@@ -44,7 +44,7 @@ We maintain `.gitignore` as a whitelist by ignoring all files by default and imp
 !src/**/*.rs
 ```
 
-If you add new files to `.gitignore`, try to keep your additions reasonably concise by using wildcard like in the example above.
+If you add new files to `.gitignore`, try to keep your additions reasonably concise by using wildcard patterns like in the example above.
 Likewise, if you delete any files, make sure to remove any lines that are no longer necessary.
 
 ## Tooling & Dependencies
@@ -65,7 +65,7 @@ make setup-rust
 
 ### uv
 
-We use `uv` to manage Python dependencies and the dev env.
+We use `uv` to manage Python dependencies and the development environment.
 The following command will install/update `uv` and install the dev dependencies:
 
 ```bash
@@ -155,7 +155,7 @@ You can also share your best practices with us.
 
 **In particular**, if you use this in any DSP research, please let us know!!
 
-1. Because we love the topic and would love to check out and share your research
+1. Because we love the topic and would love to check out and share your research.
 2. It gives us an opportunity to see how this library is being used and how it can be improved.
 
 ---
