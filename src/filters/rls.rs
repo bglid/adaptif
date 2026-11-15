@@ -8,6 +8,7 @@ use crate::filters::ProcessingMode;
 use crate::types::{Float, WindowSize};
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// Used to specify the filter and algorithm parameters for [`RlsFilter`].
 pub struct RlsOptions<F: Float> {
     /// Forgetting factor, often denoted with $\lambda$, used for weight updates.
@@ -105,6 +106,7 @@ impl<F: Float> Default for RlsOptions<F> {
 /// - $\delta$ is  a positive initialization scalar.
 /// - $\mathbf{I}$ is the identity matrix.
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct RlsFilter<F: Float> {
     inner: FilterBase<F, Rls<F>>,
 }

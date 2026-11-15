@@ -8,6 +8,7 @@ use crate::filters::ProcessingMode;
 use crate::types::{Float, WindowSize};
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// Used to specify the filter and algorithm parameters for [`LmsFilter`].
 pub struct LmsOptions<F: Float> {
     /// Step size for weight updates.
@@ -79,6 +80,7 @@ impl<F: Float> Default for LmsOptions<F> {
 ///
 /// [least mean squares]: `https://en.wikipedia.org/wiki/Least_mean_squares_filter`
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LmsFilter<F: Float> {
     inner: FilterBase<F, Lms<F>>,
 }

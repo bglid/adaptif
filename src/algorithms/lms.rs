@@ -13,6 +13,7 @@ use crate::algorithms::Algorithm;
 ///
 /// [least mean squares]: `https://en.wikipedia.org/wiki/Least_mean_squares_filter`
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Lms<F: Float> {
     /// Step size for weight updates.
     step_size: F,

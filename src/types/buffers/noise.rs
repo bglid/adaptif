@@ -7,6 +7,7 @@ use crate::types::{BlockSize, FilterWeights, Float, WindowSize};
 
 /// Noise reference buffer for block processing.
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NoiseBuffer<F: Float> {
     inner: SampleBuffer<F>,
     window_size: WindowSize,
@@ -82,6 +83,10 @@ impl<F: Float> DerefMut for NoiseBuffer<F> {
     }
 }
 
+// NOTE: No serde derivations because Deserialize isn't implemented
+// for &NoiseBuffer. In the public API, this type is only accessible
+// through a function parameter in `Algorithm`, so this type shouldn't
+// be serialized/deserialized anyway.
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 /// A window of past reference noise samples.
 ///

@@ -4,6 +4,7 @@ use crate::Error;
 use crate::types::{Float, WindowSize};
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FilterWeights<F: Float> {
     weights: Box<[F]>, // We use a boxed slice instead of a Vec to ensure length doesn't change
     window_size: WindowSize,

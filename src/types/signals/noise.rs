@@ -4,6 +4,7 @@ use crate::error::{Error, Result};
 use crate::types::Float;
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// Reference noise signal that the filter adapts to.
 ///
 /// In mathematical notation, this signal is commonly represented as $x(n)$.
@@ -49,6 +50,7 @@ impl<F: Float> From<NoiseReference<F>> for Vec<F> {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NoiseSample<F: Float>(pub F);
 impl<F: Float> Deref for NoiseSample<F> {
     type Target = F;

@@ -23,6 +23,7 @@ use crate::algorithms::Algorithm;
 /// [recursive least squares]: https://en.wikipedia.org/wiki/Recursive_least_squares_filter
 /// [least mean squares]: `https://en.wikipedia.org/wiki/Least_mean_squares_filter`
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Rls<F: Float> {
     /// Forgetting factor, often denoted with $\lambda$, used for weight updates.
     forgetting_factor: F,
@@ -111,6 +112,7 @@ impl<F: Float> Algorithm<F> for Rls<F> {
 
 /// M-dimensional vector of Kalman gains, where M is the filter's window size.
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct KalmanGain<F: Float> {
     inner: Box<[F]>,
 }
@@ -176,6 +178,7 @@ impl<F: Float> DerefMut for KalmanGain<F> {
 
 /// Inverse Correlation Matrix with shape M * M, where M is the filter's window size.
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct InverseCorrMatrix<F: Float> {
     inner: Box<[F]>,
 }

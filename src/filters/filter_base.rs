@@ -8,6 +8,7 @@ use crate::types::signals::{InputSample, InputSignal, NoiseReference, OutputSamp
 use crate::types::{BlockSize, FilterWeights, Float, NoiseEstimate};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]
 /// Used as an input parameter to filter types like [`LmsFilter`] to specify the
 /// filter's processing mode.
@@ -64,6 +65,7 @@ impl ProcessingMode {
 ///
 /// ``` rust
 /// # use adaptif::Error;
+/// # use adaptif::Algorithm;
 /// use adaptif::filters::FilterBase;
 /// use adaptif::types::{BlockSize, WindowSize};
 /// use adaptif::types::{InputSignal, NoiseReference};
@@ -102,6 +104,7 @@ impl ProcessingMode {
 /// # Ok::<(), Error>(())
 /// ```
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FilterBase<F: Float, A: Algorithm<F>> {
     /// Implements the update logic for the filter's weights.
     algorithm: A,
