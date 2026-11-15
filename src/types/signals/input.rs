@@ -6,7 +6,7 @@ use crate::types::Float;
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 /// Input signal to the filter.
 ///
-/// In mathematical notation, this signal is commonly represented as a vector `x(n)`.
+/// In mathematical notation, this signal is commonly represented as a vector $d(n)$.
 pub struct InputSignal<F: Float> {
     samples: Vec<F>,
 }

@@ -12,7 +12,6 @@ use crate::types::{BlockSize, FilterWeights, Float, NoiseEstimate};
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[non_exhaustive]
 // TODO: links to other crate items (types, etc.)
-// TODO: replace references to "filter coefficients" with "weights"
 /// Used as an input parameter to filter types like `LmsFilter` to specify the
 /// filter's processing mode.
 ///

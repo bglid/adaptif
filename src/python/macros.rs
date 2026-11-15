@@ -72,7 +72,7 @@ macro_rules! generate_filter_bindings {
             ///
             /// Uses the current filter weights to process the input
             /// and reference signals. Unlike `adapt()`, this method
-            /// does not perform coefficient adaptation.
+            /// does not perform filter weight adaptation.
             ///
             /// Args:
             ///     `input_signal`: One-dimensional float64 NumPy array

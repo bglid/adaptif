@@ -34,7 +34,7 @@ pub struct Rls<F: Float> {
     /// Inverse correlation matrix, referred to as P[n], for RLS updates.
     /// Its dimensions are (M, M), where M is the filter's window size.
     inverse_corr_matrix: InverseCorrMatrix<F>,
-    /// Kalman Gain vector used in updating filter coefficients.
+    /// Kalman Gain vector used in updating filter weights.
     /// Its length is equal to the filter's window size.
     kalman_gain: KalmanGain<F>,
 }
@@ -219,10 +219,11 @@ impl<F: Float> InverseCorrMatrix<F> {
                 // index is into a flat buffer, so row * n gives us the start of each row
                 let index = row * noise_ref.len() + col;
 
+                // matrix is allocated as M x M elements, so index is valid
+                // since kalman gain and noise_ref.len() have length M.
                 let p_i = self
                     .get_mut(index)
-                    // TODO(ben): How is this enforced?
-                    .expect("Index should always be valid based on the type invariants");
+                    .expect("Inverse corr matrix dimensions must match the reference window size");
                 *p_i = (*p_i - k_i * xt_p_col) / lambda;
             }
         }
