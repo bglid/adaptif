@@ -6,6 +6,7 @@ on:
       # NOTE: this doesn't match all of semver (e.g. pre-releases),
       # but should be enough for our purposes
       - 'v[0-9]*.[0-9]*.[0-9]*'
+  workflow_dispatch:
 
 jobs:
   check-package:
