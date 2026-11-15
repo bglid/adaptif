@@ -56,6 +56,7 @@ jobs:
           artifacts: dist
           rust-toolchain: rust-toolchain.toml
           run: |
+            rustup default 1.99.0
             python -m pip install \
               /dist/adaptif-*.tar.gz \
               --force-reinstall \
