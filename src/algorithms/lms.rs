@@ -4,7 +4,14 @@ use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
 
-/// Least mean squares algorithm.
+/// Least Mean Squares (LMS) algorithm.
+///
+/// Updates the filter weights using the [least mean squares] algorithm.
+/// The LMS algorithm uses stochastic gradient descent to minimize
+/// the mean squared error between the reference input signal
+/// and the filter output.
+///
+/// [least mean squares]: `https://en.wikipedia.org/wiki/Least_mean_squares_filter`
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Lms<F: Float> {
     /// Step size for weight updates.
@@ -31,7 +38,7 @@ impl<F: Float> Lms<F> {
 impl<F: Float> Algorithm<F> for Lms<F> {
     /// Updates the filter weights using the LMS algorithm.
     ///
-    /// The weights are updated at each sample according to:
+    /// The weights are updated at every step according to:
     ///
     /// $$\mathbf{w}(n+1) = \mathbf{w}(n) + \mu e(n)\mathbf{x}(n)$$
     ///

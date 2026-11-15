@@ -28,6 +28,53 @@ impl<F: Float> Default for LmsOptions<F> {
     }
 }
 
+#[allow(clippy::doc_paragraphs_missing_punctuation, reason = "maths")]
+/// Least Mean Squares (LMS) adaptive filter.
+///
+/// Updates the filter weights using the [least mean squares] algorithm.
+/// The LMS algorithm uses stochastic gradient descent to minimize
+/// the mean squared error between the reference input signal
+/// and the filter output.
+///
+/// ### Example usage
+///
+///```rust
+/// # use adaptif::Error;
+/// use adaptif::filters::{LmsFilter, LmsOptions, ProcessingMode};
+/// use adaptif::types::{InputSignal, NoiseReference};
+///
+/// // Initialize the filter
+/// let mut lms = LmsFilter::new(
+///     LmsOptions {
+///         step_size: 0.1,  // How fast the filter adapts
+///         window_size: 16, // How many samples the filter processes at a time
+///     },
+///     ProcessingMode::Sample,
+/// )?;
+///
+/// // Sample inputs
+/// let input_signal = InputSignal::new(vec![1.0, -2.5, 3.0])?;
+/// let noise_ref = NoiseReference::new(vec![2.0, -1.2, -3.8])?;
+///
+/// // Adapt the filter to the inputs.
+/// let cleaned_signal = lms.adapt(&input_signal, &noise_ref)?;
+///
+/// # Ok::<(), Error>(())
+///```
+///
+/// # Update Rule
+///
+/// The weights are updated at every step according to:
+///
+/// $$\mathbf{w}(n+1) = \mathbf{w}(n) + \mu \mathbf{e}(n)\mathbf{x}(n)$$
+///
+/// Where:
+/// - $\mathbf{w}(n)$ is the filter weight vector.
+/// - $μ$ is the adaptation step size.
+/// - $\mathbf{e}(n)$ is the scalar error.
+/// - $\mathbf{x}(n)$ is the reference input vector.
+///
+/// [least mean squares]: `https://en.wikipedia.org/wiki/Least_mean_squares_filter`
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct LmsFilter<F: Float> {
     inner: FilterBase<F, Lms<F>>,

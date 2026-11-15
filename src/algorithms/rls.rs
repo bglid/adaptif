@@ -6,7 +6,22 @@ use crate::{Error, Result};
 
 use crate::algorithms::Algorithm;
 
-/// Recursive least squares algorithm.
+/// Recursive Least Squares (RLS) algorithm.
+///
+/// Updates the filter weights using the [recursive least squares] algorithm.
+/// RLS recursively finds the coefficients that
+/// minimize an exponentially weighted sum of
+/// squared errors to adapt the filter weights.
+///
+/// Unlike [least mean squares], which uses stochastic gradient
+/// descent, RLS uses a deterministic least-squares approach.
+///
+/// RLS has fast convergence, at the cost of high computational complexity.
+/// For computationally constrained applications,
+/// LMS-family algorithms may be preferable.
+///
+/// [recursive least squares]: https://en.wikipedia.org/wiki/Recursive_least_squares_filter
+/// [least mean squares]: `https://en.wikipedia.org/wiki/Least_mean_squares_filter`
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Rls<F: Float> {
     /// Forgetting factor, often referred to as `lambda`, used for weight updates.
@@ -47,25 +62,32 @@ impl<F: Float> Rls<F> {
     }
 }
 
-/// Updates the filter weights using the following algorithm.
+#[allow(clippy::doc_paragraphs_missing_punctuation, reason = "maths")]
+/// The weights are updated at every step according to:
 ///
-/// The Kalman gain vector, ``k_n`` is calculated as:
+/// $$\mathbf{w}(n) = \mathbf{w}(n-1) + \mathbf{k}(n)e(n)$$
 ///
-/// $``k_n`` = \frac{P_{n-1} ``x_n``}
-/// {\lambda + ``x_n^T`` P_{n-1} ``x_n``}$.
+/// The Kalman gain vector is calculated as:
 ///
-/// The filter weights are updated as:
+/// $$\mathbf{k}(n) = \frac{\mathbf{P}(n-1)\mathbf{x}(n)}{\lambda + \mathbf{x}^{T}(n)\mathbf{P}(n-1)\mathbf{x}(n)}$$
 ///
-/// $``w_n`` = w_{n-1} + ``k_n`` ``e_n``$.
+/// The inverse correlation matrix is then updated as:
 ///
-/// The inverse correlation matrix is updated as:
+/// $$\mathbf{P}(n) = \frac{1}{\lambda}\left(\mathbf{P}(n-1) - \mathbf{k}(n)\mathbf{x}^{T}(n)\mathbf{P}(n-1)\right)$$
 ///
-/// $``P_n`` = \frac{1}{\lambda}
-/// \left(P_{n-1} - ``k_n`` ``x_n^T`` P_{n-1}\right)$.
+/// The inverse correlation matrix is initialized as:
 ///
-/// where `e_n` is the scalar error for the current sample,
-/// and $``x_n``$ is a vector of length `window_size` of the
-/// most recent noise reference samples.
+/// $$\mathbf{P}(0) = \delta\mathbf{I}$$
+///
+/// Where:
+/// - $\mathbf{w}(n)$ is the filter weight vector.
+/// - $\mathbf{x}(n)$ is the reference input vector.
+/// - $e(n)$ is the scalar error for the current sample.
+/// - $\mathbf{k}(n)$ is the Kalman gain vector.
+/// - $\mathbf{P}(n)$ is the inverse correlation matrix.
+/// - $\lambda$ is the forgetting factor, with $0 < \lambda \leq 1$.
+/// - $\delta$ is  a positive initialization scalar.
+/// - $\mathbf{I}$ is the identity matrix.
 impl<F: Float> Algorithm<F> for Rls<F> {
     fn update_step(&mut self, weights: &mut [F], error: F, noise_window: NoiseWindowView<F>) {
         self.kalman_gain.update(
