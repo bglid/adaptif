@@ -5,6 +5,7 @@ use std::ops::Deref;
 use crate::{Error, Result};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// The number of input samples processed at once.
 ///
 /// The filter's weights are updated after each block, meaning that the same weights

@@ -4,7 +4,8 @@ use crate::error::{Error, Result};
 use crate::types::Float;
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
-/// Input signal to the filter.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+/// Input signal to the filter, also referred to as the 'desired signal'.
 ///
 /// In mathematical notation, this signal is commonly represented as a vector $d(n)$.
 pub struct InputSignal<F: Float> {
@@ -27,7 +28,6 @@ impl<F: Float> InputSignal<F> {
         }
     }
 
-    // TODO: should this be `pub` ? that would require making `InputSample` pub too
     pub(crate) fn get(&self, n: usize) -> Option<InputSample<F>> {
         Some(InputSample(*self.samples.get(n)?))
     }
@@ -52,6 +52,7 @@ impl<F: Float> From<InputSignal<F>> for Vec<F> {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct InputSample<F: Float>(pub F);
 impl<F: Float> Deref for InputSample<F> {
     type Target = F;

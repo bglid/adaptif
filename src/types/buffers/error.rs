@@ -4,6 +4,7 @@ use crate::types::buffers::SampleBuffer;
 use crate::types::signals::OutputSample;
 use crate::types::{BlockSize, Float};
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ErrorBuffer<F: Float> {
     inner: SampleBuffer<F>,
 }
