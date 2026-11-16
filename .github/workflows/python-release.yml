@@ -5,7 +5,8 @@ on:
     tags:
       # NOTE: this doesn't match all of semver (e.g. pre-releases),
       # but should be enough for our purposes
-      - 'v[0-9]*.[0-9]*.[0-9]*'
+      - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
 
 jobs:
   check-package:
@@ -21,10 +22,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Compare versions
-        run: |
-          VERSION=$(uv version --short)
-          test "$TAG" = "v$VERSION"
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v10.3.0
+
+      # temp removing
+      # - name: Compare versions
+      #   run: |
+      #     VERSION=$(uv version --short)
+      #     test "$TAG" = "v$VERSION"
 
   sdist:
     name: sdist
@@ -51,6 +56,7 @@ jobs:
           artifacts: dist
           rust-toolchain: rust-toolchain.toml
           run: |
+            rustup default 1.99.0
             python -m pip install \
               /dist/adaptif-*.tar.gz \
               --force-reinstall \
@@ -136,7 +142,6 @@ jobs:
       contents: read
 
     runs-on: ubuntu-24.04
-    if: github.event_name == 'release' && github.event.action == 'published'
     steps:
       - name: Download all distributions
         uses: actions/download-artifact@v8

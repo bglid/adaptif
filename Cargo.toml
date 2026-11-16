@@ -14,7 +14,7 @@ categories = [
     "multimedia",
     "multimedia::audio",
 ]
-include = ["/src", "/examples", "/README.md", "/CONTRIBUTING.md"]
+include = ["/src", "/examples", "/README.md", "/CONTRIBUTING.md", "/katex-header.html"]
 
 [lib]
 name = "adaptif"
